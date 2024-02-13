@@ -1,0 +1,135 @@
+From 7b8556074b4fdd7633f91651d8656008b35c9f04 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:54 +0100
+Subject: [PATCH 02/13] winegstreamer: Wait for samples in a dedicated work
+ queue.
+
+---
+ dlls/winegstreamer/media_source.c     | 10 ++++++++--
+ dlls/winegstreamer/media_source_old.c | 12 ++++++++++--
+ 2 files changed, 18 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 776c74888f7..7616a824dd7 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -83,6 +83,7 @@ struct media_source
+     IMFAsyncCallback async_commands_callback;
+     LONG ref;
+     DWORD async_commands_queue;
++    DWORD async_request_sample_queue;
+     IMFMediaEventQueue *event_queue;
+     IMFByteStream *byte_stream;
+ 
+@@ -408,7 +409,7 @@ static void flush_token_queue(struct media_stream *stream, BOOL send)
+                 command->u.request_sample.stream = stream;
+                 command->u.request_sample.token = stream->token_queue[i];
+ 
+-                hr = MFPutWorkItem(source->async_commands_queue, &source->async_commands_callback, op);
++                hr = MFPutWorkItem(source->async_request_sample_queue, &source->async_commands_callback, op);
+                 IUnknown_Release(op);
+             }
+             if (FAILED(hr))
+@@ -978,7 +979,7 @@ static HRESULT WINAPI media_stream_RequestSample(IMFMediaStream *iface, IUnknown
+             IUnknown_AddRef(token);
+         command->u.request_sample.token = token;
+ 
+-        hr = MFPutWorkItem(source->async_commands_queue, &source->async_commands_callback, op);
++        hr = MFPutWorkItem(source->async_request_sample_queue, &source->async_commands_callback, op);
+         IUnknown_Release(op);
+     }
+ 
+@@ -1478,6 +1479,7 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+     free(source->descriptors);
+     free(source->streams);
+ 
++    MFUnlockWorkQueue(source->async_request_sample_queue);
+     MFUnlockWorkQueue(source->async_commands_queue);
+ 
+     LeaveCriticalSection(&source->cs);
+@@ -1675,6 +1677,8 @@ HRESULT media_source_create(IMFByteStream *bytestream, const WCHAR *url, BYTE *d
+ 
+     if (FAILED(hr = MFAllocateWorkQueue(&object->async_commands_queue)))
+         goto fail;
++    if (FAILED(hr = MFAllocateWorkQueue(&object->async_request_sample_queue)))
++        goto fail;
+ 
+     if (!(object->descriptors = calloc(stream_count, sizeof(*object->descriptors)))
+             || !(object->stream_map = calloc(stream_count, sizeof(*object->stream_map)))
+@@ -1728,6 +1732,8 @@ fail:
+     free(object->descriptors);
+     free(object->streams);
+ 
++    if (object->async_request_sample_queue)
++        MFUnlockWorkQueue(object->async_request_sample_queue);
+     if (object->async_commands_queue)
+         MFUnlockWorkQueue(object->async_commands_queue);
+     if (object->event_queue)
+diff --git a/dlls/winegstreamer/media_source_old.c b/dlls/winegstreamer/media_source_old.c
+index b76809f794a..69950ce25ff 100644
+--- a/dlls/winegstreamer/media_source_old.c
++++ b/dlls/winegstreamer/media_source_old.c
+@@ -90,6 +90,7 @@ struct media_source
+     IMFAsyncCallback async_commands_callback;
+     LONG ref;
+     DWORD async_commands_queue;
++    DWORD async_request_sample_queue;
+     IMFMediaEventQueue *event_queue;
+     IMFByteStream *byte_stream;
+ 
+@@ -305,7 +306,7 @@ static void flush_token_queue(struct media_stream *stream, BOOL send)
+                 command->u.request_sample.stream = stream;
+                 command->u.request_sample.token = stream->token_queue[i];
+ 
+-                hr = MFPutWorkItem(source->async_commands_queue, &source->async_commands_callback,
++                hr = MFPutWorkItem(source->async_request_sample_queue, &source->async_commands_callback,
+                         &command->IUnknown_iface);
+             }
+             if (FAILED(hr))
+@@ -828,7 +829,7 @@ static HRESULT WINAPI media_stream_RequestSample(IMFMediaStream *iface, IUnknown
+             IUnknown_AddRef(token);
+         command->u.request_sample.token = token;
+ 
+-        hr = MFPutWorkItem(source->async_commands_queue, &source->async_commands_callback, &command->IUnknown_iface);
++        hr = MFPutWorkItem(source->async_request_sample_queue, &source->async_commands_callback, &command->IUnknown_iface);
+     }
+ 
+     LeaveCriticalSection(&source->cs);
+@@ -1251,6 +1252,7 @@ static ULONG WINAPI media_source_Release(IMFMediaSource *iface)
+     if (!ref)
+     {
+         IMFMediaSource_Shutdown(iface);
++        MFUnlockWorkQueue(source->async_request_sample_queue);
+         MFUnlockWorkQueue(source->async_commands_queue);
+         IMFPresentationDescriptor_Release(source->pres_desc);
+         IMFMediaEventQueue_Release(source->event_queue);
+@@ -1523,6 +1525,8 @@ HRESULT media_source_create_old(IMFByteStream *bytestream, const WCHAR *uri, IMF
+ 
+     if (FAILED(hr = MFAllocateWorkQueue(&object->async_commands_queue)))
+         goto fail;
++    if (FAILED(hr = MFAllocateWorkQueue(&object->async_request_sample_queue)))
++        goto fail;
+ 
+     if (!(parser = wg_parser_create(uri ? WG_PARSER_URIDECODEBIN : WG_PARSER_DECODEBIN, false)))
+     {
+@@ -1605,6 +1609,8 @@ HRESULT media_source_create_old(IMFByteStream *bytestream, const WCHAR *uri, IMF
+ 
+     if (FAILED(hr = MFCreatePresentationDescriptor(object->stream_count, descriptors, &object->pres_desc)))
+         goto fail;
++    if (FAILED(hr = MFAllocateWorkQueue(&object->async_request_sample_queue)))
++        goto fail;
+ 
+     /* Select one of each major type. */
+     for (i = 0; i < object->stream_count; i++)
+@@ -1694,6 +1700,8 @@ HRESULT media_source_create_old(IMFByteStream *bytestream, const WCHAR *uri, IMF
+     }
+     if (object->wg_parser)
+         wg_parser_destroy(object->wg_parser);
++    if (object->async_request_sample_queue)
++        MFUnlockWorkQueue(object->async_request_sample_queue);
+     if (object->async_commands_queue)
+         MFUnlockWorkQueue(object->async_commands_queue);
+     if (object->event_queue)
+-- 
+2.43.0
+

@@ -1,0 +1,28 @@
+From edfc8f36bd4cc51a5487efba322d838ce3378638 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:54 +0100
+Subject: [PATCH 03/13] winegstreamer: Add a resampler to wg_parser for raw
+ audio.
+
+---
+ dlls/winegstreamer/wg_parser.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 456112affe7..8c2012e8602 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1030,6 +1030,10 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+         if (!(element = create_element("audioconvert", "base"))
+                 || !append_element(parser->container, element, &first, &last))
+             goto out;
++        /* Input sample rate may not match requested sample rate. */
++        if (!(element = create_element("audioresample", "base"))
++                || !append_element(parser->container, element, &first, &last))
++            goto out;
+ 
+         if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
+             goto out;
+-- 
+2.43.0
+

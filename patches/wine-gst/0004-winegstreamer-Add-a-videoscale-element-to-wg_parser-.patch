@@ -1,0 +1,29 @@
+From 2ca3ab16b6e607091721e778b1b0cede73c6a8f8 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:54 +0100
+Subject: [PATCH 04/13] winegstreamer: Add a videoscale element to wg_parser
+ for raw video.
+
+---
+ dlls/winegstreamer/wg_parser.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 8c2012e8602..1f21c7258a6 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1018,6 +1018,11 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+                 || !append_element(parser->container, element, &first, &last))
+             goto out;
+ 
++        /* Input resolution may not match requested resolution. */
++        if (!(element = create_element("videoscale", "base"))
++                || !append_element(parser->container, element, &first, &last))
++            goto out;
++
+         if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
+             goto out;
+     }
+-- 
+2.43.0
+
