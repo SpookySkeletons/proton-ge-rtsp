@@ -1,0 +1,137 @@
+From cf12d2c8bb800cda2613d09f13333fd50fbf0772 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:54 +0100
+Subject: [PATCH 05/13] winegstreamer: Do away with the per-stream condvars and
+ use one parser-wide condvar instead.
+
+This is required because the next commit checks conditions on all streams.
+---
+ dlls/winegstreamer/wg_parser.c | 27 ++++++++++-----------------
+ 1 file changed, 10 insertions(+), 17 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 1f21c7258a6..7667ed7aa05 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -80,6 +80,7 @@ struct wg_parser
+     bool err_on, warn_on;
+ 
+     pthread_cond_t read_cond, read_done_cond;
++    pthread_cond_t stream_event_cond;
+     struct
+     {
+         GstBuffer *buffer;
+@@ -107,7 +108,6 @@ struct wg_parser_stream
+     GstSegment segment;
+     struct wg_format preferred_format, current_format;
+ 
+-    pthread_cond_t event_cond, event_empty_cond;
+     GstBuffer *buffer;
+     GstMapInfo map_info;
+ 
+@@ -243,8 +243,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
+     stream->enabled = false;
+     stream->current_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
+     pthread_mutex_unlock(&parser->mutex);
+-    pthread_cond_signal(&stream->event_cond);
+-    pthread_cond_signal(&stream->event_empty_cond);
++    pthread_cond_signal(&parser->stream_event_cond);
+     return S_OK;
+ }
+ 
+@@ -256,7 +255,7 @@ static GstBuffer *wait_parser_stream_buffer(struct wg_parser *parser, struct wg_
+      * must return the buffer. */
+ 
+     while (stream->enabled && !(buffer = stream->buffer) && !stream->eos)
+-        pthread_cond_wait(&stream->event_cond, &parser->mutex);
++        pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
+ 
+     return buffer;
+ }
+@@ -371,7 +370,7 @@ static NTSTATUS wg_parser_stream_release_buffer(void *args)
+     stream->buffer = NULL;
+ 
+     pthread_mutex_unlock(&parser->mutex);
+-    pthread_cond_signal(&stream->event_empty_cond);
++    pthread_cond_signal(&parser->stream_event_cond);
+ 
+     return S_OK;
+ }
+@@ -624,7 +623,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+             pthread_mutex_lock(&parser->mutex);
+             stream->eos = true;
+             if (stream->enabled)
+-                pthread_cond_signal(&stream->event_cond);
++                pthread_cond_signal(&parser->stream_event_cond);
+             else
+                 pthread_cond_signal(&parser->init_cond);
+             pthread_mutex_unlock(&parser->mutex);
+@@ -636,7 +635,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+             if (stream->enabled)
+             {
+                 stream->flushing = true;
+-                pthread_cond_signal(&stream->event_empty_cond);
++                pthread_cond_signal(&parser->stream_event_cond);
+ 
+                 if (stream->buffer)
+                 {
+@@ -714,7 +713,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+      * implementing a queue object here. */
+ 
+     while (stream->enabled && !stream->flushing && stream->buffer)
+-        pthread_cond_wait(&stream->event_empty_cond, &parser->mutex);
++        pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
+ 
+     if (!stream->enabled)
+     {
+@@ -742,7 +741,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+     stream->buffer = buffer;
+ 
+     pthread_mutex_unlock(&parser->mutex);
+-    pthread_cond_signal(&stream->event_cond);
++    pthread_cond_signal(&parser->stream_event_cond);
+ 
+     /* The chain callback is given a reference to the buffer. Transfer that
+      * reference to the stream object, which will release it in
+@@ -852,8 +851,6 @@ static struct wg_parser_stream *create_stream(struct wg_parser *parser, gchar *i
+     stream->parser = parser;
+     stream->number = parser->stream_count;
+     stream->current_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
+-    pthread_cond_init(&stream->event_cond, NULL);
+-    pthread_cond_init(&stream->event_empty_cond, NULL);
+ 
+     sprintf(pad_name, "qz_sink_%u", parser->stream_count);
+     stream->my_sink = gst_pad_new(pad_name, GST_PAD_SINK);
+@@ -885,9 +882,6 @@ static void free_stream(struct wg_parser_stream *stream)
+         stream->buffer = NULL;
+     }
+ 
+-    pthread_cond_destroy(&stream->event_cond);
+-    pthread_cond_destroy(&stream->event_empty_cond);
+-
+     for (i = 0; i < ARRAY_SIZE(stream->tags); ++i)
+     {
+         if (stream->tags[i])
+@@ -1670,10 +1664,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
+     /* Unblock all of our streams. */
+     pthread_mutex_lock(&parser->mutex);
+     for (i = 0; i < parser->stream_count; ++i)
+-    {
+         parser->streams[i]->flushing = true;
+-        pthread_cond_signal(&parser->streams[i]->event_empty_cond);
+-    }
++    pthread_cond_signal(&parser->stream_event_cond);
+     pthread_mutex_unlock(&parser->mutex);
+ 
+     gst_element_set_state(parser->container, GST_STATE_NULL);
+@@ -1864,6 +1856,7 @@ static NTSTATUS wg_parser_create(void *args)
+     pthread_cond_init(&parser->init_cond, NULL);
+     pthread_cond_init(&parser->read_cond, NULL);
+     pthread_cond_init(&parser->read_done_cond, NULL);
++    pthread_cond_init(&parser->stream_event_cond, NULL);
+     parser->init_gst = init_funcs[params->type];
+     parser->err_on = params->err_on;
+     parser->warn_on = params->warn_on;
+-- 
+2.43.0
+

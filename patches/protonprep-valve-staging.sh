@@ -397,6 +397,23 @@
 
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch
+    
+    
+    echo "WINE: RTSP patch"
+    patch -Np1 < ../patches/wine-gst/0001-winegstreamer-Unlock-media-source-while-waiting-for-.patch
+    patch -Np1 < ../patches/wine-gst/0002-winegstreamer-Wait-for-samples-in-a-dedicated-work-q.patch
+    patch -Np1 < ../patches/wine-gst/0003-winegstreamer-Add-a-resampler-to-wg_parser-for-raw-a.patch
+    patch -Np1 < ../patches/wine-gst/0004-winegstreamer-Add-a-videoscale-element-to-wg_parser-.patch
+    patch -Np1 < ../patches/wine-gst/0005-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch
+    patch -Np1 < ../patches/wine-gst/0006-winegstreamer-Implement-buffering-in-wg_parser.patch
+    patch -Np1 < ../patches/wine-gst/0007-winegstreamer-Add-more-RTSP-based-formats-to-GStream.patch
+    patch -Np1 < ../patches/wine-gst/0008-winegstreamer-Pass-all-uridecodebin-output-streams-t.patch
+    patch -Np1 < ../patches/wine-gst/0009-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch
+    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch
+    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Reorder-parser-initialization-code-a-b.patch
+    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Temporarily-put-pipeline-into-PLAYING-.patch
+    patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Convert-buffer-presentation-timestamps.patch
+
 
     popd
 

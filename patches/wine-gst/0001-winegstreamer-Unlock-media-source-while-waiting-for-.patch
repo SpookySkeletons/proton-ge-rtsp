@@ -1,0 +1,44 @@
+From 0d3f838b2747c070edea39d77188b717868abc9d Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:54 +0100
+Subject: [PATCH 01/13] winegstreamer: Unlock media source while waiting for a
+ sample in the new implementation too.
+
+---
+ dlls/winegstreamer/media_source.c | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 3cb57e94384..776c74888f7 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -679,15 +679,23 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
+     struct wg_parser_stream *wg_stream;
+     struct wg_parser_buffer buffer;
+     HRESULT hr;
++    bool ret;
+ 
+     TRACE("%p, %p\n", stream, token);
+ 
+     if (FAILED(hr = media_stream_get_wg_parser_stream(stream, &wg_stream)))
+         return hr;
+-    if (wg_parser_stream_get_buffer(source->wg_parser, wg_stream, &buffer))
+-        return media_stream_send_sample(stream, wg_stream, &buffer, token);
++    LeaveCriticalSection(&source->cs);
++    ret = wg_parser_stream_get_buffer(source->wg_parser, wg_stream, &buffer);
++    EnterCriticalSection(&source->cs);
+ 
+-    return media_stream_send_eos(source, stream);
++    if (source->state == SOURCE_SHUTDOWN)
++        WARN("media source has been shutdown, returning\n");
++    else if (ret)
++        return media_stream_send_sample(stream, wg_stream, &buffer, token);
++    else
++        return media_stream_send_eos(source, stream);
++    return S_OK;
+ }
+ 
+ static HRESULT WINAPI source_async_commands_Invoke(IMFAsyncCallback *iface, IMFAsyncResult *result)
+-- 
+2.43.0
+

@@ -1,0 +1,150 @@
+From c41340fe4f0d8c1c0032a1f76ccf36ecc4d420d9 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:54 +0100
+Subject: [PATCH 08/13] winegstreamer: Pass all uridecodebin output streams
+ through a multiqueue.
+
+---
+ dlls/winegstreamer/wg_parser.c | 91 +++++++++++++++++++++++++++++++++-
+ 1 file changed, 90 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index ab9f156d329..d33d39f1c6e 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -62,7 +62,7 @@ struct wg_parser
+     struct wg_parser_stream **streams;
+     unsigned int stream_count;
+ 
+-    GstElement *container, *decodebin;
++    GstElement *container, *decodebin, *multiqueue;
+     GstBus *bus;
+     GstTaskPool *task_pool;
+     GstPad *my_src;
+@@ -999,6 +999,76 @@ static void free_stream(struct wg_parser_stream *stream)
+     free(stream);
+ }
+ 
++static bool connect_to_multiqueue(struct wg_parser *parser, unsigned int id, GstElement **first, GstElement **last)
++{
++    GstPad *src_pad = NULL, *mq_sink_pad = NULL, *mq_src_pad = NULL, *i_sink_pad = NULL;
++    GstPadTemplate *template = NULL;
++    GstElement *identity = NULL;
++    char pad_name[16];
++    bool ret = false;
++
++    if (!parser->multiqueue)
++        return true;
++
++    if (!(src_pad = gst_element_get_static_pad(*last, "src")))
++    {
++        gchar *name = gst_element_get_name(*last);
++        GST_ERROR("Failed to find src pad on %s", name);
++        g_free(name);
++        goto error;
++    }
++
++    if (!(template = gst_element_class_get_pad_template(GST_ELEMENT_GET_CLASS(parser->multiqueue), "sink_%u")))
++        goto error;
++    sprintf(pad_name, "sink_%u", id);
++    if (!(mq_sink_pad = gst_element_request_pad(parser->multiqueue, template, pad_name, NULL)))
++        goto error;
++    sprintf(pad_name, "src_%u", id);
++    if (!(mq_src_pad = gst_element_get_static_pad(parser->multiqueue, pad_name)))
++        goto error;
++
++    if (gst_pad_link(src_pad, mq_sink_pad))
++    {
++        gchar *src_name = gst_pad_get_name(src_pad), *sink_name = gst_pad_get_name(mq_sink_pad);
++        GST_ERROR("Failed to link element pad %s with pad %s", src_name, sink_name);
++        g_free(sink_name);
++        g_free(src_name);
++        goto error;
++    }
++
++    if (!(identity = create_element("identity", "base")) ||
++            !gst_bin_add(GST_BIN(parser->container), identity) ||
++            !gst_element_sync_state_with_parent(identity))
++    {
++        gchar *name = gst_element_get_name(identity);
++        GST_ERROR("Failed to link %s element.", name);
++        g_free(name);
++        goto error;
++    }
++    if (!(i_sink_pad = gst_element_get_static_pad(identity, "sink")))
++        goto error;
++
++    if (gst_pad_link(mq_src_pad, i_sink_pad))
++    {
++        gchar *src_name = gst_pad_get_name(mq_src_pad), *sink_name = gst_pad_get_name(i_sink_pad);
++        GST_ERROR("Failed to link element pad %s with pad %s", src_name, sink_name);
++        g_free(sink_name);
++        g_free(src_name);
++        goto error;
++    }
++
++    gst_object_ref(identity);
++    *last = identity;
++    ret = true;
++
++error:
++    if (i_sink_pad) gst_object_unref(i_sink_pad);
++    if (mq_src_pad) gst_object_unref(mq_src_pad);
++    if (mq_sink_pad) gst_object_unref(mq_sink_pad);
++    if (src_pad) gst_object_unref(src_pad);
++    return ret;
++}
++
+ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+ {
+     GstElement *first = NULL, *last = NULL;
+@@ -1041,6 +1111,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+                 || !append_element(parser->container, element, &first, &last))
+             goto out;
+ 
++        if (!connect_to_multiqueue(parser, stream->number, &first, &last))
++            goto out;
++
+         if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
+             goto out;
+     }
+@@ -1122,6 +1195,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+                 || !append_element(parser->container, element, &first, &last))
+             goto out;
+ 
++        if (!connect_to_multiqueue(parser, stream->number, &first, &last))
++            goto out;
++
+         if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
+             goto out;
+     }
+@@ -1139,6 +1215,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+                 || !append_element(parser->container, element, &first, &last))
+             goto out;
+ 
++        if (!connect_to_multiqueue(parser, stream->number, &first, &last))
++            goto out;
++
+         if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
+             goto out;
+     }
+@@ -1829,6 +1908,16 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+ {
+     GstElement *element;
+ 
++    if (!parser->multiqueue &&
++            (!(parser->multiqueue = create_element("multiqueue", "base")) ||
++             !gst_bin_add(GST_BIN(parser->container), parser->multiqueue) ||
++             !gst_element_sync_state_with_parent(parser->multiqueue)))
++        return FALSE;
++
++    g_object_set(parser->multiqueue, "max-size-buffers", 100, NULL);
++    g_object_set(parser->multiqueue, "max-size-bytes", 256 * 1024 * 1024, NULL);
++    g_object_set(parser->multiqueue, "max-size-time", 5 * GST_SECOND, NULL);
++
+     if (!(element = create_element("uridecodebin", "base")))
+         return FALSE;
+ 
+-- 
+2.43.0
+
