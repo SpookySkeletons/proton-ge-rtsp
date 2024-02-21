@@ -1,0 +1,65 @@
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 456112a..24cb39f 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -859,6 +859,48 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+     return GST_FLOW_OK;
+ }
+ 
++static GstCaps *get_supported_formats(void)
++{
++    static const GstAudioChannelPosition dummy_positions[] =
++    {
++        GST_AUDIO_CHANNEL_POSITION_FRONT_LEFT,
++        GST_AUDIO_CHANNEL_POSITION_FRONT_RIGHT,
++    };
++    GstCaps *caps = gst_caps_new_empty(), *temp;
++    GstAudioInfo ainfo;
++    GstVideoInfo vinfo;
++    gsize i;
++
++    /* video/x-raw */
++    gst_video_info_set_format(&vinfo, WG_VIDEO_FORMAT_BGRA, 1920, 1080);
++    temp = gst_video_info_to_caps(&vinfo);
++    for (i = 0; i < gst_caps_get_size(temp); ++i)
++        gst_structure_remove_fields(gst_caps_get_structure(temp, i),
++                "format", "width", "height", "framerate", NULL);
++    gst_caps_append(caps, temp);
++    /* other formats */
++    gst_caps_append(caps, gst_caps_new_empty_simple("video/x-cinepak"));
++    gst_caps_append(caps, gst_caps_new_simple("video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream",
++            "alignment", G_TYPE_STRING, "au", NULL));
++    gst_caps_append(caps, gst_caps_new_empty_simple("video/x-wmv"));
++    gst_caps_append(caps, gst_caps_new_empty_simple("video/x-indeo"));
++
++    /* audio/x-raw */
++    gst_audio_info_set_format(&ainfo, GST_AUDIO_FORMAT_S16LE, 48000, 2, dummy_positions);
++    temp = gst_audio_info_to_caps(&ainfo);
++    for (i = 0; i < gst_caps_get_size(temp); ++i)
++        gst_structure_remove_fields(gst_caps_get_structure(temp, i),
++                "format", "channels", "rate", "channel-mask", NULL);
++    gst_caps_append(caps, temp);
++    /* other formats */
++    gst_caps_append(caps, gst_caps_new_simple("audio/mpeg", "mpegversion", G_TYPE_INT, 1,
++            "parsed", G_TYPE_BOOLEAN, TRUE, NULL));
++    gst_caps_append(caps, gst_caps_new_simple("audio/mpeg", "mpegversion", G_TYPE_INT, 4, NULL));
++    gst_caps_append(caps, gst_caps_new_empty_simple("audio/x-xma"));
++
++    return caps;
++}
++
+ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+ {
+     struct wg_parser_stream *stream = gst_pad_get_element_private(pad);
+@@ -877,7 +919,10 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+             gst_query_parse_caps(query, &filter);
+ 
+             pthread_mutex_lock(&parser->mutex);
+-            caps = wg_format_to_caps(&stream->current_format);
++            if (stream->current_format.major_type != WG_MAJOR_TYPE_UNKNOWN)
++                caps = wg_format_to_caps(&stream->current_format);
++            else
++                caps = get_supported_formats();
+             pthread_mutex_unlock(&parser->mutex);
+ 
+             if (!caps)

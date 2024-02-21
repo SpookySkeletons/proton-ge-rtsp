@@ -413,6 +413,7 @@
     patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Reorder-parser-initialization-code-a-b.patch
     patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Temporarily-put-pipeline-into-PLAYING-.patch
     patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Convert-buffer-presentation-timestamps.patch
+    patch -Np1 < ../patches/wine-gst/0014-winegstreamer-Make-wg_parser-report-the-exact-suppor.patch
 
 
     popd
