@@ -1,7 +1,7 @@
-From 7b8556074b4fdd7633f91651d8656008b35c9f04 Mon Sep 17 00:00:00 2001
+From 9c975b729cfd2b910c49805f9cdaf4ac7ec5c629 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 02/13] winegstreamer: Wait for samples in a dedicated work
+Subject: [PATCH 02/19] winegstreamer: Wait for samples in a dedicated work
  queue.
 
 ---
@@ -131,5 +131,5 @@ index b76809f794a..69950ce25ff 100644
          MFUnlockWorkQueue(object->async_commands_queue);
      if (object->event_queue)
 -- 
-2.43.0
+2.43.2
 

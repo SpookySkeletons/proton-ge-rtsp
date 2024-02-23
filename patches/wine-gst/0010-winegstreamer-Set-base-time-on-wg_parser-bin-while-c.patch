@@ -1,7 +1,7 @@
-From 355492406f6401f270441d8f3b9ab7f7e3093194 Mon Sep 17 00:00:00 2001
+From 05993457227e1e9aa4f7018bddfb152d122efd43 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 10/13] winegstreamer: Set base time on wg_parser bin while
+Subject: [PATCH 10/19] winegstreamer: Set base time on wg_parser bin while
  connecting.
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH 10/13] winegstreamer: Set base time on wg_parser bin while
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index e91fbf2bdf8..2ccfcdc909f 100644
+index 4f863d40bfc..fef8ae883b3 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1652,6 +1652,7 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -1655,6 +1655,7 @@ static NTSTATUS wg_parser_connect(void *args)
      struct wg_parser *parser = params->parser;
      const WCHAR *uri = params->uri;
      bool use_mediaconv = false;
@@ -20,7 +20,7 @@ index e91fbf2bdf8..2ccfcdc909f 100644
      unsigned int i;
      int ret;
  
-@@ -1685,7 +1686,8 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -1688,7 +1689,8 @@ static NTSTATUS wg_parser_connect(void *args)
      gst_pad_set_event_function(parser->my_src, src_event_cb);
      gst_pad_set_element_private(parser->my_src, parser);
  
@@ -30,7 +30,7 @@ index e91fbf2bdf8..2ccfcdc909f 100644
  
      parser->start_offset = parser->next_offset = parser->stop_offset = 0;
      parser->next_pull_offset = 0;
-@@ -1694,6 +1696,7 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -1697,6 +1699,7 @@ static NTSTATUS wg_parser_connect(void *args)
      if (!parser->init_gst(parser))
          goto out;
  
@@ -39,5 +39,5 @@ index e91fbf2bdf8..2ccfcdc909f 100644
      ret = gst_element_get_state(parser->container, NULL, NULL, -1);
  
 -- 
-2.43.0
+2.43.2
 

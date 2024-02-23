@@ -1,0 +1,111 @@
+From 3c998bddeffdb62b5d76b36dfc29dd39542e63d7 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 23 Feb 2024 21:36:25 +0100
+Subject: [PATCH 18/19] winegstreamer: HACK: Pretend that we have a
+ discontinuity when the source is buffering.
+
+This way I don't need to plumb through pausing/resuming of the presentation clock for gst buffering events (which I'd
+also have to enable, reminder for later if I ever end up doing this).
+---
+ dlls/winegstreamer/media_source_old.c | 39 ++++++++++++++++++++++++++-
+ 1 file changed, 38 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/winegstreamer/media_source_old.c b/dlls/winegstreamer/media_source_old.c
+index 69950ce25ff..719a00a131b 100644
+--- a/dlls/winegstreamer/media_source_old.c
++++ b/dlls/winegstreamer/media_source_old.c
+@@ -50,6 +50,10 @@ struct media_stream
+ 
+     DWORD busy;
+     CONDITION_VARIABLE cond;
++
++    MFTIME base_pts;
++    MFTIME base_time;
++    MFTIME discontinuity_pts;
+ };
+ 
+ enum source_async_op
+@@ -113,6 +117,9 @@ struct media_source
+ 
+     HANDLE read_thread;
+     bool read_thread_shutdown;
++
++    MFTIME start_time;
++    MFTIME first_pts;
+ };
+ 
+ static inline struct media_stream *impl_from_IMFMediaStream(IMFMediaStream *iface)
+@@ -387,6 +394,8 @@ static void start_pipeline(struct media_source *source, struct source_async_comm
+         }
+     }
+ 
++    source->start_time = MFGetSystemTime();
++
+     IMFMediaEventQueue_QueueEventParamVar(source->event_queue,
+         seek_message ? MESourceSeeked : MESourceStarted,
+         &GUID_NULL, S_OK, position);
+@@ -458,10 +467,15 @@ static void dispatch_end_of_presentation(struct media_source *source)
+ 
+ static void send_buffer(struct media_stream *stream, const struct wg_parser_buffer *wg_buffer, IUnknown *token)
+ {
++    struct media_source *source = impl_from_IMFMediaSource(stream->media_source);
+     IMFMediaBuffer *buffer;
+     IMFSample *sample;
+     HRESULT hr;
+     BYTE *data;
++    MFTIME pts, current_time;
++
++    if (source->first_pts == LLONG_MAX)
++        source->first_pts = wg_buffer->pts;
+ 
+     if (FAILED(hr = MFCreateSample(&sample)))
+     {
+@@ -508,7 +522,23 @@ static void send_buffer(struct media_stream *stream, const struct wg_parser_buff
+         goto out;
+     }
+ 
+-    if (FAILED(hr = IMFSample_SetSampleTime(sample, wg_buffer->pts)))
++    current_time = MFGetSystemTime();
++    if (stream->base_pts == LLONG_MAX || stream->base_time == LLONG_MAX ||
++        stream->discontinuity_pts < current_time)
++    {
++        stream->base_pts = wg_buffer->pts;
++        if (stream->base_time != LLONG_MAX)
++            stream->base_time = current_time - source->first_pts;
++        else
++            stream->base_time = current_time;
++    }
++    pts = ((wg_buffer->pts - stream->base_pts) + stream->base_time) + source->first_pts;
++    stream->discontinuity_pts = pts + wg_buffer->duration + (1000 * 1000 * 10);
++    pts -= source->start_time;
++    if (pts < 0)
++        pts = 0;
++
++    if (FAILED(hr = IMFSample_SetSampleTime(sample, pts)))
+     {
+         ERR("Failed to set sample time, hr %#lx.\n", hr);
+         goto out;
+@@ -880,6 +910,10 @@ static HRESULT media_stream_create(IMFMediaSource *source, DWORD id,
+     object->eos = FALSE;
+     object->wg_stream = wg_parser_get_stream(wg_parser, id);
+ 
++    object->base_pts = LLONG_MAX;
++    object->base_time = LLONG_MAX;
++    object->discontinuity_pts = LLONG_MAX;
++
+     TRACE("Created stream object %p.\n", object);
+ 
+     *out = object;
+@@ -1539,6 +1573,9 @@ HRESULT media_source_create_old(IMFByteStream *bytestream, const WCHAR *uri, IMF
+ 
+     object->state = SOURCE_OPENING;
+ 
++    object->start_time = LLONG_MAX;
++    object->first_pts = LLONG_MAX;
++
+     if (FAILED(hr = wg_parser_connect(parser, file_size, uri)))
+         goto fail;
+ 
+-- 
+2.43.2
+

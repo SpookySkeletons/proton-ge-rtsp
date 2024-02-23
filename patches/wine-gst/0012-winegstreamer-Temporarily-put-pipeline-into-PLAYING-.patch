@@ -1,7 +1,7 @@
-From 0a6d620b944db4e7c709e129b27869c0500ce54a Mon Sep 17 00:00:00 2001
+From 63942cfd5319c3d6b3e64841b103c162729be057 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 12/13] winegstreamer: Temporarily put pipeline into PLAYING
+Subject: [PATCH 12/19] winegstreamer: Temporarily put pipeline into PLAYING
  state while waiting for the no-more-pads callback.
 
 Some elements (RTSP) won't send no-more-pads in READY/PAUSED state.
@@ -10,10 +10,10 @@ Some elements (RTSP) won't send no-more-pads in READY/PAUSED state.
  1 file changed, 14 insertions(+)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 64ebc5f42a8..729c983edd1 100644
+index f9f63002df8..a8b52f3a9b7 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1714,8 +1714,22 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -1717,8 +1717,22 @@ static NTSTATUS wg_parser_connect(void *args)
  
      pthread_mutex_lock(&parser->mutex);
  
@@ -37,5 +37,5 @@ index 64ebc5f42a8..729c983edd1 100644
      {
          if (!parser->use_mediaconv && parser->init_gst == decodebin_parser_init_gst)
 -- 
-2.43.0
+2.43.2
 

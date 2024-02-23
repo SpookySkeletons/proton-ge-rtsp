@@ -1,7 +1,7 @@
-From 7810ab1a86de8824f910d2ca746bfa58ffbb28ec Mon Sep 17 00:00:00 2001
+From 1afb6753faa32efe1aa1d49b716b6e7fc4ccd34a Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 11/13] winegstreamer: Reorder parser initialization code a bit
+Subject: [PATCH 11/19] winegstreamer: Reorder parser initialization code a bit
  to prevent race conditions.
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH 11/13] winegstreamer: Reorder parser initialization code a bit
  1 file changed, 16 insertions(+), 15 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 2ccfcdc909f..64ebc5f42a8 100644
+index fef8ae883b3..f9f63002df8 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1891,17 +1891,17 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+@@ -1894,17 +1894,17 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
      gst_bin_add(GST_BIN(parser->container), element);
      parser->decodebin = element;
  
@@ -35,7 +35,7 @@ index 2ccfcdc909f..64ebc5f42a8 100644
  
      if (!link_src_to_element(parser->my_src, element))
          return FALSE;
-@@ -1929,17 +1929,18 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+@@ -1932,17 +1932,18 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
      gst_bin_add(GST_BIN(parser->container), element);
      parser->decodebin = element;
  
@@ -60,7 +60,7 @@ index 2ccfcdc909f..64ebc5f42a8 100644
  
      return TRUE;
  }
-@@ -1953,14 +1954,14 @@ static BOOL avi_parser_init_gst(struct wg_parser *parser)
+@@ -1956,14 +1957,14 @@ static BOOL avi_parser_init_gst(struct wg_parser *parser)
  
      gst_bin_add(GST_BIN(parser->container), element);
  
@@ -80,5 +80,5 @@ index 2ccfcdc909f..64ebc5f42a8 100644
          return FALSE;
  
 -- 
-2.43.0
+2.43.2
 

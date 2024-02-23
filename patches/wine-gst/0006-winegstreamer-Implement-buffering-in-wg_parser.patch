@@ -1,7 +1,7 @@
-From fcb588b170ea3ca4c464ff1784d08740c1b90d86 Mon Sep 17 00:00:00 2001
+From 03e4ecc250d93907a76645b905f1e147d4b7657c Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 06/13] winegstreamer: Implement buffering in wg_parser.
+Subject: [PATCH 06/19] winegstreamer: Implement buffering in wg_parser.
 
 Buffer up to 64 buffers, 5 seconds, or while behind other streams.
 
@@ -11,7 +11,7 @@ TODO: Adjust buffering conditions so that it will not buffer endlessly.
  1 file changed, 113 insertions(+), 8 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 7667ed7aa05..ab9f156d329 100644
+index 21bc5cc0ebe..f70d357cb90 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -110,6 +110,8 @@ struct wg_parser_stream
@@ -187,5 +187,5 @@ index 7667ed7aa05..ab9f156d329 100644
      for (i = 0; i < ARRAY_SIZE(stream->tags); ++i)
      {
 -- 
-2.43.0
+2.43.2
 

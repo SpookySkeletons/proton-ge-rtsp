@@ -1,7 +1,7 @@
-From c41340fe4f0d8c1c0032a1f76ccf36ecc4d420d9 Mon Sep 17 00:00:00 2001
+From 3b3eaa91ece1ca5200f318b7ff0153d8b4c54f1f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 08/13] winegstreamer: Pass all uridecodebin output streams
+Subject: [PATCH 08/19] winegstreamer: Pass all uridecodebin output streams
  through a multiqueue.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 08/13] winegstreamer: Pass all uridecodebin output streams
  1 file changed, 90 insertions(+), 1 deletion(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index ab9f156d329..d33d39f1c6e 100644
+index f70d357cb90..b7d6273243f 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -62,7 +62,7 @@ struct wg_parser
@@ -98,7 +98,7 @@ index ab9f156d329..d33d39f1c6e 100644
  static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
  {
      GstElement *first = NULL, *last = NULL;
-@@ -1041,6 +1111,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+@@ -1044,6 +1114,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
                  || !append_element(parser->container, element, &first, &last))
              goto out;
  
@@ -108,7 +108,7 @@ index ab9f156d329..d33d39f1c6e 100644
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              goto out;
      }
-@@ -1122,6 +1195,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+@@ -1125,6 +1198,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
                  || !append_element(parser->container, element, &first, &last))
              goto out;
  
@@ -118,7 +118,7 @@ index ab9f156d329..d33d39f1c6e 100644
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              goto out;
      }
-@@ -1139,6 +1215,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+@@ -1142,6 +1218,9 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
                  || !append_element(parser->container, element, &first, &last))
              goto out;
  
@@ -128,7 +128,7 @@ index ab9f156d329..d33d39f1c6e 100644
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              goto out;
      }
-@@ -1829,6 +1908,16 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+@@ -1832,6 +1911,16 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
  {
      GstElement *element;
  
@@ -146,5 +146,5 @@ index ab9f156d329..d33d39f1c6e 100644
          return FALSE;
  
 -- 
-2.43.0
+2.43.2
 

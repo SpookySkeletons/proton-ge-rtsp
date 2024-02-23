@@ -1,7 +1,7 @@
-From e39df859b1a8f3ab4b1abc6da1ce0dc1c65aa687 Mon Sep 17 00:00:00 2001
+From 7c59b63f0b0c5149e4f822f8142fa98877b01d33 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 13/13] winegstreamer: Convert buffer presentation timestamps
+Subject: [PATCH 13/19] winegstreamer: Convert buffer presentation timestamps
  into running time.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 13/13] winegstreamer: Convert buffer presentation timestamps
  1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 729c983edd1..468d37c480a 100644
+index a8b52f3a9b7..f2204e88969 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -315,13 +315,25 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)
@@ -45,5 +45,5 @@ index 729c983edd1..468d37c480a 100644
          wg_buffer->duration = GST_BUFFER_DURATION(buffer) / 100;
      wg_buffer->discontinuity = GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DISCONT);
 -- 
-2.43.0
+2.43.2
 

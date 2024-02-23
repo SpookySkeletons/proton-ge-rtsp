@@ -1,7 +1,7 @@
-From cf12d2c8bb800cda2613d09f13333fd50fbf0772 Mon Sep 17 00:00:00 2001
+From 1c23e89e7895af62ace8584dfe568ad967c35b1c Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 05/13] winegstreamer: Do away with the per-stream condvars and
+Subject: [PATCH 05/19] winegstreamer: Do away with the per-stream condvars and
  use one parser-wide condvar instead.
 
 This is required because the next commit checks conditions on all streams.
@@ -10,7 +10,7 @@ This is required because the next commit checks conditions on all streams.
  1 file changed, 10 insertions(+), 17 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 1f21c7258a6..7667ed7aa05 100644
+index f6a44232e23..21bc5cc0ebe 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -80,6 +80,7 @@ struct wg_parser
@@ -112,7 +112,7 @@ index 1f21c7258a6..7667ed7aa05 100644
      for (i = 0; i < ARRAY_SIZE(stream->tags); ++i)
      {
          if (stream->tags[i])
-@@ -1670,10 +1664,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -1673,10 +1667,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
      /* Unblock all of our streams. */
      pthread_mutex_lock(&parser->mutex);
      for (i = 0; i < parser->stream_count; ++i)
@@ -124,7 +124,7 @@ index 1f21c7258a6..7667ed7aa05 100644
      pthread_mutex_unlock(&parser->mutex);
  
      gst_element_set_state(parser->container, GST_STATE_NULL);
-@@ -1864,6 +1856,7 @@ static NTSTATUS wg_parser_create(void *args)
+@@ -1867,6 +1859,7 @@ static NTSTATUS wg_parser_create(void *args)
      pthread_cond_init(&parser->init_cond, NULL);
      pthread_cond_init(&parser->read_cond, NULL);
      pthread_cond_init(&parser->read_done_cond, NULL);
@@ -133,5 +133,5 @@ index 1f21c7258a6..7667ed7aa05 100644
      parser->err_on = params->err_on;
      parser->warn_on = params->warn_on;
 -- 
-2.43.0
+2.43.2
 

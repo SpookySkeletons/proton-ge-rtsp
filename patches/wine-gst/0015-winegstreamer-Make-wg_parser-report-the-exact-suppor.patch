@@ -1,8 +1,18 @@
+From 3a5ad72f7d8f315ddbc374ecee3f8d4c0dfb13e5 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 20 Feb 2024 23:17:28 +0100
+Subject: [PATCH 15/19] winegstreamer: Make wg_parser report the exact
+ supported formats to gstreamer instead of just ANY.
+
+---
+ dlls/winegstreamer/wg_parser.c | 47 +++++++++++++++++++++++++++++++++-
+ 1 file changed, 46 insertions(+), 1 deletion(-)
+
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 456112a..24cb39f 100644
+index fdfb930b305..8605fc4d5db 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -859,6 +859,48 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -910,6 +910,48 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
      return GST_FLOW_OK;
  }
  
@@ -63,3 +73,6 @@ index 456112a..24cb39f 100644
              pthread_mutex_unlock(&parser->mutex);
  
              if (!caps)
+-- 
+2.43.2
+
