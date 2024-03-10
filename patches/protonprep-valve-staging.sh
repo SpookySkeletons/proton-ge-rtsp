@@ -286,6 +286,28 @@
 
     echo "WINE: -FSR- fullscreen hack fsr patch"
     patch -Np1 < ../patches/proton/47-proton-fshack-AMD-FSR-complete.patch
+    
+    echo "WINE: RTSP patch"
+    patch -Np1 < ../patches/wine-gst/0001-winegstreamer-Wait-for-samples-in-a-dedicated-work-q.patch
+    patch -Np1 < ../patches/wine-gst/0002-winegstreamer-Add-a-resampler-to-wg_parser-for-raw-a.patch
+    patch -Np1 < ../patches/wine-gst/0003-winegstreamer-Add-a-videoscale-element-to-wg_parser-.patch
+    patch -Np1 < ../patches/wine-gst/0004-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch
+    patch -Np1 < ../patches/wine-gst/0005-winegstreamer-Implement-buffering-in-wg_parser.patch
+    patch -Np1 < ../patches/wine-gst/0006-winegstreamer-Add-more-RTSP-based-formats-to-GStream.patch
+    patch -Np1 < ../patches/wine-gst/0007-winegstreamer-Pass-all-uridecodebin-output-streams-t.patch
+    patch -Np1 < ../patches/wine-gst/0008-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch
+    patch -Np1 < ../patches/wine-gst/0009-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch
+    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Reorder-parser-initialization-code-a-b.patch
+    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Temporarily-put-pipeline-into-PLAYING-.patch
+    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Convert-buffer-presentation-timestamps.patch
+    patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Make-wg_parser-report-the-exact-suppor.patch
+    patch -Np1 < ../patches/wine-gst/0014-winegstreamer-Schedule-stored-timers-for-the-origina.patch
+    patch -Np1 < ../patches/wine-gst/0015-winegstreamer-Start-forwarding-samples-only-at-the-P.patch
+    patch -Np1 < ../patches/wine-gst/0016-winegstreamer-HACK-Pretend-that-we-have-a-discontinu.patch
+    patch -Np1 < ../patches/wine-gst/0017-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT_ERRO.patch
+    patch -Np1 < ../patches/wine-gst/0018-Revert-winegstreamer-HACK-Pretend-that-we-have-a-dis.patch
+    patch -Np1 < ../patches/wine-gst/0019-mf-In-the-media-session-pretend-that-we-have-a-disco.patch
+    patch -Np1 < ../patches/wine-gst/0020-winegstreamer-Do-not-put-pipeline-back-into-PAUSED-s.patch
 
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch
