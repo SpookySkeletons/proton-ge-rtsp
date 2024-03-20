@@ -1,7 +1,7 @@
-From 3a64fede8a7a8ffcf632dab3fa14f4f61760b1db Mon Sep 17 00:00:00 2001
+From 4e59f3f145a30ed0f2886d8d11437ab22a0ee9d9 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 10 Mar 2024 04:09:26 +0100
-Subject: [PATCH 18/20] Revert "winegstreamer: HACK: Pretend that we have a
+Subject: [PATCH 18/29] Revert "winegstreamer: HACK: Pretend that we have a
  discontinuity when the source is buffering."
 
 This reverts commit dd0e31e58a9d1b5b7735735481d583876fd7710e.

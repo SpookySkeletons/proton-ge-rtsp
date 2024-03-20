@@ -308,6 +308,15 @@
     patch -Np1 < ../patches/wine-gst/0018-Revert-winegstreamer-HACK-Pretend-that-we-have-a-dis.patch
     patch -Np1 < ../patches/wine-gst/0019-mf-In-the-media-session-pretend-that-we-have-a-disco.patch
     patch -Np1 < ../patches/wine-gst/0020-winegstreamer-Do-not-put-pipeline-back-into-PAUSED-s.patch
+    patch -Np1 < ../patches/wine-gst/0021-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch
+    patch -Np1 < ../patches/wine-gst/0022-winegstreamer-Ignore-assert-in-wg_parser.patch
+    patch -Np1 < ../patches/wine-gst/0023-winegstreamer-Discard-buffers-with-negative-PTS.patch
+    patch -Np1 < ../patches/wine-gst/0024-SQUASH-mf-In-media-session-discard-samples-with-nega.patch
+    patch -Np1 < ../patches/wine-gst/0025-winegstreamer-Adjust-buffer-timestamps-after-seek.patch
+    patch -Np1 < ../patches/wine-gst/0026-SQUASH-winegstreamer-Factor-out-multiqueue-creation-.patch
+    patch -Np1 < ../patches/wine-gst/0027-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch
+    patch -Np1 < ../patches/wine-gst/0028-winegstreamer-Fixate-caps-in-autoplug_continue_cb.patch
+    patch -Np1 < ../patches/wine-gst/0029-winegstreamer-GST_LOG-GST_DEBUG.patch
 
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch

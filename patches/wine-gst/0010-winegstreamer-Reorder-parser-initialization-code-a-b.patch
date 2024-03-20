@@ -1,7 +1,7 @@
-From c58b648d38655f063b8a19ac5c4fdcfb3f9ffee9 Mon Sep 17 00:00:00 2001
+From 7ded786aa7e788d394fcd8b760769a51f5099ef7 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 10/20] winegstreamer: Reorder parser initialization code a bit
+Subject: [PATCH 10/29] winegstreamer: Reorder parser initialization code a bit
  to prevent race conditions.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 10/20] winegstreamer: Reorder parser initialization code a bit
  1 file changed, 14 insertions(+), 14 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 661d04c3a88..b76a095ce41 100644
+index 886f3420119..6a13b41238f 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -2233,7 +2233,10 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)

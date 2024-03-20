@@ -1,7 +1,7 @@
-From 8a2fade2a0a096a1e71d4ac3cc4706045db2fba0 Mon Sep 17 00:00:00 2001
+From 6de6540b735b3a82df590055215fa0c654a05a15 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:36:25 +0100
-Subject: [PATCH 16/20] winegstreamer: HACK: Pretend that we have a
+Subject: [PATCH 16/29] winegstreamer: HACK: Pretend that we have a
  discontinuity when the source is buffering.
 
 This way I don't need to plumb through pausing/resuming of the presentation clock for gst buffering events (which I'd

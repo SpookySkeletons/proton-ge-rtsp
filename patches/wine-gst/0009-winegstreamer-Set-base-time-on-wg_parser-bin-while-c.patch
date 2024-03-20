@@ -1,7 +1,7 @@
-From 27af41001491d8225144d27ef6d335f7f9e27ed1 Mon Sep 17 00:00:00 2001
+From 3aaef1bb825952738a1bc3b4b4dea77abd75c8b4 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 09/20] winegstreamer: Set base time on wg_parser bin while
+Subject: [PATCH 09/29] winegstreamer: Set base time on wg_parser bin while
  connecting.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 09/20] winegstreamer: Set base time on wg_parser bin while
  1 file changed, 4 insertions(+), 1 deletion(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 92413f105cd..661d04c3a88 100644
+index 696c24d0059..886f3420119 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -1980,6 +1980,7 @@ static NTSTATUS wg_parser_connect(void *args)

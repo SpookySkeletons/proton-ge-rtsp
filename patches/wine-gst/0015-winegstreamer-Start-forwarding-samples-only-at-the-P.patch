@@ -1,7 +1,7 @@
-From f8147991f280e19b51767add73bc2a3ab443ce97 Mon Sep 17 00:00:00 2001
+From f6b59685177dd52765fd14b2aa0083128f03cebc Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:50:22 +0100
-Subject: [PATCH 15/20] winegstreamer: Start forwarding samples only at the PTS
+Subject: [PATCH 15/29] winegstreamer: Start forwarding samples only at the PTS
  of the first sample.
 
 Hides desynchronization in applications that ignore the PTS, e.g. VRChat.

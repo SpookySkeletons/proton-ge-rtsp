@@ -1,7 +1,7 @@
-From e2f4b27f9a6815a8677e83c3bed065f6cb769e90 Mon Sep 17 00:00:00 2001
+From e84156cccb7253e77948c777226c541d22bc60eb Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 01/20] winegstreamer: Wait for samples in a dedicated work
+Subject: [PATCH 01/29] winegstreamer: Wait for samples in a dedicated work
  queue.
 
 ---

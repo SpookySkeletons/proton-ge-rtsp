@@ -1,7 +1,7 @@
-From 42a4041b63023b244045b4ddfd0293983dfc9c0d Mon Sep 17 00:00:00 2001
+From c5b60220062f7cd165a778867a75a1f664acb868 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 12/20] winegstreamer: Convert buffer presentation timestamps
+Subject: [PATCH 12/29] winegstreamer: Convert buffer presentation timestamps
  into running time.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 12/20] winegstreamer: Convert buffer presentation timestamps
  1 file changed, 18 insertions(+), 6 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 92f4081805e..25a26eb3401 100644
+index aee34f965f5..9cabc0d899b 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -360,13 +360,25 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)

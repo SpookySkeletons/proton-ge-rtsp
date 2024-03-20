@@ -1,7 +1,7 @@
-From 2e31a2bfc204583b47ff6790829e53de16510a9e Mon Sep 17 00:00:00 2001
+From 42dbfb991dc2dd91af7ae5bbe2ea429dcdf8a011 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sat, 2 Mar 2024 21:19:25 +0100
-Subject: [PATCH 17/20] mfmediaengine: Do not send MF_MEDIA_ENGINE_EVENT_ERROR.
+Subject: [PATCH 17/29] mfmediaengine: Do not send MF_MEDIA_ENGINE_EVENT_ERROR.
 
 Breaks AVPro (used by VRChat) when a subsequent IMFMediaEngine::GetError call doesn't return an IMFMediaError instance
 because the source is already shut down.

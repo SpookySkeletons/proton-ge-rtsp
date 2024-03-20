@@ -1,7 +1,7 @@
-From 15477fcb0f0f790242b6473b7c091ea1020677cd Mon Sep 17 00:00:00 2001
+From 8ad956a4a430a236cf53a6e13e829713b261649c Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 03/20] winegstreamer: Add a videoscale element to wg_parser
+Subject: [PATCH 03/29] winegstreamer: Add a videoscale element to wg_parser
  for raw video.
 
 ---

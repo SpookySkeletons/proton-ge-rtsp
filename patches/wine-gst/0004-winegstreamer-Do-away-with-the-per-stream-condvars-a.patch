@@ -1,7 +1,7 @@
-From e8d238603701ff9e85b1f112a4f605ce721edcde Mon Sep 17 00:00:00 2001
+From 5f9a9819520658bedbcd543ff1cdfaab98f44be2 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 04/20] winegstreamer: Do away with the per-stream condvars and
+Subject: [PATCH 04/29] winegstreamer: Do away with the per-stream condvars and
  use one parser-wide condvar instead.
 
 This is required because the next commit checks conditions on all streams.

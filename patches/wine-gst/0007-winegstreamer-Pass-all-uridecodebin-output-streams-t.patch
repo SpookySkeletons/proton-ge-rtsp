@@ -1,7 +1,7 @@
-From 9d4cd6a5ac56793c620ddc7c157e2131fd3df24f Mon Sep 17 00:00:00 2001
+From 8e31d28eacf48d4c355ce621b70c2e13fadb59d0 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 07/20] winegstreamer: Pass all uridecodebin output streams
+Subject: [PATCH 07/29] winegstreamer: Pass all uridecodebin output streams
  through a multiqueue.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 07/20] winegstreamer: Pass all uridecodebin output streams
  1 file changed, 91 insertions(+), 1 deletion(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index f937ec0715a..b7539dc4ffd 100644
+index c1da624d084..854597c73eb 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -71,7 +71,7 @@ struct wg_parser
@@ -140,7 +140,7 @@ index f937ec0715a..b7539dc4ffd 100644
 +
 +    g_object_set(parser->multiqueue, "max-size-buffers", (guint)-1, NULL);
 +    g_object_set(parser->multiqueue, "max-size-bytes", (guint)-1, NULL);
-+    g_object_set(parser->multiqueue, "max-size-time", 10 * GST_SECOND, NULL);
++    g_object_set(parser->multiqueue, "max-size-time", 11 * GST_SECOND, NULL);
 +    g_object_set(parser->multiqueue, "high-watermark", 0.5, NULL);
 +
      if (!(element = create_element("uridecodebin", "base")))

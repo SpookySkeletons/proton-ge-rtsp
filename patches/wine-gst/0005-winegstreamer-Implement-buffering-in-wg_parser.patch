@@ -1,17 +1,17 @@
-From dbcac774fe3743554fabea6b505ec92ae38aa068 Mon Sep 17 00:00:00 2001
+From b296fa5287b467b2060b27217520eb1c75c1fc8d Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 05/20] winegstreamer: Implement buffering in wg_parser.
+Subject: [PATCH 05/29] winegstreamer: Implement buffering in wg_parser.
 
 Buffer up to 64 buffers, 5 seconds, or while behind other streams.
 
 TODO: Adjust buffering conditions so that it will not buffer endlessly.
 ---
- dlls/winegstreamer/wg_parser.c | 121 ++++++++++++++++++++++++++++++---
- 1 file changed, 111 insertions(+), 10 deletions(-)
+ dlls/winegstreamer/wg_parser.c | 117 ++++++++++++++++++++++++++++++---
+ 1 file changed, 109 insertions(+), 8 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 823cdfd9f54..f937ec0715a 100644
+index 823cdfd9f54..c1da624d084 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -125,6 +125,8 @@ struct wg_parser_stream
@@ -105,21 +105,11 @@ index 823cdfd9f54..f937ec0715a 100644
       * implementing a queue object here. */
  
 -    while (stream->enabled && !stream->flushing && stream->buffer)
-+    while (stream->enabled && !stream->flushing && !stream->eos && !has_buffer_capacity(stream, buffer))
++    while (stream->enabled && !stream->flushing && !has_buffer_capacity(stream, buffer))
          pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
  
      if (!stream->enabled)
-@@ -802,23 +860,57 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
-         return GST_FLOW_OK;
-     }
- 
--    if (stream->flushing)
-+    if (stream->flushing || stream->eos)
-     {
-         pthread_mutex_unlock(&parser->mutex);
--        GST_DEBUG("Stream is flushing; discarding buffer.");
-+        GST_DEBUG("Stream is flushing or EOS; discarding buffer.");
-         gst_buffer_unref(buffer);
+@@ -810,15 +868,49 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
          return GST_FLOW_FLUSHING;
      }
  
