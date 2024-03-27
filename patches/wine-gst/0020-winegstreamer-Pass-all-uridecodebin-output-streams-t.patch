@@ -1,7 +1,7 @@
-From 8e31d28eacf48d4c355ce621b70c2e13fadb59d0 Mon Sep 17 00:00:00 2001
+From 2e0d73841f50c7ed014ab2693aa436717cd83fbd Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 07/29] winegstreamer: Pass all uridecodebin output streams
+Subject: [PATCH 20/32] winegstreamer: Pass all uridecodebin output streams
  through a multiqueue.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 07/29] winegstreamer: Pass all uridecodebin output streams
  1 file changed, 91 insertions(+), 1 deletion(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index c1da624d084..854597c73eb 100644
+index fd8fdc74d6f..5a06f1871e4 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -71,7 +71,7 @@ struct wg_parser
@@ -21,7 +21,7 @@ index c1da624d084..854597c73eb 100644
      GstBus *bus;
      GstTaskPool *task_pool;
      GstPad *my_src;
-@@ -1069,6 +1069,76 @@ static void free_stream(struct wg_parser_stream *stream)
+@@ -1179,6 +1179,76 @@ static void free_stream(struct wg_parser_stream *stream)
      free(stream);
  }
  
@@ -98,7 +98,7 @@ index c1da624d084..854597c73eb 100644
  static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser_stream *stream)
  {
      GstElement *element = NULL, *first = NULL, *last = NULL;
-@@ -1105,6 +1175,9 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+@@ -1215,6 +1285,9 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
                  || !append_element(parser->container, element, &first, &last))
              return false;
  
@@ -108,7 +108,7 @@ index c1da624d084..854597c73eb 100644
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              return false;
      }
-@@ -1189,6 +1262,9 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+@@ -1299,6 +1372,9 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
                  || !append_element(parser->container, element, &first, &last))
              return false;
  
@@ -118,7 +118,7 @@ index c1da624d084..854597c73eb 100644
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              return false;
      }
-@@ -1206,6 +1282,9 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+@@ -1316,6 +1392,9 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
                  || !append_element(parser->container, element, &first, &last))
              return false;
  
@@ -128,7 +128,7 @@ index c1da624d084..854597c73eb 100644
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              return false;
      }
-@@ -2172,6 +2251,17 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+@@ -2296,6 +2375,17 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
  {
      GstElement *element;
  

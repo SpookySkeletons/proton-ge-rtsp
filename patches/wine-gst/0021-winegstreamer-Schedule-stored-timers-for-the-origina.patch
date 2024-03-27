@@ -1,7 +1,7 @@
-From 805bd8d13c328d561e68bd5ca9639411560176c6 Mon Sep 17 00:00:00 2001
+From bc861f86ccda91d811a1812b3a2c7623854336ef Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:45:44 +0100
-Subject: [PATCH 14/29] winegstreamer: Schedule stored timers for the original
+Subject: [PATCH 21/32] winegstreamer: Schedule stored timers for the original
  time instead of calling callbacks immediately when changing presentation
  clock state.
 

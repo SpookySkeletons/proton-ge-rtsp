@@ -1,7 +1,7 @@
-From 8352bf2c8624c3015d54169868b6df6ef6a87484 Mon Sep 17 00:00:00 2001
+From dd85cdadb0ab69640e5d3116774ca9d7b090dbfd Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:19:09 +0100
-Subject: [PATCH 28/29] winegstreamer: Fixate caps in autoplug_continue_cb.
+Subject: [PATCH 03/32] winegstreamer: Fixate caps in autoplug_continue_cb.
 
 Not strictly necessary but avoids an assert in gstreamer code.
 ---
@@ -9,10 +9,10 @@ Not strictly necessary but avoids an assert in gstreamer code.
  1 file changed, 2 insertions(+)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 4c4ee4bcc2a..3bee51ed518 100644
+index 8f45f49b012..20009d6f269 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -577,7 +577,9 @@ static gboolean autoplug_continue_cb(GstElement * decodebin, GstPad *pad, GstCap
+@@ -527,7 +527,9 @@ static gboolean autoplug_continue_cb(GstElement * decodebin, GstPad *pad, GstCap
  {
      struct wg_format format;
  

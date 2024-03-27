@@ -1,7 +1,7 @@
-From 8a3c021891ac5fb79b9b092163661517d8d5e37e Mon Sep 17 00:00:00 2001
+From bfb6aa55618b9649aef9f2166d7bf8fc8b1863bd Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:09:59 +0100
-Subject: [PATCH 27/29] winegstreamer: Do not fail caps negotiation when
+Subject: [PATCH 13/32] winegstreamer: Do not fail caps negotiation when
  there's a concurrent reconfigure.
 
 If wg_parser_stream_enable is called between the time our sink's GST_QUERY_CAPS returns and the time our sink gets the
@@ -14,14 +14,14 @@ correct caps have been negotiated (signalled by a GST_EVENT_CAPS).
 
 Also try to omit the reconfigure event in some cases.
 ---
- dlls/winegstreamer/wg_parser.c | 45 +++++++++++++++++++++++++++++-----
- 1 file changed, 39 insertions(+), 6 deletions(-)
+ dlls/winegstreamer/wg_parser.c | 58 +++++++++++++++++++++++++++++++---
+ 1 file changed, 53 insertions(+), 5 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index f5722486fb3..4c4ee4bcc2a 100644
+index d0b29fa0161..69c28b347cd 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -123,7 +123,7 @@ struct wg_parser_stream
+@@ -121,7 +121,7 @@ struct wg_parser_stream
      GstPad *my_sink;
      GstElement *flip, *decodebin;
      GstSegment segment;
@@ -30,7 +30,7 @@ index f5722486fb3..4c4ee4bcc2a 100644
  
      GstBuffer *buffer;
      GstMapInfo map_info;
-@@ -264,10 +264,20 @@ static NTSTATUS wg_parser_stream_enable(void *args)
+@@ -262,10 +262,27 @@ static NTSTATUS wg_parser_stream_enable(void *args)
      struct wg_parser_stream *stream = get_stream(params->stream);
      const struct wg_format *format = params->format;
      struct wg_parser *parser = stream->parser;
@@ -39,10 +39,17 @@ index f5722486fb3..4c4ee4bcc2a 100644
      pthread_mutex_lock(&parser->mutex);
  
 -    stream->current_format = *format;
-+    while (stream->next_format.major_type != WG_MAJOR_TYPE_UNKNOWN)
++    while (stream->next_format.major_type != WG_MAJOR_TYPE_UNKNOWN && !parser->error)
 +        pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
 +
-+    if (!wg_format_compare(&stream->current_format, format) && !(stream->has_caps && wg_format_compare(&stream->preferred_format, format)))
++    if (parser->error)
++    {
++        pthread_mutex_unlock(&parser->mutex);
++        return E_FAIL;
++    }
++
++    if (!wg_format_compare(&stream->current_format, format)
++            && !(stream->has_caps && wg_format_compare(&stream->preferred_format, format)))
 +    {
 +        stream->next_format = *format;
 +        need_reconf = TRUE;
@@ -52,7 +59,7 @@ index f5722486fb3..4c4ee4bcc2a 100644
      stream->enabled = true;
  
      pthread_mutex_unlock(&parser->mutex);
-@@ -277,9 +287,11 @@ static NTSTATUS wg_parser_stream_enable(void *args)
+@@ -275,9 +292,11 @@ static NTSTATUS wg_parser_stream_enable(void *args)
          bool flip = (params->flags & STREAM_ENABLE_FLAG_FLIP_RGB) && (format->u.video.height < 0);
  
          gst_util_set_object_arg(G_OBJECT(stream->flip), "method", flip ? "vertical-flip" : "none");
@@ -65,20 +72,20 @@ index f5722486fb3..4c4ee4bcc2a 100644
      return S_OK;
  }
  
-@@ -291,6 +303,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
+@@ -289,6 +308,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
      pthread_mutex_lock(&parser->mutex);
      stream->enabled = false;
      stream->current_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
 +    stream->next_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
      pthread_mutex_unlock(&parser->mutex);
-     pthread_cond_broadcast(&parser->stream_event_cond);
+     pthread_cond_signal(&parser->stream_event_cond);
      return S_OK;
-@@ -802,6 +815,13 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -777,6 +797,13 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
              pthread_mutex_lock(&parser->mutex);
              wg_format_from_caps(&stream->preferred_format, caps);
              stream->has_caps = true;
 +            if (stream->next_format.major_type != WG_MAJOR_TYPE_UNKNOWN
-+                && wg_format_compare(&stream->preferred_format, &stream->next_format))
++                    && wg_format_compare(&stream->preferred_format, &stream->next_format))
 +            {
 +                stream->current_format = stream->next_format;
 +                stream->next_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
@@ -87,7 +94,7 @@ index f5722486fb3..4c4ee4bcc2a 100644
              pthread_mutex_unlock(&parser->mutex);
              pthread_cond_signal(&parser->init_cond);
              break;
-@@ -864,6 +884,14 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -805,6 +832,14 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
  
      pthread_mutex_lock(&parser->mutex);
  
@@ -102,28 +109,26 @@ index f5722486fb3..4c4ee4bcc2a 100644
      if (!stream->has_buffer)
      {
          stream->has_buffer = true;
-@@ -1006,7 +1034,9 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -908,7 +943,17 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
              gst_query_parse_caps(query, &filter);
  
              pthread_mutex_lock(&parser->mutex);
 -            if (stream->current_format.major_type != WG_MAJOR_TYPE_UNKNOWN)
 +            if (stream->next_format.major_type != WG_MAJOR_TYPE_UNKNOWN)
++            {
 +                caps = wg_format_to_caps(&stream->next_format);
++                if (caps && stream->current_format.major_type != WG_MAJOR_TYPE_UNKNOWN)
++                {
++                    temp = wg_format_to_caps(&stream->current_format);
++                    if (temp)
++                        gst_caps_append(caps, temp);
++                }
++            }
 +            else if (stream->current_format.major_type != WG_MAJOR_TYPE_UNKNOWN)
                  caps = wg_format_to_caps(&stream->current_format);
              else
                  caps = get_supported_formats();
-@@ -1042,7 +1072,8 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
- 
-             pthread_mutex_lock(&parser->mutex);
- 
--            if (stream->current_format.major_type == WG_MAJOR_TYPE_UNKNOWN)
-+            if (stream->current_format.major_type == WG_MAJOR_TYPE_UNKNOWN &&
-+                stream->next_format.major_type == WG_MAJOR_TYPE_UNKNOWN)
-             {
-                 pthread_mutex_unlock(&parser->mutex);
-                 gst_query_set_accept_caps_result(query, TRUE);
-@@ -1051,7 +1082,8 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -953,7 +998,8 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
  
              gst_query_parse_accept_caps(query, &caps);
              wg_format_from_caps(&format, caps);
@@ -133,14 +138,22 @@ index f5722486fb3..4c4ee4bcc2a 100644
  
              pthread_mutex_unlock(&parser->mutex);
  
-@@ -1086,6 +1118,7 @@ static struct wg_parser_stream *create_stream(struct wg_parser *parser, char *id
-     stream->number = parser->stream_count;
-     stream->no_more_pads = true;
-     stream->current_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
-+    stream->next_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
+@@ -1637,6 +1683,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+         parser->error = true;
+         pthread_mutex_unlock(&parser->mutex);
+         pthread_cond_signal(&parser->init_cond);
++        pthread_cond_signal(&parser->stream_event_cond);
+         break;
  
-     sprintf(pad_name, "qz_sink_%u", parser->stream_count);
-     stream->my_sink = gst_pad_new(pad_name, GST_PAD_SINK);
+     case GST_MESSAGE_WARNING:
+@@ -1667,6 +1714,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+                 GST_WARNING("Autoplugged element failed to initialise, trying again with protonvideoconvert.");
+                 parser->error = true;
+                 pthread_cond_signal(&parser->init_cond);
++                pthread_cond_signal(&parser->stream_event_cond);
+             }
+             pthread_mutex_unlock(&parser->mutex);
+         }
 -- 
 2.44.0
 

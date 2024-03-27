@@ -1,8 +1,8 @@
-From d241727d56653caaa71b24243132ef8f21857e76 Mon Sep 17 00:00:00 2001
+From 71789e7d80746468414cb14c18e9b885b11fc157 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 06/29] winegstreamer: Add more RTSP-based formats to GStreamer
- scheme handler.
+Subject: [PATCH 05/32] winegstreamer: Add more RTSP-based URI schemes to
+ GStreamer scheme handler.
 
 ---
  dlls/winegstreamer/winegstreamer.rgs | 32 ++++++++++++++++++++++++++++

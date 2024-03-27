@@ -1,17 +1,17 @@
-From b296fa5287b467b2060b27217520eb1c75c1fc8d Mon Sep 17 00:00:00 2001
+From 6f105655ba7d431ce567ea4e6da87ffd5fae140f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 05/29] winegstreamer: Implement buffering in wg_parser.
+Subject: [PATCH 19/32] winegstreamer: Implement buffering in wg_parser.
 
 Buffer up to 64 buffers, 5 seconds, or while behind other streams.
 
-TODO: Adjust buffering conditions so that it will not buffer endlessly.
+TODO: Adjust buffering conditions so that it will not buffer infinitely.
 ---
  dlls/winegstreamer/wg_parser.c | 117 ++++++++++++++++++++++++++++++---
  1 file changed, 109 insertions(+), 8 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 823cdfd9f54..c1da624d084 100644
+index a52ded76e3a..fd8fdc74d6f 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -125,6 +125,8 @@ struct wg_parser_stream
@@ -23,9 +23,9 @@ index 823cdfd9f54..c1da624d084 100644
  
      bool flushing, eos, enabled, has_caps, has_tags, has_buffer, no_more_pads;
  
-@@ -414,6 +416,19 @@ static NTSTATUS wg_parser_stream_release_buffer(void *args)
-     gst_buffer_unref(stream->buffer);
-     stream->buffer = NULL;
+@@ -336,6 +338,19 @@ static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *st
+         stream->buffer = NULL;
+     }
  
 +    if (stream->buffer_queue && stream->buffer_queue_length)
 +    {
@@ -40,10 +40,10 @@ index 823cdfd9f54..c1da624d084 100644
 +        stream->buffer = buffer;
 +    }
 +
-     pthread_mutex_unlock(&parser->mutex);
      pthread_cond_signal(&parser->stream_event_cond);
+ }
  
-@@ -722,6 +737,15 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -765,6 +780,15 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
                      gst_buffer_unref(stream->buffer);
                      stream->buffer = NULL;
                  }
@@ -59,7 +59,7 @@ index 823cdfd9f54..c1da624d084 100644
              }
  
              pthread_mutex_unlock(&parser->mutex);
-@@ -773,6 +797,40 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -823,6 +847,40 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
      return TRUE;
  }
  
@@ -100,7 +100,7 @@ index 823cdfd9f54..c1da624d084 100644
  static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *buffer)
  {
      struct wg_parser_stream *stream = gst_pad_get_element_private(pad);
-@@ -791,7 +849,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -849,7 +907,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
      /* Allow this buffer to be flushed by GStreamer. We are effectively
       * implementing a queue object here. */
  
@@ -109,7 +109,7 @@ index 823cdfd9f54..c1da624d084 100644
          pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
  
      if (!stream->enabled)
-@@ -810,15 +868,49 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -868,15 +926,49 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
          return GST_FLOW_FLUSHING;
      }
  
@@ -166,7 +166,7 @@ index 823cdfd9f54..c1da624d084 100644
  
      pthread_mutex_unlock(&parser->mutex);
      pthread_cond_signal(&parser->stream_event_cond);
-@@ -955,6 +1047,15 @@ static void free_stream(struct wg_parser_stream *stream)
+@@ -1065,6 +1157,15 @@ static void free_stream(struct wg_parser_stream *stream)
          gst_buffer_unref(stream->buffer);
          stream->buffer = NULL;
      }

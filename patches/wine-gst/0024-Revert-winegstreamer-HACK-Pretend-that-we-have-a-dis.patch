@@ -1,7 +1,7 @@
-From 4e59f3f145a30ed0f2886d8d11437ab22a0ee9d9 Mon Sep 17 00:00:00 2001
+From 2ec081914cbb3ecba2318a29f59a01a72a7a9c71 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 10 Mar 2024 04:09:26 +0100
-Subject: [PATCH 18/29] Revert "winegstreamer: HACK: Pretend that we have a
+Subject: [PATCH 24/32] Revert "winegstreamer: HACK: Pretend that we have a
  discontinuity when the source is buffering."
 
 This reverts commit dd0e31e58a9d1b5b7735735481d583876fd7710e.
@@ -10,7 +10,7 @@ This reverts commit dd0e31e58a9d1b5b7735735481d583876fd7710e.
  1 file changed, 1 insertion(+), 38 deletions(-)
 
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index 81285c034d9..9b6c930efda 100644
+index 27e1fa15726..afc39995d2c 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
 @@ -142,10 +142,6 @@ struct media_stream
@@ -99,7 +99,7 @@ index 81285c034d9..9b6c930efda 100644
      TRACE("Created stream object %p.\n", object);
  
      *out = object;
-@@ -1754,9 +1720,6 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+@@ -1758,9 +1724,6 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
  
      object->state = SOURCE_OPENING;
  

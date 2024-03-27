@@ -1,22 +1,20 @@
-From 566e91a7df1968c79786fb94d67ddd1b466f8640 Mon Sep 17 00:00:00 2001
+From d7061741bdb93e8d06ba60102d33bd01cb797b27 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 04:06:37 +0100
-Subject: [PATCH 22/29] winegstreamer: Ignore assert in wg_parser.
+Subject: [PATCH 02/32] winegstreamer: Ignore an assert in wg_parser.
 
-I don't know why this gets hit but it does.
-
-EDIT: I think this gets hit when a wg_parser receives GST_EVENT_FLUSH_START between the wg_parser_stream_get_buffer
-function return and the wg_parser_stream_release_buffer call. In this case the NULL buffer can be ignored, it does no
-harm and there is no memory leak from this.
+This gets hit when a wg_parser receives GST_EVENT_FLUSH_START between the wg_parser_stream_get_buffer function return
+and the wg_parser_stream_release_buffer call. In this case the NULL buffer can be ignored, it does no harm and there
+is no memory leak from this.
 ---
  dlls/winegstreamer/wg_parser.c | 11 ++++++-----
  1 file changed, 6 insertions(+), 5 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index c8f173df6ac..5c75776f523 100644
+index 2d00f4247e0..8f45f49b012 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -422,11 +422,12 @@ static NTSTATUS wg_parser_stream_release_buffer(void *args)
+@@ -409,11 +409,12 @@ static NTSTATUS wg_parser_stream_release_buffer(void *args)
  
      pthread_mutex_lock(&parser->mutex);
  
@@ -32,8 +30,8 @@ index c8f173df6ac..5c75776f523 100644
 +        stream->buffer = NULL;
 +    }
  
-     if (stream->buffer_queue && stream->buffer_queue_length)
-     {
+     pthread_mutex_unlock(&parser->mutex);
+     pthread_cond_signal(&stream->event_empty_cond);
 -- 
 2.44.0
 

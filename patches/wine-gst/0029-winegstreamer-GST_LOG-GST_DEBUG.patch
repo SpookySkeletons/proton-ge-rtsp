@@ -1,17 +1,17 @@
-From b507bf1e24ecc455f5a66e64ad34a0a83b2d051a Mon Sep 17 00:00:00 2001
+From 7142d305a189553178f2db3bfacca543776eaea6 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:20:49 +0100
-Subject: [PATCH 29/29] winegstreamer: GST_LOG -> GST_DEBUG.
+Subject: [PATCH 29/32] winegstreamer: GST_LOG -> GST_DEBUG.
 
 ---
  dlls/winegstreamer/wg_parser.c | 34 +++++++++++++++++-----------------
  1 file changed, 17 insertions(+), 17 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 3bee51ed518..7f81ad4edab 100644
+index 4a5ad10887b..c278b435124 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -549,7 +549,7 @@ static NTSTATUS wg_parser_stream_notify_qos(void *args)
+@@ -553,7 +553,7 @@ static NTSTATUS wg_parser_stream_notify_qos(void *args)
          /* This can happen legitimately if the sample falls outside of the
           * segment bounds. GStreamer elements shouldn't present the sample in
           * that case, but DirectShow doesn't care. */
@@ -20,7 +20,7 @@ index 3bee51ed518..7f81ad4edab 100644
          return S_OK;
      }
      if (!(event = gst_event_new_qos(params->underflow ? GST_QOS_TYPE_UNDERFLOW : GST_QOS_TYPE_OVERFLOW,
-@@ -728,7 +728,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -732,7 +732,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
      struct wg_parser_stream *stream = gst_pad_get_element_private(pad);
      struct wg_parser *parser = stream->parser;
  
@@ -29,7 +29,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      switch (event->type)
      {
-@@ -882,7 +882,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -886,7 +886,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
      struct wg_parser_stream *stream = gst_pad_get_element_private(pad);
      struct wg_parser *parser = stream->parser;
  
@@ -38,7 +38,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      pthread_mutex_lock(&parser->mutex);
  
-@@ -908,7 +908,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -912,7 +912,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
  
      if (!stream->enabled)
      {
@@ -47,7 +47,7 @@ index 3bee51ed518..7f81ad4edab 100644
          pthread_mutex_unlock(&parser->mutex);
          gst_buffer_unref(buffer);
          return GST_FLOW_OK;
-@@ -973,7 +973,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -977,7 +977,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
       * reference to the stream object, which will release it in
       * wg_parser_stream_release_buffer(). */
  
@@ -56,7 +56,7 @@ index 3bee51ed518..7f81ad4edab 100644
      return GST_FLOW_OK;
  }
  
-@@ -1024,7 +1024,7 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -1023,7 +1023,7 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
      struct wg_parser_stream *stream = gst_pad_get_element_private(pad);
      struct wg_parser *parser = stream->parser;
  
@@ -65,7 +65,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      switch (query->type)
      {
-@@ -1052,7 +1052,7 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -1059,7 +1059,7 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
                  gst_structure_remove_fields(gst_caps_get_structure(caps, i),
                          "framerate", "pixel-aspect-ratio", NULL);
  
@@ -74,7 +74,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
              if (filter)
              {
-@@ -1418,7 +1418,7 @@ static void stream_decodebin_pad_added_cb(GstElement *element, GstPad *pad, gpoi
+@@ -1424,7 +1424,7 @@ static void stream_decodebin_pad_added_cb(GstElement *element, GstPad *pad, gpoi
      struct wg_parser_stream *stream = user;
      struct wg_parser *parser = stream->parser;
  
@@ -83,7 +83,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      if (gst_pad_is_linked(pad))
          return;
-@@ -1432,7 +1432,7 @@ static bool stream_decodebin_create(struct wg_parser_stream *stream)
+@@ -1438,7 +1438,7 @@ static bool stream_decodebin_create(struct wg_parser_stream *stream)
  {
      struct wg_parser *parser = stream->parser;
  
@@ -92,7 +92,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      if (!(stream->decodebin = create_element("decodebin", "base")))
          return false;
-@@ -1447,7 +1447,7 @@ static bool stream_decodebin_create(struct wg_parser_stream *stream)
+@@ -1453,7 +1453,7 @@ static bool stream_decodebin_create(struct wg_parser_stream *stream)
      pthread_mutex_unlock(&parser->mutex);
      gst_element_sync_state_with_parent(stream->decodebin);
  
@@ -101,7 +101,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      return true;
  }
-@@ -1458,7 +1458,7 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+@@ -1464,7 +1464,7 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
      struct wg_parser *parser = user;
      GstCaps *caps;
  
@@ -110,7 +110,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      if (gst_pad_is_linked(pad))
          return;
-@@ -1498,7 +1498,7 @@ static void pad_removed_cb(GstElement *element, GstPad *pad, gpointer user)
+@@ -1504,7 +1504,7 @@ static void pad_removed_cb(GstElement *element, GstPad *pad, gpointer user)
      unsigned int i;
      char *name;
  
@@ -119,7 +119,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      for (i = 0; i < parser->stream_count; ++i)
      {
-@@ -1557,7 +1557,7 @@ static GstFlowReturn issue_read_request(struct wg_parser *parser, guint64 offset
+@@ -1563,7 +1563,7 @@ static GstFlowReturn issue_read_request(struct wg_parser *parser, guint64 offset
  
      pthread_mutex_unlock(&parser->mutex);
  
@@ -128,7 +128,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      return ret;
  }
-@@ -1666,7 +1666,7 @@ static GstFlowReturn src_getrange_cb(GstPad *pad, GstObject *parent,
+@@ -1672,7 +1672,7 @@ static GstFlowReturn src_getrange_cb(GstPad *pad, GstObject *parent,
  {
      struct wg_parser *parser = gst_pad_get_element_private(pad);
  
@@ -137,7 +137,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      if (offset == GST_BUFFER_OFFSET_NONE)
          offset = parser->next_pull_offset;
-@@ -1680,7 +1680,7 @@ static GstFlowReturn src_getrange_cb(GstPad *pad, GstObject *parent,
+@@ -1686,7 +1686,7 @@ static GstFlowReturn src_getrange_cb(GstPad *pad, GstObject *parent,
          if (!*buffer)
              *buffer = gst_buffer_new_and_alloc(0);
          gst_buffer_set_size(*buffer, 0);
@@ -146,7 +146,7 @@ index 3bee51ed518..7f81ad4edab 100644
          return GST_FLOW_OK;
      }
  
-@@ -1701,7 +1701,7 @@ static gboolean src_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -1707,7 +1707,7 @@ static gboolean src_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
      struct wg_parser *parser = gst_pad_get_element_private(pad);
      GstFormat format;
  
@@ -155,7 +155,7 @@ index 3bee51ed518..7f81ad4edab 100644
  
      switch (GST_QUERY_TYPE(query))
      {
-@@ -1981,7 +1981,7 @@ static gboolean src_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -1989,7 +1989,7 @@ static gboolean src_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
      struct wg_parser *parser = gst_pad_get_element_private(pad);
      gboolean ret = TRUE;
  

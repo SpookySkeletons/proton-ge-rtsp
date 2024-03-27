@@ -1,7 +1,7 @@
-From 6de6540b735b3a82df590055215fa0c654a05a15 Mon Sep 17 00:00:00 2001
+From 4fb70c717f29533bd56960617d66dbbfeac1375c Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:36:25 +0100
-Subject: [PATCH 16/29] winegstreamer: HACK: Pretend that we have a
+Subject: [PATCH 23/32] winegstreamer: HACK: Pretend that we have a
  discontinuity when the source is buffering.
 
 This way I don't need to plumb through pausing/resuming of the presentation clock for gst buffering events (which I'd
@@ -11,7 +11,7 @@ also have to enable, reminder for later if I ever end up doing this).
  1 file changed, 38 insertions(+), 1 deletion(-)
 
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index 9b6c930efda..81285c034d9 100644
+index afc39995d2c..27e1fa15726 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
 @@ -142,6 +142,10 @@ struct media_stream
@@ -100,7 +100,7 @@ index 9b6c930efda..81285c034d9 100644
      TRACE("Created stream object %p.\n", object);
  
      *out = object;
-@@ -1720,6 +1754,9 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+@@ -1724,6 +1758,9 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
  
      object->state = SOURCE_OPENING;
  

@@ -1,7 +1,7 @@
-From 7632d34e46a83b903833185426ed670eeaffe97e Mon Sep 17 00:00:00 2001
+From d5308ec71f851ec1cdb47b5ab4901e104ea0b34f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 10 Mar 2024 02:32:35 +0100
-Subject: [PATCH 19/29] mf: In the media session, pretend that we have a
+Subject: [PATCH 25/32] mf: In the media session, pretend that we have a
  discontinuity when the source is buffering.
 
 This way I don't need to plumb through pausing/resuming of the presentation clock for gst buffering events (which I'd
