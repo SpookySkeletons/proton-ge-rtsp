@@ -288,38 +288,45 @@
     patch -Np1 < ../patches/proton/47-proton-fshack-AMD-FSR-complete.patch
     
     echo "WINE: RTSP patch"
-    patch -Np1 < ../patches/wine-gst/0001-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch
-    patch -Np1 < ../patches/wine-gst/0002-winegstreamer-Ignore-an-assert-in-wg_parser.patch
-    patch -Np1 < ../patches/wine-gst/0003-winegstreamer-Fixate-caps-in-autoplug_continue_cb.patch
-    patch -Np1 < ../patches/wine-gst/0004-winegstreamer-Make-wg_parser-report-the-exact-suppor.patch
-    patch -Np1 < ../patches/wine-gst/0005-winegstreamer-Add-more-RTSP-based-URI-schemes-to-GSt.patch
-    patch -Np1 < ../patches/wine-gst/0006-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch
-    patch -Np1 < ../patches/wine-gst/0007-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch
-    patch -Np1 < ../patches/wine-gst/0008-winegstreamer-Put-pipeline-into-PLAYING-state-before.patch
-    patch -Np1 < ../patches/wine-gst/0009-winegstreamer-Convert-buffer-presentation-timestamps.patch
-    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Adjust-buffer-timestamps-after-seek.patch
-    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Reorder-parser-initialization-code-a-b.patch
-    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch
-    patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch
-    patch -Np1 < ../patches/wine-gst/0014-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
-    patch -Np1 < ../patches/wine-gst/0015-Marker-commit-do-not-put-into-MR.patch
-    patch -Np1 < ../patches/wine-gst/0016-winegstreamer-Wait-for-samples-in-a-dedicated-work-q.patch
-    patch -Np1 < ../patches/wine-gst/0017-winegstreamer-Add-a-resampler-to-wg_parser-for-raw-a.patch
-    patch -Np1 < ../patches/wine-gst/0018-winegstreamer-Add-a-videoscale-element-to-wg_parser-.patch
-    patch -Np1 < ../patches/wine-gst/0019-winegstreamer-Implement-buffering-in-wg_parser.patch
-    patch -Np1 < ../patches/wine-gst/0020-winegstreamer-Pass-all-uridecodebin-output-streams-t.patch
-    patch -Np1 < ../patches/wine-gst/0021-winegstreamer-Schedule-stored-timers-for-the-origina.patch
-    patch -Np1 < ../patches/wine-gst/0022-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch
-    patch -Np1 < ../patches/wine-gst/0023-winegstreamer-HACK-Pretend-that-we-have-a-discontinu.patch
-    patch -Np1 < ../patches/wine-gst/0024-Revert-winegstreamer-HACK-Pretend-that-we-have-a-dis.patch
-    patch -Np1 < ../patches/wine-gst/0025-mf-In-the-media-session-pretend-that-we-have-a-disco.patch
-    patch -Np1 < ../patches/wine-gst/0026-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch
-    patch -Np1 < ../patches/wine-gst/0027-SQUASH-mf-In-media-session-discard-samples-with-nega.patch
-    patch -Np1 < ../patches/wine-gst/0028-SQUASH-winegstreamer-Factor-out-multiqueue-creation-.patch
-    patch -Np1 < ../patches/wine-gst/0029-winegstreamer-GST_LOG-GST_DEBUG.patch
-    patch -Np1 < ../patches/wine-gst/0030-winegstreamer-Signal-flow-error-when-parser-is-in-er.patch
-    patch -Np1 < ../patches/wine-gst/0031-Revert-winegstreamer-Implement-buffering-in-wg_parse.patch
-    patch -Np1 < ../patches/wine-gst/0032-SQUASH-winegstreamer-Tighten-buffering-limits-and-th.patch
+    patch -Np1 < ../patches/wine-gst/0001-winegstreamer-Connect-autoplug-continue-and-deep-ele.patch
+    patch -Np1 < ../patches/wine-gst/0002-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch
+    patch -Np1 < ../patches/wine-gst/0003-winegstreamer-Ignore-an-assert-in-wg_parser.patch
+    patch -Np1 < ../patches/wine-gst/0004-winegstreamer-Fixate-caps-in-autoplug_continue_cb.patch
+    patch -Np1 < ../patches/wine-gst/0005-winegstreamer-Make-wg_parser-report-the-exact-suppor.patch
+    patch -Np1 < ../patches/wine-gst/0006-winegstreamer-Add-more-RTSP-based-URI-schemes-to-GSt.patch
+    patch -Np1 < ../patches/wine-gst/0007-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch
+    patch -Np1 < ../patches/wine-gst/0008-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch
+    patch -Np1 < ../patches/wine-gst/0009-winegstreamer-Put-pipeline-into-PLAYING-state-before.patch
+    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Convert-buffer-presentation-timestamps.patch
+    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Adjust-buffer-timestamps-after-seek.patch
+    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Reorder-parser-initialization-code-a-b.patch
+    patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch
+    patch -Np1 < ../patches/wine-gst/0014-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch
+    patch -Np1 < ../patches/wine-gst/0015-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
+    patch -Np1 < ../patches/wine-gst/0016-Marker-commit-do-not-put-into-MR.patch
+    patch -Np1 < ../patches/wine-gst/0017-winegstreamer-Wait-for-samples-in-a-dedicated-work-q.patch
+    patch -Np1 < ../patches/wine-gst/0018-winegstreamer-Add-a-resampler-to-wg_parser-for-raw-a.patch
+    patch -Np1 < ../patches/wine-gst/0019-winegstreamer-Add-a-videoscale-element-to-wg_parser-.patch
+    patch -Np1 < ../patches/wine-gst/0020-winegstreamer-Implement-buffering-in-wg_parser.patch
+    patch -Np1 < ../patches/wine-gst/0021-winegstreamer-Pass-all-uridecodebin-output-streams-t.patch
+    patch -Np1 < ../patches/wine-gst/0022-winegstreamer-Schedule-stored-timers-for-the-origina.patch
+    patch -Np1 < ../patches/wine-gst/0023-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch
+    patch -Np1 < ../patches/wine-gst/0024-HACK-winegstreamer-Pretend-that-we-have-a-discontinu.patch
+    patch -Np1 < ../patches/wine-gst/0025-Revert-winegstreamer-HACK-Pretend-that-we-have-a-dis.patch
+    patch -Np1 < ../patches/wine-gst/0026-HACK-mf-In-the-media-session-pretend-that-we-have-a-.patch
+    patch -Np1 < ../patches/wine-gst/0027-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch
+    patch -Np1 < ../patches/wine-gst/0028-SQUASH-mf-In-media-session-discard-samples-with-nega.patch
+    patch -Np1 < ../patches/wine-gst/0029-SQUASH-winegstreamer-Factor-out-multiqueue-creation-.patch
+    patch -Np1 < ../patches/wine-gst/0030-winegstreamer-GST_LOG-GST_DEBUG.patch
+    patch -Np1 < ../patches/wine-gst/0031-winegstreamer-Signal-flow-error-when-parser-is-in-er.patch
+    patch -Np1 < ../patches/wine-gst/0032-Revert-winegstreamer-Implement-buffering-in-wg_parse.patch
+    patch -Np1 < ../patches/wine-gst/0033-SQUASH-winegstreamer-Tighten-buffering-limits-and-th.patch
+    patch -Np1 < ../patches/wine-gst/0034-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch
+    patch -Np1 < ../patches/wine-gst/0035-winegstreamer-Mark-decodebin-elements-as-streams-awa.patch
+    patch -Np1 < ../patches/wine-gst/0036-Revert-winegstreamer-Mark-decodebin-elements-as-stre.patch
+    patch -Np1 < ../patches/wine-gst/0037-mf-session-Avoid-leaking-samples-in-transform_node_d.patch
+    patch -Np1 < ../patches/wine-gst/0038-mf-session-Keep-previously-allocated-sample-with-the.patch
+    patch -Np1 < ../patches/wine-gst/0039-fixup-mf-Start-forwarding-samples-only-at-the-PTS-of.patch
 
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch

@@ -1,0 +1,31 @@
+From c8bb2d83e261d404b7c4629f74a81f1e61369daf Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 19 Mar 2024 05:10:15 +0100
+Subject: [PATCH 28/39] [SQUASH] mf: In media session, discard samples with
+ negative PTS.
+
+---
+ dlls/mf/session.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 9b85cd73309..e1d7f7be204 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -3660,7 +3660,13 @@ static void session_deliver_sample(struct media_session *session, IMFMediaStream
+     sample = value ? (IMFSample *)value->punkVal : NULL;
+ 
+     if (sample)
++    {
++        LONGLONG sampletime;
+         adjust_sample_time(session, source_node, sample);
++        if (SUCCEEDED(hr = IMFSample_GetSampleTime(sample, &sampletime)) &&
++            sampletime < 0)
++            return;
++    }
+ 
+     if (!value)
+         source_node->flags |= TOPO_NODE_END_OF_STREAM;
+-- 
+2.44.0
+

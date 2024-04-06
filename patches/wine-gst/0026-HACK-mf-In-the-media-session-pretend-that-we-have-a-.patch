@@ -1,0 +1,102 @@
+From 729d8edc9178683891deb2b319d792819a817d48 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sun, 10 Mar 2024 02:32:35 +0100
+Subject: [PATCH 26/39] [HACK] mf: In the media session, pretend that we have a
+ discontinuity when the source is buffering.
+
+This way I don't need to plumb through pausing/resuming of the presentation clock for gst buffering events (which I'd
+also have to enable, reminder for later if I ever end up doing this).
+---
+ dlls/mf/session.c | 41 +++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 41 insertions(+)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 8d225aea336..9b85cd73309 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -191,6 +191,9 @@ struct topo_node
+             IUnknown *cancel_key;
+             struct list samples;
+             IMFAsyncCallback timer_callback;
++
++            MFTIME base_pts;
++            MFTIME base_time;
+         } source;
+         struct
+         {
+@@ -265,6 +268,8 @@ struct media_session
+     enum session_state state;
+     DWORD caps;
+     CRITICAL_SECTION cs;
++
++    MFTIME first_pts;
+ };
+ 
+ static inline struct media_session *impl_from_IMFMediaSession(IMFMediaSession *iface)
+@@ -1794,6 +1799,9 @@ static HRESULT session_append_node(struct media_session *session, IMFTopologyNod
+             list_init(&topo_node->u.source.samples);
+             topo_node->u.source.timer_callback.lpVtbl = &node_timer_callback_vtbl;
+ 
++            topo_node->u.source.base_pts = LLONG_MAX;
++            topo_node->u.source.base_time = LLONG_MAX;
++
+             if (FAILED(IMFTopologyNode_GetUnknown(node, &MF_TOPONODE_SOURCE, &IID_IMFMediaSource,
+                     (void **)&topo_node->u.source.source)))
+             {
+@@ -3597,6 +3605,34 @@ static void session_deliver_sample_from_source(struct media_session *session, st
+     IMFTopologyNode_Release(downstream_node);
+ }
+ 
++static inline void adjust_sample_time(struct media_session *session, struct topo_node *node, IMFSample *sample)
++{
++    MFTIME pts = 0, now = 0, new_pts;
++
++    if (FAILED(IMFSample_GetSampleTime(sample, &pts)) || FAILED(IMFPresentationClock_GetTime(session->clock, &now)))
++        return;
++
++    if (session->first_pts == LLONG_MAX)
++        session->first_pts = pts;
++
++    now += 500;
++
++    new_pts = (pts - node->u.source.base_pts) + node->u.source.base_time + session->first_pts;
++    if (node->u.source.base_pts == LLONG_MAX || (new_pts - now) < -(1000 * 1000 * 10))
++    {
++        node->u.source.base_pts = pts;
++        if (node->u.source.base_time != LLONG_MAX)
++            node->u.source.base_time = now - session->first_pts;
++        else
++            node->u.source.base_time = now;
++        new_pts = (pts - node->u.source.base_pts) + node->u.source.base_time + session->first_pts;
++    }
++    if (new_pts < 0)
++        new_pts = 0;
++
++    IMFSample_SetSampleTime(sample, new_pts);
++}
++
+ static void session_deliver_sample(struct media_session *session, IMFMediaStream *stream, const PROPVARIANT *value)
+ {
+     struct topo_node *source_node = NULL, *node;
+@@ -3623,6 +3659,9 @@ static void session_deliver_sample(struct media_session *session, IMFMediaStream
+ 
+     sample = value ? (IMFSample *)value->punkVal : NULL;
+ 
++    if (sample)
++        adjust_sample_time(session, source_node, sample);
++
+     if (!value)
+         source_node->flags |= TOPO_NODE_END_OF_STREAM;
+     else if (!(source_node->flags & TOPO_NODE_HAS_WAITED_FOR_PTS))
+@@ -4434,6 +4473,8 @@ HRESULT WINAPI MFCreateMediaSession(IMFAttributes *config, IMFMediaSession **ses
+     list_init(&object->presentation.nodes);
+     InitializeCriticalSection(&object->cs);
+ 
++    object->first_pts = LLONG_MAX;
++
+     if (FAILED(hr = MFCreateTopology(&object->presentation.current_topology)))
+         goto failed;
+ 
+-- 
+2.44.0
+

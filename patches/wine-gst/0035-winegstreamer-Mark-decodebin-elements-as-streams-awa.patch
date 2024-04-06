@@ -1,0 +1,32 @@
+From d7e5a057033c9956ea0ab039a3a0f57911838e50 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sun, 31 Mar 2024 15:53:29 +0200
+Subject: [PATCH 35/39] winegstreamer: Mark decodebin elements as
+ streams-aware.
+
+---
+ dlls/winegstreamer/wg_parser.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index f797c54fc0a..14a634462e0 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -715,6 +715,14 @@ static void deep_element_added_cb(GstBin *self, GstBin *sub_bin, GstElement *ele
+         g_object_set(element, "n-threads", G_GINT64_CONSTANT(1), NULL);
+ #endif
+     }
++
++    /* Sometimes, for some reason, an hlsdemux2 gets added to decodebin, but decodebin
++       is not streams-aware, causing hlsdemux to raise an error. */
++    if (name && strstr(name, "Decoder Bin"))
++    {
++        GST_DEBUG("%s found, setting streams-aware flag.", name);
++        GST_OBJECT_FLAG_SET(element, GST_BIN_FLAG_STREAMS_AWARE);
++    }
+ }
+ 
+ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+-- 
+2.44.0
+

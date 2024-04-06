@@ -1,0 +1,32 @@
+From c2bea2e04c437f0a5f43af7b10d987960b3805f7 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 26 Mar 2024 00:07:47 +0100
+Subject: [PATCH 33/39] [SQUASH] winegstreamer: Tighten buffering limits and
+ thresholds.
+
+---
+ dlls/winegstreamer/wg_parser.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index eec3ce11217..f797c54fc0a 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -2266,10 +2266,11 @@ static BOOL create_multiqueue(struct wg_parser *parser)
+              !gst_element_sync_state_with_parent(parser->multiqueue)))
+         return FALSE;
+ 
+-    g_object_set(parser->multiqueue, "max-size-buffers", (guint)-1, NULL);
+-    g_object_set(parser->multiqueue, "max-size-bytes", (guint)-1, NULL);
++    g_object_set(parser->multiqueue, "max-size-buffers", 3600U, NULL);
++    g_object_set(parser->multiqueue, "max-size-bytes", 209715200U, NULL);
+     g_object_set(parser->multiqueue, "max-size-time", 1 * GST_SECOND, NULL);
+-    g_object_set(parser->multiqueue, "high-watermark", 0.5, NULL);
++    g_object_set(parser->multiqueue, "low-percent", 1, NULL);
++    g_object_set(parser->multiqueue, "high-percent", 80, NULL);
+ 
+     return TRUE;
+ }
+-- 
+2.44.0
+

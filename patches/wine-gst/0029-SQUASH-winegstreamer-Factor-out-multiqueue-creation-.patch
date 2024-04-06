@@ -1,0 +1,66 @@
+From e7e084f28e3a1a80acd107b281130419b843239d Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 19 Mar 2024 10:02:25 +0100
+Subject: [PATCH 29/39] [SQUASH] winegstreamer: Factor out multiqueue creation
+ and also create a multiqueue for decodebin-based parsers.
+
+---
+ dlls/winegstreamer/wg_parser.c | 29 ++++++++++++++++++++---------
+ 1 file changed, 20 insertions(+), 9 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 35cd4add251..0ef956cf515 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -2351,10 +2351,29 @@ static NTSTATUS wg_parser_disconnect(void *args)
+     return S_OK;
+ }
+ 
++static BOOL create_multiqueue(struct wg_parser *parser)
++{
++    if (!parser->multiqueue &&
++            (!(parser->multiqueue = create_element("multiqueue", "base")) ||
++             !gst_bin_add(GST_BIN(parser->container), parser->multiqueue) ||
++             !gst_element_sync_state_with_parent(parser->multiqueue)))
++        return FALSE;
++
++    g_object_set(parser->multiqueue, "max-size-buffers", (guint)-1, NULL);
++    g_object_set(parser->multiqueue, "max-size-bytes", (guint)-1, NULL);
++    g_object_set(parser->multiqueue, "max-size-time", 1 * GST_SECOND, NULL);
++    g_object_set(parser->multiqueue, "high-watermark", 0.5, NULL);
++
++    return TRUE;
++}
++
+ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+ {
+     GstElement *element;
+ 
++    if (!create_multiqueue(parser))
++        return FALSE;
++
+     if (!(element = create_element("decodebin", "base")))
+         return FALSE;
+ 
+@@ -2384,17 +2403,9 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+ {
+     GstElement *element;
+ 
+-    if (!parser->multiqueue &&
+-            (!(parser->multiqueue = create_element("multiqueue", "base")) ||
+-             !gst_bin_add(GST_BIN(parser->container), parser->multiqueue) ||
+-             !gst_element_sync_state_with_parent(parser->multiqueue)))
++    if (!create_multiqueue(parser))
+         return FALSE;
+ 
+-    g_object_set(parser->multiqueue, "max-size-buffers", (guint)-1, NULL);
+-    g_object_set(parser->multiqueue, "max-size-bytes", (guint)-1, NULL);
+-    g_object_set(parser->multiqueue, "max-size-time", 11 * GST_SECOND, NULL);
+-    g_object_set(parser->multiqueue, "high-watermark", 0.5, NULL);
+-
+     if (!(element = create_element("uridecodebin", "base")))
+         return FALSE;
+ 
+-- 
+2.44.0
+

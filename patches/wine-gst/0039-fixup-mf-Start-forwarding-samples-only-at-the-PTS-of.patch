@@ -1,0 +1,28 @@
+From 91b5eb15f4ffc933c08fca4d16a22ef795743773 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 3 Apr 2024 16:47:37 +0200
+Subject: [PATCH 39/39] fixup! mf: Start forwarding samples only at the PTS of
+ the first sample.
+
+---
+ dlls/mf/session.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 5f385a518ba..4d32208a9fd 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -1691,7 +1691,10 @@ static HRESULT WINAPI node_timer_callback_Invoke(IMFAsyncCallback *iface, IMFAsy
+ 
+     EnterCriticalSection(&session->cs);
+     while (SUCCEEDED(topo_node_sourcestream_pop_sample(source_node, &sample)))
++    {
+         session_deliver_sample_from_source(session, source_node, sample);
++        IMFSample_Release(sample);
++    }
+     LeaveCriticalSection(&session->cs);
+ 
+     return S_OK;
+-- 
+2.44.0
+

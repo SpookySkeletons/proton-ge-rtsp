@@ -1,0 +1,115 @@
+From 0ef1dd4f1b61225a282c6424dc7947a8a5ec1b64 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 23 Feb 2024 21:36:25 +0100
+Subject: [PATCH 24/39] [HACK] winegstreamer: Pretend that we have a
+ discontinuity when the source is buffering.
+
+This way I don't need to plumb through pausing/resuming of the presentation clock for gst buffering events (which I'd
+also have to enable, reminder for later if I ever end up doing this).
+---
+ dlls/winegstreamer/media_source.c | 39 ++++++++++++++++++++++++++++++-
+ 1 file changed, 38 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index afc39995d2c..27e1fa15726 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -142,6 +142,10 @@ struct media_stream
+ 
+     DWORD busy;
+     CONDITION_VARIABLE cond;
++
++    MFTIME base_pts;
++    MFTIME base_time;
++    MFTIME discontinuity_pts;
+ };
+ 
+ enum source_async_op
+@@ -208,6 +212,9 @@ struct media_source
+ 
+     HANDLE read_thread;
+     bool read_thread_shutdown;
++
++    MFTIME start_time;
++    MFTIME first_pts;
+ };
+ 
+ static inline struct media_stream *impl_from_IMFMediaStream(IMFMediaStream *iface)
+@@ -684,6 +691,8 @@ static HRESULT media_source_start(struct media_source *source, IMFPresentationDe
+     for (i = 0; i < source->stream_count; i++)
+         flush_token_queue(source->streams[i], position->vt == VT_EMPTY);
+ 
++    source->start_time = MFGetSystemTime();
++
+     return IMFMediaEventQueue_QueueEventParamVar(source->event_queue,
+             seek_message ? MESourceSeeked : MESourceStarted, &GUID_NULL, S_OK, position);
+ }
+@@ -738,10 +747,15 @@ static HRESULT media_source_stop(struct media_source *source)
+ 
+ static HRESULT media_stream_send_sample(struct media_stream *stream, const struct wg_parser_buffer *wg_buffer, IUnknown *token)
+ {
++    struct media_source *source = impl_from_IMFMediaSource(stream->media_source);
+     IMFSample *sample = NULL;
+     IMFMediaBuffer *buffer;
+     HRESULT hr;
+     BYTE *data;
++    MFTIME pts, current_time;
++
++    if (source->first_pts == LLONG_MAX)
++        source->first_pts = wg_buffer->pts;
+ 
+     if (FAILED(hr = MFCreateMemoryBuffer(wg_buffer->size, &buffer)))
+         return hr;
+@@ -761,11 +775,27 @@ static HRESULT media_stream_send_sample(struct media_stream *stream, const struc
+     if (FAILED(hr = IMFMediaBuffer_Unlock(buffer)))
+         goto out;
+ 
++    current_time = MFGetSystemTime();
++    if (stream->base_pts == LLONG_MAX || stream->base_time == LLONG_MAX ||
++        stream->discontinuity_pts < current_time)
++    {
++        stream->base_pts = wg_buffer->pts;
++        if (stream->base_time != LLONG_MAX)
++            stream->base_time = current_time - source->first_pts;
++        else
++            stream->base_time = current_time;
++    }
++    pts = ((wg_buffer->pts - stream->base_pts) + stream->base_time) + source->first_pts;
++    stream->discontinuity_pts = pts + wg_buffer->duration + (1000 * 1000 * 10);
++    pts -= source->start_time;
++    if (pts < 0)
++        pts = 0;
++
+     if (FAILED(hr = MFCreateSample(&sample)))
+         goto out;
+     if (FAILED(hr = IMFSample_AddBuffer(sample, buffer)))
+         goto out;
+-    if (FAILED(hr = IMFSample_SetSampleTime(sample, wg_buffer->pts)))
++    if (FAILED(hr = IMFSample_SetSampleTime(sample, pts)))
+         goto out;
+     if (FAILED(hr = IMFSample_SetSampleDuration(sample, wg_buffer->duration)))
+         goto out;
+@@ -1164,6 +1194,10 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
+     object->eos = FALSE;
+     object->wg_stream = wg_stream;
+ 
++    object->base_pts = LLONG_MAX;
++    object->base_time = LLONG_MAX;
++    object->discontinuity_pts = LLONG_MAX;
++
+     TRACE("Created stream object %p.\n", object);
+ 
+     *out = object;
+@@ -1724,6 +1758,9 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+ 
+     object->state = SOURCE_OPENING;
+ 
++    object->start_time = LLONG_MAX;
++    object->first_pts = LLONG_MAX;
++
+     if (FAILED(hr = wg_parser_connect(parser, object->file_size, context->url)))
+         goto fail;
+ 
+-- 
+2.44.0
+
