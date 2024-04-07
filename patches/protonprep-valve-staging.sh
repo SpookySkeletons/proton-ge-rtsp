@@ -321,7 +321,6 @@
     patch -Np1 < ../patches/wine-gst/0031-winegstreamer-Signal-flow-error-when-parser-is-in-er.patch
     patch -Np1 < ../patches/wine-gst/0032-Revert-winegstreamer-Implement-buffering-in-wg_parse.patch
     patch -Np1 < ../patches/wine-gst/0033-SQUASH-winegstreamer-Tighten-buffering-limits-and-th.patch
-    patch -Np1 < ../patches/wine-gst/0034-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch
     patch -Np1 < ../patches/wine-gst/0035-winegstreamer-Mark-decodebin-elements-as-streams-awa.patch
     patch -Np1 < ../patches/wine-gst/0036-Revert-winegstreamer-Mark-decodebin-elements-as-stre.patch
     patch -Np1 < ../patches/wine-gst/0037-mf-session-Avoid-leaking-samples-in-transform_node_d.patch
