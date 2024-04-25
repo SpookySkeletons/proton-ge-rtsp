@@ -295,6 +295,38 @@
     echo "WINE: -PENDING- Add options to disable proton media converter."
     patch -Np1 < ../patches/wine-hotfixes/pending/add-envvar-to-gate-media-converter.patch
 
+    echo "WINE: RTSP patch"
+    patch -Np1 < ../patches/wine-gst/0001-mf-session-Avoid-leaking-samples-in-transform_node_d.patch
+    patch -Np1 < ../patches/wine-gst/0002-Memory-leak-fixes.patch
+    patch -Np1 < ../patches/wine-gst/0003-winegstreamer-Connect-autoplug-continue-and-deep-ele.patch
+    patch -Np1 < ../patches/wine-gst/0004-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch
+    patch -Np1 < ../patches/wine-gst/0005-winegstreamer-Ignore-an-assert-in-wg_parser.patch
+    patch -Np1 < ../patches/wine-gst/0006-winegstreamer-Fixate-caps-in-autoplug_continue_cb.patch
+    patch -Np1 < ../patches/wine-gst/0007-winegstreamer-Make-wg_parser-report-the-exact-suppor.patch
+    patch -Np1 < ../patches/wine-gst/0008-winegstreamer-Add-more-RTSP-based-URI-schemes-to-GSt.patch
+    patch -Np1 < ../patches/wine-gst/0009-winegstreamer-Fixate-caps-in-the-pad-added-callback.patch
+    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Mark-wg_parser-container-bin-as-stream.patch
+    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch
+    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch
+    patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Put-pipeline-into-PLAYING-state-before.patch
+    patch -Np1 < ../patches/wine-gst/0014-winegstreamer-Don-t-only-accept-segment-events-when-.patch
+    patch -Np1 < ../patches/wine-gst/0015-winegstreamer-Convert-buffer-presentation-timestamps.patch
+    patch -Np1 < ../patches/wine-gst/0016-winegstreamer-Adjust-buffer-timestamps-after-seek.patch
+    patch -Np1 < ../patches/wine-gst/0017-winegstreamer-Reorder-parser-initialization-code-a-b.patch
+    patch -Np1 < ../patches/wine-gst/0018-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch
+    patch -Np1 < ../patches/wine-gst/0019-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch
+    patch -Np1 < ../patches/wine-gst/0020-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch
+    patch -Np1 < ../patches/wine-gst/0021-winegstreamer-Do-not-seek-live-sources.patch
+    patch -Np1 < ../patches/wine-gst/0022-winegstreamer-Implement-buffering-events.patch
+    patch -Np1 < ../patches/wine-gst/0023-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
+    patch -Np1 < ../patches/wine-gst/0024-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
+    patch -Np1 < ../patches/wine-gst/0025-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
+    patch -Np1 < ../patches/wine-gst/0026-Marker-commit-do-not-put-into-MR.patch
+    patch -Np1 < ../patches/wine-gst/0027-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch
+    patch -Np1 < ../patches/wine-gst/0028-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch
+    patch -Np1 < ../patches/wine-gst/0029-mf-Schedule-stored-timers-for-the-original-time-inst.patch
+    patch -Np1 < ../patches/wine-gst/0030-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch
+
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch
 

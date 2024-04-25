@@ -1,0 +1,61 @@
+From 03bc717138efac76df58d56d8385a1cddf4442dc Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 19 Mar 2024 05:11:11 +0100
+Subject: [PATCH 16/30] winegstreamer: Adjust buffer timestamps after seek.
+
+---
+ dlls/winegstreamer/wg_parser.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 740fb1cc904..ab8844ce531 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -132,6 +132,8 @@ struct wg_parser_stream
+     gchar *tags[WG_PARSER_TAG_COUNT];
+     gchar *stream_id;
+     int seq_id;
++
++    guint64 seek_pos;
+ };
+ 
+ static struct wg_parser *get_parser(wg_parser_t parser)
+@@ -377,7 +379,7 @@ retry:
+         if (stream->segment.format != GST_FORMAT_TIME)
+         {
+             /* Some types of streams (e.g. HLS) don't provide a segment. Assume that these start their PTS at zero. */
+-            wg_buffer->pts = GST_BUFFER_PTS(buffer) / 100;
++            wg_buffer->pts = (GST_BUFFER_PTS(buffer) + stream->seek_pos) / 100;
+         }
+         else
+         {
+@@ -387,7 +389,7 @@ retry:
+                 release_buffer(parser, stream);
+                 goto retry;
+             }
+-            wg_buffer->pts = stream_time / 100;
++            wg_buffer->pts = (stream_time + stream->seek_pos) / 100;
+         }
+     }
+     if ((wg_buffer->has_duration = GST_BUFFER_DURATION_IS_VALID(buffer)))
+@@ -471,7 +473,7 @@ static NTSTATUS wg_parser_stream_seek(void *args)
+     const struct wg_parser_stream_seek_params *params = args;
+     DWORD start_flags = params->start_flags;
+     DWORD stop_flags = params->stop_flags;
+-    const struct wg_parser_stream *stream;
++    struct wg_parser_stream *stream;
+     GstSeekFlags flags = 0;
+ 
+     stream = get_stream(params->stream);
+@@ -492,6 +494,8 @@ static NTSTATUS wg_parser_stream_seek(void *args)
+             flags, start_type, params->start_pos * 100, stop_type,
+             params->stop_pos == stream->duration ? -1 : params->stop_pos * 100)))
+         GST_ERROR("Failed to seek.");
++    else
++        stream->seek_pos = params->start_pos * 100;
+ 
+     return S_OK;
+ }
+-- 
+2.44.0
+
