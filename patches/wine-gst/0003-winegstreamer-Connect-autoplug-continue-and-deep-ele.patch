@@ -1,7 +1,7 @@
-From 673a663a6dc251d8ab013fd2935beedbbafc2b49 Mon Sep 17 00:00:00 2001
+From 305a6ebecb05ed12ac3707407b9be4c95d8ad7d4 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 31 Mar 2024 15:49:33 +0200
-Subject: [PATCH 03/30] winegstreamer: Connect autoplug-continue and
+Subject: [PATCH 03/32] winegstreamer: Connect autoplug-continue and
  deep-element-added callbacks to uridecodebin-based parsers too.
 
 ---
@@ -25,5 +25,5 @@ index 2d00f4247e0..cf3b07a3693 100644
      pthread_mutex_lock(&parser->mutex);
      parser->no_more_pads = false;
 -- 
-2.44.0
+2.45.1
 

@@ -1,7 +1,7 @@
-From 83b07cb8e4b4def572455536a5d5c9f132ab41d6 Mon Sep 17 00:00:00 2001
+From e4fb9bceb21eea57decb660e9a8065524cf0ff71 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 15/30] winegstreamer: Convert buffer presentation timestamps
+Subject: [PATCH 15/32] winegstreamer: Convert buffer presentation timestamps
  into running time.
 
 ---
@@ -89,5 +89,5 @@ index a6c850d7a4c..740fb1cc904 100644
      return S_OK;
  }
 -- 
-2.44.0
+2.45.1
 

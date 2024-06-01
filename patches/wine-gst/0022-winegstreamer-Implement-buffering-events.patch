@@ -1,7 +1,7 @@
-From b8110f95957b546f34f38f874a679a8cb6ea50c9 Mon Sep 17 00:00:00 2001
+From dbe8165373d597230643276c9ff1d44af8599060 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 10 Apr 2024 15:11:02 +0200
-Subject: [PATCH 22/30] winegstreamer: Implement buffering events.
+Subject: [PATCH 22/32] winegstreamer: Implement buffering events.
 
 ---
  dlls/winegstreamer/gst_private.h  |  3 ++
@@ -58,7 +58,7 @@ index 992f6b3ae98..2d04b83ae9d 100644
  {
      struct wg_parser_push_data_params params =
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index 6d58d51045a..ba5f9f3cef0 100644
+index 94aa63a6c9b..60c4dcd6869 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
 @@ -207,6 +207,9 @@ struct media_source
@@ -71,7 +71,7 @@ index 6d58d51045a..ba5f9f3cef0 100644
  };
  
  static inline struct media_stream *impl_from_IMFMediaStream(IMFMediaStream *iface)
-@@ -815,6 +818,7 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
+@@ -825,6 +828,7 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
  
      stream->busy = TRUE;
      LeaveCriticalSection(&source->cs);
@@ -79,7 +79,7 @@ index 6d58d51045a..ba5f9f3cef0 100644
      ret = wg_parser_stream_get_buffer(source->wg_parser, stream->wg_stream, &buffer);
      EnterCriticalSection(&source->cs);
      stream->busy = FALSE;
-@@ -951,6 +955,41 @@ static DWORD CALLBACK read_thread(void *arg)
+@@ -961,6 +965,41 @@ static DWORD CALLBACK read_thread(void *arg)
      return 0;
  }
  
@@ -121,7 +121,7 @@ index 6d58d51045a..ba5f9f3cef0 100644
  static HRESULT WINAPI media_stream_QueryInterface(IMFMediaStream *iface, REFIID riid, void **out)
  {
      struct media_stream *stream = impl_from_IMFMediaStream(iface);
-@@ -1614,6 +1653,13 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+@@ -1624,6 +1663,13 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
  
      wg_parser_disconnect(source->wg_parser);
  
@@ -135,7 +135,7 @@ index 6d58d51045a..ba5f9f3cef0 100644
      if (source->read_thread)
      {
          source->read_thread_shutdown = true;
-@@ -1717,6 +1763,8 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+@@ -1727,6 +1773,8 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
      if (context->type != WG_PARSER_URIDECODEBIN)
          object->read_thread = CreateThread(NULL, 0, read_thread, object, 0, NULL);
  
@@ -144,7 +144,7 @@ index 6d58d51045a..ba5f9f3cef0 100644
      object->state = SOURCE_OPENING;
  
      if (FAILED(hr = wg_parser_connect(parser, object->file_size, context->url)))
-@@ -1801,6 +1849,12 @@ fail:
+@@ -1811,6 +1859,12 @@ fail:
  
      if (stream_count != UINT_MAX)
          wg_parser_disconnect(object->wg_parser);
@@ -309,5 +309,5 @@ index ae6286b8084..4e1702893d0 100644
      X(wg_parser_get_stream),
  
 -- 
-2.44.0
+2.45.1
 

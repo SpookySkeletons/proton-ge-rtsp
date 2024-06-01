@@ -1,7 +1,7 @@
-From cf92947651ccfe4dea57b6e1869a74b782aa8df7 Mon Sep 17 00:00:00 2001
+From f1cd3d390d097700d23c8bff83122eb5f494e3f4 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 14 Apr 2024 06:12:55 +0200
-Subject: [PATCH 21/30] winegstreamer: Do not seek live sources.
+Subject: [PATCH 21/32] winegstreamer: Do not seek live sources.
 
 souphttpsrc seems to break from seeking sometimes:
 
@@ -82,5 +82,5 @@ index b11e00d0908..ae6286b8084 100644
          if (ret == GST_STATE_CHANGE_FAILURE)
              goto out;
 -- 
-2.44.0
+2.45.1
 

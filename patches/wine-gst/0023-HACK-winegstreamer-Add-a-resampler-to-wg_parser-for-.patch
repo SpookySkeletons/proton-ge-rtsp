@@ -1,7 +1,7 @@
-From c25eb636fb447d9214871ab1da485c586de04eeb Mon Sep 17 00:00:00 2001
+From 3b97f6409bd01030c35d4d47cf412add892d82fb Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 23/30] [HACK] winegstreamer: Add a resampler to wg_parser for
+Subject: [PATCH 23/32] [HACK] winegstreamer: Add a resampler to wg_parser for
  raw audio.
 
 ---
@@ -24,5 +24,5 @@ index 4e1702893d0..83ba0237b3b 100644
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              return false;
 -- 
-2.44.0
+2.45.1
 

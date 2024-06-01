@@ -1,7 +1,7 @@
-From 501519db09eec0df9872192c6af88b7b2a73dcb3 Mon Sep 17 00:00:00 2001
+From 1d3a1206ada17b5a50a4f4d770ac8d4d4006bbee Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sat, 2 Mar 2024 21:19:25 +0100
-Subject: [PATCH 25/30] [HACK] mfmediaengine: Do not send
+Subject: [PATCH 25/32] [HACK] mfmediaengine: Do not send
  MF_MEDIA_ENGINE_EVENT_ERROR.
 
 Breaks AVPro Video (used by VRChat) when a IMFMediaEngine::GetError call inside the event handler doesn't return an
@@ -45,5 +45,5 @@ index 54ff4c62c5d..7064565c7dc 100644
  
      LeaveCriticalSection(&engine->cs);
 -- 
-2.44.0
+2.45.1
 

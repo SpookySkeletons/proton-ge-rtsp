@@ -1,7 +1,7 @@
-From 03bc717138efac76df58d56d8385a1cddf4442dc Mon Sep 17 00:00:00 2001
+From 6c0dfd685282577de950ba8df95904537750f82a Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 05:11:11 +0100
-Subject: [PATCH 16/30] winegstreamer: Adjust buffer timestamps after seek.
+Subject: [PATCH 16/32] winegstreamer: Adjust buffer timestamps after seek.
 
 ---
  dlls/winegstreamer/wg_parser.c | 10 +++++++---
@@ -57,5 +57,5 @@ index 740fb1cc904..ab8844ce531 100644
      return S_OK;
  }
 -- 
-2.44.0
+2.45.1
 

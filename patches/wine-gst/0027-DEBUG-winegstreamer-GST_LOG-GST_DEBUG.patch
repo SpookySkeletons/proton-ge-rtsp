@@ -1,7 +1,7 @@
-From 2f13eb85f2e9b0d8877afb898684aa460c5e5609 Mon Sep 17 00:00:00 2001
+From 1a536d999475fd19dd8020fe5d45ad8fe9bddfa6 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:20:49 +0100
-Subject: [PATCH 27/30] [DEBUG] winegstreamer: GST_LOG -> GST_DEBUG.
+Subject: [PATCH 27/32] [DEBUG] winegstreamer: GST_LOG -> GST_DEBUG.
 
 ---
  dlls/winegstreamer/wg_parser.c | 34 +++++++++++++++++-----------------
@@ -165,5 +165,5 @@ index 30a24905aa7..5ddc9b677f9 100644
      switch (event->type)
      {
 -- 
-2.44.0
+2.45.1
 
