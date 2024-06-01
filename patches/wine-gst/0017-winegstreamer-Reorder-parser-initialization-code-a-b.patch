@@ -1,7 +1,7 @@
-From 199e2e40ae5a7f7fd7dfcb45445e5edbea8312b0 Mon Sep 17 00:00:00 2001
+From e31bc31f0346b9577d3794e2ac25bf81997869ce Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 17/30] winegstreamer: Reorder parser initialization code a bit
+Subject: [PATCH 17/32] winegstreamer: Reorder parser initialization code a bit
  to prevent race conditions.
 
 ---
@@ -80,5 +80,5 @@ index ab8844ce531..3f57ec74131 100644
          return FALSE;
  
 -- 
-2.44.0
+2.45.1
 

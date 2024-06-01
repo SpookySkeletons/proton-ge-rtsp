@@ -1,7 +1,7 @@
-From 3b9de310effb71ca0a56de73fed1f6cfc0e91cac Mon Sep 17 00:00:00 2001
+From 41a4cb545f26bf07ff595c1bf01b229a97c0efdd Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 10 Apr 2024 18:59:43 +0200
-Subject: [PATCH 02/30] === Memory leak fixes ===
+Subject: [PATCH 02/32] === Memory leak fixes ===
 
 ---
  MAINTAINERS | 1 +
@@ -17,5 +17,5 @@ index ab42dff2884..2291c99447c 100644
  seek
 +leak
 -- 
-2.44.0
+2.45.1
 

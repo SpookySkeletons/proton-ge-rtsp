@@ -1,7 +1,7 @@
-From 33424cceb5bb4d71fa9a556f7048fdc5135521d0 Mon Sep 17 00:00:00 2001
+From 58dffbf17b6704443b1cbed42f09a39d330ffa11 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:19:09 +0100
-Subject: [PATCH 06/30] winegstreamer: Fixate caps in autoplug_continue_cb.
+Subject: [PATCH 06/32] winegstreamer: Fixate caps in autoplug_continue_cb.
 
 Not strictly necessary but avoids an assert in gstreamer code.
 ---
@@ -23,5 +23,5 @@ index 934e7b2fe26..fe846e66324 100644
      return !format_is_compressed(&format);
  }
 -- 
-2.44.0
+2.45.1
 

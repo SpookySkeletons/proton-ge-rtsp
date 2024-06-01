@@ -1,7 +1,7 @@
-From eddad69b7223439038ba0ac7e11dbb0123c5f2ec Mon Sep 17 00:00:00 2001
+From 3f04d2329715f626653cfa26c07d348cc0ceb9e4 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 18 Mar 2024 10:18:07 +0100
-Subject: [PATCH 19/30] winegstreamer: Use pthread_cond_broadcast instead of
+Subject: [PATCH 19/32] winegstreamer: Use pthread_cond_broadcast instead of
  pthread_cond_signal for stream_event_cond.
 
 ---
@@ -67,5 +67,5 @@ index 5421c821a30..1cee2698b4f 100644
  
      gst_element_set_state(parser->container, GST_STATE_NULL);
 -- 
-2.44.0
+2.45.1
 

@@ -1,7 +1,7 @@
-From c170bf97c6033498a971ed52619cecc497da1748 Mon Sep 17 00:00:00 2001
+From 73a2026f5cfd19d3ec6281fe532047d76c4abf86 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 22 Apr 2024 11:44:37 +0200
-Subject: [PATCH 09/30] winegstreamer: Fixate caps in the pad-added callback.
+Subject: [PATCH 09/32] winegstreamer: Fixate caps in the pad-added callback.
 
 Pad caps might not be fixed caps, and non-fixed caps can't be transformed to a wg_format.
 ---
@@ -34,5 +34,5 @@ index b697dae026d..7216b640ca1 100644
  
      /* For compressed stream, create an extra decodebin to decode it. */
 -- 
-2.44.0
+2.45.1
 

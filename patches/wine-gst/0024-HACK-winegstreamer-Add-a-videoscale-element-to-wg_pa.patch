@@ -1,7 +1,7 @@
-From ef8742013a818be2047d2456ad8499e1a72a3103 Mon Sep 17 00:00:00 2001
+From db64e51a09e838d83d4e3e84054cc4edca1c4d68 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 24/30] [HACK] winegstreamer: Add a videoscale element to
+Subject: [PATCH 24/32] [HACK] winegstreamer: Add a videoscale element to
  wg_parser for raw video.
 
 ---
@@ -35,5 +35,5 @@ index 83ba0237b3b..30a24905aa7 100644
              return false;
      }
 -- 
-2.44.0
+2.45.1
 
