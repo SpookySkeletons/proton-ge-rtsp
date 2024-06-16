@@ -1,0 +1,206 @@
+From 46e5667cd8f5fafe0d4bdffdbf980200e5f841dd Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 3 Jun 2024 10:57:07 +0200
+Subject: [PATCH 39/45] winegstreamer: Add a queue of buffers to wg_parser to
+ prevent locking up pipeline.
+
+Without this, sink_chain_cb could block while one or more other stream didn't have a buffer/sample ready.
+If the application then waits for a sample on a stream without one ready, and never receives the sample that is
+providing backpressure to the pipeline (by blocking in sink_chain_cb), the pipeline would stay locked up indefinitely.
+
+Essentially
+- Application is waiting for a sample from stream 1 before requesting a sample from stream 2
+- sink_chain_cb is waiting to deliver a sample on stream 2 before unblocking the pipeline, which would allow Gstreamer
+  to deliver a sample to stream 1
+---
+ dlls/winegstreamer/wg_parser.c | 104 ++++++++++++++++++++++++++++++---
+ 1 file changed, 95 insertions(+), 9 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 0d42e61cefb..f72a6adb5f9 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -137,6 +137,10 @@ struct wg_parser_stream
+     GstBuffer *buffer;
+     GstMapInfo map_info;
+ 
++    GstBuffer **queued_buffers;
++    size_t num_queued;
++    size_t queue_capacity;
++
+     bool flushing, eos, enabled, has_caps, has_tags, has_buffer, no_more_pads;
+ 
+     uint64_t duration;
+@@ -145,6 +149,8 @@ struct wg_parser_stream
+     int seq_id;
+ 
+     guint64 seek_pos;
++
++    bool waiting;
+ };
+ 
+ static struct wg_parser *get_parser(wg_parser_t parser)
+@@ -378,8 +384,14 @@ static GstBuffer *wait_parser_stream_buffer(struct wg_parser *parser, struct wg_
+     /* Note that we can both have a buffer and stream->eos, in which case we
+      * must return the buffer. */
+ 
+-    while (stream->enabled && !(buffer = stream->buffer) && !stream->eos)
+-        pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
++    if (stream->enabled && !(buffer = stream->buffer) && !stream->eos)
++    {
++        stream->waiting = true;
++        pthread_cond_broadcast(&parser->stream_event_cond);
++        while (stream->enabled && !(buffer = stream->buffer) && !stream->eos)
++            pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
++    }
++    stream->waiting = false;
+ 
+     return buffer;
+ }
+@@ -393,6 +405,22 @@ static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *st
+         stream->buffer = NULL;
+     }
+ 
++    while (!stream->buffer && stream->num_queued)
++    {
++        GstBuffer *buffer = stream->queued_buffers[0];
++
++        memmove(stream->queued_buffers, stream->queued_buffers + 1, (stream->num_queued - 1) * sizeof(buffer));
++        stream->num_queued -= 1;
++
++        if (!gst_buffer_map(buffer, &stream->map_info, GST_MAP_READ))
++        {
++            GST_ERROR("Failed to map buffer.");
++            gst_buffer_unref(buffer);
++        }
++        else
++            stream->buffer = buffer;
++    }
++
+     pthread_cond_broadcast(&parser->stream_event_cond);
+ }
+ 
+@@ -816,6 +844,8 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+ 
+             if (stream->enabled)
+             {
++                size_t i;
++
+                 stream->flushing = true;
+                 pthread_cond_broadcast(&parser->stream_event_cond);
+ 
+@@ -825,6 +855,10 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+                     gst_buffer_unref(stream->buffer);
+                     stream->buffer = NULL;
+                 }
++
++                for (i = 0; i < stream->num_queued; i++)
++                    gst_buffer_unref(stream->queued_buffers[i]);
++                stream->num_queued = 0;
+             }
+ 
+             pthread_mutex_unlock(&parser->mutex);
+@@ -886,10 +920,30 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+     return TRUE;
+ }
+ 
++static inline bool has_queue_space(struct wg_parser_stream *stream, GstBuffer *buffer)
++{
++    struct wg_parser *parser = stream->parser;
++    size_t i;
++
++    if (stream->current_format.major_type >= WG_MAJOR_TYPE_VIDEO && stream->num_queued > 256)
++        return false;
++
++    for (i = 0; i < parser->stream_count; i++)
++    {
++        struct wg_parser_stream *other_stream = parser->streams[i];
++        if (other_stream == stream)
++            continue;
++        if (!other_stream->buffer && other_stream->waiting)
++            return true;
++    }
++    return false;
++}
++
+ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *buffer)
+ {
+     struct wg_parser_stream *stream = gst_pad_get_element_private(pad);
+     struct wg_parser *parser = stream->parser;
++    GstClockTime end_pts;
+ 
+     GST_LOG("stream %p, buffer %p.", stream, buffer);
+ 
+@@ -912,7 +966,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+     /* Allow this buffer to be flushed by GStreamer. We are effectively
+      * implementing a queue object here. */
+ 
+-    while (stream->enabled && !stream->flushing && stream->buffer)
++    while (stream->enabled && !stream->flushing && stream->buffer && !has_queue_space(stream, buffer))
+         pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
+ 
+     if (!stream->enabled)
+@@ -931,15 +985,43 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+         return GST_FLOW_FLUSHING;
+     }
+ 
+-    if (!gst_buffer_map(buffer, &stream->map_info, GST_MAP_READ))
++    if (!stream->buffer)
+     {
+-        pthread_mutex_unlock(&parser->mutex);
+-        GST_ERROR("Failed to map buffer.");
+-        gst_buffer_unref(buffer);
+-        return GST_FLOW_ERROR;
++        if (!gst_buffer_map(buffer, &stream->map_info, GST_MAP_READ))
++        {
++            pthread_mutex_unlock(&parser->mutex);
++            GST_ERROR("Failed to map buffer.");
++            gst_buffer_unref(buffer);
++            return GST_FLOW_ERROR;
++        }
++
++        stream->buffer = buffer;
++    }
++    else
++    {
++        if (stream->queue_capacity < stream->num_queued + 1)
++        {
++            size_t capacity = stream->queue_capacity != 0 ? stream->queue_capacity * 2 : 32;
++            GstBuffer **queue = malloc(capacity * sizeof(*stream->queued_buffers));
++            if (!queue)
++            {
++                pthread_mutex_unlock(&parser->mutex);
++                GST_ERROR("Failed to allocate queue.");
++                gst_buffer_unref(buffer);
++                return GST_FLOW_ERROR;
++            }
++            memcpy(queue, stream->queued_buffers, stream->num_queued * sizeof(buffer));
++            free(stream->queued_buffers);
++            stream->queue_capacity = capacity;
++            stream->queued_buffers = queue;
++        }
++
++        stream->queued_buffers[stream->num_queued++] = buffer;
+     }
+ 
+-    stream->buffer = buffer;
++    end_pts = GST_BUFFER_PTS(buffer);
++    if (GST_BUFFER_DURATION_IS_VALID(buffer))
++        end_pts += GST_BUFFER_DURATION(buffer);
+ 
+     pthread_mutex_unlock(&parser->mutex);
+     pthread_cond_broadcast(&parser->stream_event_cond);
+@@ -1129,6 +1211,10 @@ static void free_stream(struct wg_parser_stream *stream)
+         stream->buffer = NULL;
+     }
+ 
++    for (i = 0; i < stream->num_queued; i++)
++        gst_buffer_unref(stream->queued_buffers[i]);
++    free(stream->queued_buffers);
++
+     for (i = 0; i < ARRAY_SIZE(stream->tags); ++i)
+     {
+         if (stream->tags[i])
+-- 
+2.45.2
+
