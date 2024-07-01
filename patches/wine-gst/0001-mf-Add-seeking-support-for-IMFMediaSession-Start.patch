@@ -1,0 +1,128 @@
+From bc88e82ada1457245f246b6d5621b13b3d9ab760 Mon Sep 17 00:00:00 2001
+From: Zhiyi Zhang <zzhang@codeweavers.com>
+Date: Tue, 1 Aug 2023 10:52:21 +0800
+Subject: [PATCH 01/43] mf: Add seeking support for IMFMediaSession::Start().
+
+---
+ dlls/mf/session.c | 57 ++++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 51 insertions(+), 6 deletions(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index ef707dea4de..3f3be2b84b0 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -110,6 +110,7 @@ enum object_state
+     OBJ_STATE_STARTED,
+     OBJ_STATE_PAUSED,
+     OBJ_STATE_PREROLLED,
++    OBJ_STATE_SEEKING,
+     OBJ_STATE_INVALID,
+ };
+ 
+@@ -912,10 +913,28 @@ static HRESULT session_subscribe_sources(struct media_session *session)
+     return hr;
+ }
+ 
++static void session_set_source_output_nodes_seeking(struct media_session *session)
++{
++    struct media_source *source;
++    struct topo_node *node;
++
++    LIST_FOR_EACH_ENTRY(source, &session->presentation.sources, struct media_source, entry)
++    {
++        source->state = OBJ_STATE_SEEKING;
++    }
++
++    LIST_FOR_EACH_ENTRY(node, &session->presentation.nodes, struct topo_node, entry)
++    {
++        if (node->type == MF_TOPOLOGY_SOURCESTREAM_NODE || node->type == MF_TOPOLOGY_OUTPUT_NODE)
++            node->state = OBJ_STATE_SEEKING;
++    }
++}
++
+ static void session_start(struct media_session *session, const GUID *time_format, const PROPVARIANT *start_position)
+ {
+     struct media_source *source;
+     struct topo_node *topo_node;
++    MFTIME duration;
+     HRESULT hr;
+     UINT i;
+ 
+@@ -932,6 +951,13 @@ static void session_start(struct media_session *session, const GUID *time_format
+ 
+             /* fallthrough */
+         case SESSION_STATE_PAUSED:
++        case SESSION_STATE_STARTED:
++            if (session->state == SESSION_STATE_STARTED && !(session->caps & MFSESSIONCAP_SEEK))
++            {
++                WARN("Seeking is not supported for this session.\n");
++                session_command_complete(session);
++                return;
++            }
+ 
+             session->presentation.time_format = *time_format;
+             session->presentation.start_position.vt = VT_EMPTY;
+@@ -945,6 +971,14 @@ static void session_start(struct media_session *session, const GUID *time_format
+ 
+             LIST_FOR_EACH_ENTRY(source, &session->presentation.sources, struct media_source, entry)
+             {
++                hr = IMFPresentationDescriptor_GetUINT64(source->pd, &MF_PD_DURATION, (UINT64 *)&duration);
++                if (SUCCEEDED(hr) && start_position->vt == VT_I8&& start_position->hVal.QuadPart > duration)
++                {
++                    WARN("Start position %s out of range, hr %#lx.\n", wine_dbgstr_longlong(start_position->hVal.QuadPart), hr);
++                    session_command_complete_with_event(session, MESessionStarted, MF_E_INVALID_POSITION, NULL);
++                    return;
++                }
++
+                 if (FAILED(hr = IMFMediaSource_Start(source->source, source->pd, &GUID_NULL, start_position)))
+                 {
+                     WARN("Failed to start media source %p, hr %#lx.\n", source->source, hr);
+@@ -965,12 +999,22 @@ static void session_start(struct media_session *session, const GUID *time_format
+                 }
+             }
+ 
++            if (session->state == SESSION_STATE_STARTED)
++            {
++                struct topo_node *node;
++
++                LIST_FOR_EACH_ENTRY(node, &session->presentation.nodes, struct topo_node, entry)
++                {
++                    if (node->type == MF_TOPOLOGY_OUTPUT_NODE)
++                        IMFStreamSink_Flush(node->object.sink_stream);
++                    else if (node->type == MF_TOPOLOGY_TRANSFORM_NODE)
++                        IMFTransform_ProcessMessage(node->object.transform, MFT_MESSAGE_COMMAND_FLUSH, 0);
++                }
++
++                session_set_source_output_nodes_seeking(session);
++            }
+             session->state = SESSION_STATE_STARTING_SOURCES;
+             break;
+-        case SESSION_STATE_STARTED:
+-            FIXME("Seeking is not implemented.\n");
+-            session_command_complete(session);
+-            break;
+         default:
+             session_command_complete_with_event(session, MESessionStarted, MF_E_INVALIDREQUEST, NULL);
+             break;
+@@ -2206,6 +2250,9 @@ static HRESULT WINAPI mfsession_Start(IMFMediaSession *iface, const GUID *format
+     if (!start_position)
+         return E_POINTER;
+ 
++    if (FAILED(hr = session_is_shut_down(session)))
++        return hr;
++
+     if (FAILED(hr = create_session_op(SESSION_CMD_START, &op)))
+         return hr;
+ 
+@@ -3714,8 +3761,6 @@ static HRESULT WINAPI session_events_callback_Invoke(IMFAsyncCallback *iface, IM
+     {
+         case MESourceSeeked:
+         case MEStreamSeeked:
+-            FIXME("Source/stream seeking, semi-stub!\n");
+-            /* fallthrough */
+         case MESourceStarted:
+         case MESourcePaused:
+         case MESourceStopped:
+-- 
+2.45.2
+

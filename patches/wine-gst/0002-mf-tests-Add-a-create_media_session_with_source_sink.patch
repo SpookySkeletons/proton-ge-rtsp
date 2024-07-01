@@ -1,0 +1,143 @@
+From 4ba015c45201d9cbdba3237d2c9c3a243c4e70f4 Mon Sep 17 00:00:00 2001
+From: Zhiyi Zhang <zzhang@codeweavers.com>
+Date: Tue, 8 Aug 2023 15:24:34 +0800
+Subject: [PATCH 02/43] mf/tests: Add a create_media_session_with_source_sink()
+ helper.
+
+---
+ dlls/mf/tests/mf.c | 92 ++++++++++++++++++++++++----------------------
+ 1 file changed, 48 insertions(+), 44 deletions(-)
+
+diff --git a/dlls/mf/tests/mf.c b/dlls/mf/tests/mf.c
+index 0a34329bd75..e0bcedac20f 100644
+--- a/dlls/mf/tests/mf.c
++++ b/dlls/mf/tests/mf.c
+@@ -4995,6 +4995,53 @@ static void test_sample_grabber_is_mediatype_supported(void)
+     IMFSampleGrabberSinkCallback_Release(grabber_callback);
+ }
+ 
++/* create a media session with the specified source and sink */
++static void create_media_session_with_source_sink(IMFMediaSource *source, IMFActivate *sink_activate,
++        IMFMediaSession **session)
++{
++    IMFTopologyNode *src_node, *sink_node;
++    IMFPresentationDescriptor *pd;
++    IMFStreamDescriptor *sd;
++    IMFTopology *topology;
++    BOOL selected;
++    HRESULT hr;
++
++    hr = MFCreateMediaSession(NULL, session);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = MFCreateTopology(&topology);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = MFCreateTopologyNode(MF_TOPOLOGY_OUTPUT_NODE, &sink_node);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = MFCreateTopologyNode(MF_TOPOLOGY_SOURCESTREAM_NODE, &src_node);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = IMFTopology_AddNode(topology, sink_node);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = IMFTopology_AddNode(topology, src_node);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = IMFTopologyNode_ConnectOutput(src_node, 0, sink_node, 0);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = IMFMediaSource_CreatePresentationDescriptor(source, &pd);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = IMFPresentationDescriptor_GetStreamDescriptorByIndex(pd, 0, &selected, &sd);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    ok(selected, "got selected %u.\n", !!selected);
++    init_source_node(source, -1, src_node, pd, sd);
++    hr = IMFTopologyNode_SetObject(sink_node, (IUnknown *)sink_activate);
++    ok(hr == S_OK, "Failed to set object, hr %#lx.\n", hr);
++    hr = IMFTopologyNode_SetUINT32(sink_node, &MF_TOPONODE_CONNECT_METHOD, MF_CONNECT_ALLOW_DECODER);
++    ok(hr == S_OK, "Failed to set connect method, hr %#lx.\n", hr);
++    hr = IMFTopology_SetUINT32(topology, &MF_TOPOLOGY_ENUMERATE_SOURCE_TYPES, TRUE);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++    hr = IMFMediaSession_SetTopology(*session, 0, topology);
++    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
++
++    IMFStreamDescriptor_Release(sd);
++    IMFPresentationDescriptor_Release(pd);
++    IMFTopologyNode_Release(src_node);
++    IMFTopologyNode_Release(sink_node);
++    IMFTopology_Release(topology);
++}
++
+ static void test_sample_grabber_orientation(GUID subtype)
+ {
+     media_type_desc video_rgb32_desc =
+@@ -5004,17 +5051,12 @@ static void test_sample_grabber_orientation(GUID subtype)
+     };
+ 
+     struct test_grabber_callback *grabber_callback;
+-    IMFTopologyNode *src_node, *sink_node;
+-    IMFPresentationDescriptor *pd;
+     IMFAsyncCallback *callback;
+     IMFActivate *sink_activate;
+     IMFMediaType *output_type;
+     IMFMediaSession *session;
+-    IMFStreamDescriptor *sd;
+     IMFMediaSource *source;
+-    IMFTopology *topology;
+     PROPVARIANT propvar;
+-    BOOL selected;
+     HRESULT hr;
+     DWORD res;
+ 
+@@ -5035,33 +5077,6 @@ static void test_sample_grabber_orientation(GUID subtype)
+     grabber_callback->done_event = CreateEventW(NULL, FALSE, FALSE, NULL);
+     ok(!!grabber_callback->done_event, "CreateEventW failed, error %lu\n", GetLastError());
+ 
+-    hr = MFCreateMediaSession(NULL, &session);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-
+-    hr = MFCreateTopologyNode(MF_TOPOLOGY_OUTPUT_NODE, &sink_node);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-    hr = MFCreateTopologyNode(MF_TOPOLOGY_SOURCESTREAM_NODE, &src_node);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-
+-    hr = MFCreateTopology(&topology);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-    hr = IMFTopology_AddNode(topology, sink_node);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-    hr = IMFTopology_AddNode(topology, src_node);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-    hr = IMFTopologyNode_ConnectOutput(src_node, 0, sink_node, 0);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-
+-    hr = IMFMediaSource_CreatePresentationDescriptor(source, &pd);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-    hr = IMFPresentationDescriptor_GetStreamDescriptorByIndex(pd, 0, &selected, &sd);
+-    ok(selected, "got selected %u.\n", !!selected);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-    init_source_node(source, -1, src_node, pd, sd);
+-    IMFTopologyNode_Release(src_node);
+-    IMFPresentationDescriptor_Release(pd);
+-    IMFStreamDescriptor_Release(sd);
+-
+     hr = MFCreateMediaType(&output_type);
+     ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+     init_media_type(output_type, video_rgb32_desc, -1);
+@@ -5069,18 +5084,7 @@ static void test_sample_grabber_orientation(GUID subtype)
+     ok(hr == S_OK, "Failed to create grabber sink, hr %#lx.\n", hr);
+     IMFMediaType_Release(output_type);
+ 
+-    hr = IMFTopologyNode_SetObject(sink_node, (IUnknown *)sink_activate);
+-    ok(hr == S_OK, "Failed to set object, hr %#lx.\n", hr);
+-    hr = IMFTopologyNode_SetUINT32(sink_node, &MF_TOPONODE_CONNECT_METHOD, MF_CONNECT_ALLOW_DECODER);
+-    ok(hr == S_OK, "Failed to set connect method, hr %#lx.\n", hr);
+-    IMFTopologyNode_Release(sink_node);
+-
+-    hr = IMFTopology_SetUINT32(topology, &MF_TOPOLOGY_ENUMERATE_SOURCE_TYPES, TRUE);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-
+-    hr = IMFMediaSession_SetTopology(session, 0, topology);
+-    ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
+-    IMFTopology_Release(topology);
++    create_media_session_with_source_sink(source, sink_activate, &session);
+ 
+     propvar.vt = VT_EMPTY;
+     hr = IMFMediaSession_Start(session, &GUID_NULL, &propvar);
+-- 
+2.45.2
+

@@ -1,0 +1,102 @@
+From 65fe0ddaa16cecb85d84ea59bd47354c8654b720 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 24 Apr 2024 22:00:49 +0200
+Subject: [PATCH 43/43] ntdll: Use unixcall instead of syscall for
+ QueryPerformanceCounter.
+
+---
+ dlls/ntdll/time.c              |  3 +--
+ dlls/ntdll/unix/loader.c       |  2 ++
+ dlls/ntdll/unix/sync.c         | 10 +++++++++-
+ dlls/ntdll/unix/unix_private.h |  2 ++
+ dlls/ntdll/unixlib.h           |  1 +
+ 5 files changed, 15 insertions(+), 3 deletions(-)
+
+diff --git a/dlls/ntdll/time.c b/dlls/ntdll/time.c
+index 105a6cf5bc8..9bd182e4cb2 100644
+--- a/dlls/ntdll/time.c
++++ b/dlls/ntdll/time.c
+@@ -382,8 +382,7 @@ LONGLONG WINAPI RtlGetSystemTimePrecise( void )
+  */
+ BOOL WINAPI DECLSPEC_HOTPATCH RtlQueryPerformanceCounter( LARGE_INTEGER *counter )
+ {
+-    NtQueryPerformanceCounter( counter, NULL );
+-    return TRUE;
++    return !WINE_UNIX_CALL( unix_query_performance_counter, counter );
+ }
+ 
+ /******************************************************************************
+diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
+index f8695a70deb..04f3fda6d4d 100644
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -1203,6 +1203,7 @@ static const unixlib_entry_t unix_call_funcs[] =
+     unixcall_wine_server_handle_to_fd,
+     unixcall_wine_spawnvp,
+     system_time_precise,
++    query_performance_counter,
+     steamclient_setup_trampolines,
+     is_pc_in_native_so,
+     debugstr_pc,
+@@ -1224,6 +1225,7 @@ const unixlib_entry_t unix_call_wow64_funcs[] =
+     wow64_wine_server_handle_to_fd,
+     wow64_wine_spawnvp,
+     system_time_precise,
++    query_performance_counter,
+ };
+ 
+ #endif  /* _WIN64 */
+diff --git a/dlls/ntdll/unix/sync.c b/dlls/ntdll/unix/sync.c
+index 23f17e72e08..355f4658fca 100644
+--- a/dlls/ntdll/unix/sync.c
++++ b/dlls/ntdll/unix/sync.c
+@@ -1706,12 +1706,20 @@ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeou
+ }
+ 
+ 
++NTSTATUS query_performance_counter( void *args )
++{
++    LARGE_INTEGER *counter = args;
++    counter->QuadPart = monotonic_counter();
++    return STATUS_SUCCESS;
++}
++
++
+ /******************************************************************************
+  *              NtQueryPerformanceCounter (NTDLL.@)
+  */
+ NTSTATUS WINAPI NtQueryPerformanceCounter( LARGE_INTEGER *counter, LARGE_INTEGER *frequency )
+ {
+-    counter->QuadPart = monotonic_counter();
++    query_performance_counter( counter );
+     if (frequency) frequency->QuadPart = TICKSPERSEC;
+     return STATUS_SUCCESS;
+ }
+diff --git a/dlls/ntdll/unix/unix_private.h b/dlls/ntdll/unix/unix_private.h
+index 2b62d5c7754..02d6a8a0d41 100644
+--- a/dlls/ntdll/unix/unix_private.h
++++ b/dlls/ntdll/unix/unix_private.h
+@@ -265,6 +265,8 @@ extern unsigned int alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, stru
+                                              data_size_t *ret_len );
+ extern NTSTATUS system_time_precise( void *args );
+ 
++extern NTSTATUS query_performance_counter( void *args );
++
+ extern void *steamclient_handle_fault( LPCVOID addr, DWORD err );
+ extern void *anon_mmap_fixed( void *start, size_t size, int prot, int flags );
+ extern void *anon_mmap_alloc( size_t size, int prot );
+diff --git a/dlls/ntdll/unixlib.h b/dlls/ntdll/unixlib.h
+index e0870584a68..030801de407 100644
+--- a/dlls/ntdll/unixlib.h
++++ b/dlls/ntdll/unixlib.h
+@@ -89,6 +89,7 @@ enum ntdll_unix_funcs
+     unix_wine_server_handle_to_fd,
+     unix_wine_spawnvp,
+     unix_system_time_precise,
++    unix_query_performance_counter,
+     unix_steamclient_setup_trampolines,
+     unix_is_pc_in_native_so,
+     unix_debugstr_pc,
+-- 
+2.45.2
+
