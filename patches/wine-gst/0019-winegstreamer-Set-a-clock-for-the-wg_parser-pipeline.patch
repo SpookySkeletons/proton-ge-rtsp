@@ -1,0 +1,27 @@
+From ee8ab4183cffaa51ea9b4940f6c4e9643dc29721 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:55 +0100
+Subject: [PATCH 19/43] winegstreamer: Set a clock for the wg_parser pipeline.
+
+Some elements under uridecodebin (e.g. the RTSP demuxer) require a valid clock to function properly.
+GstPipeline does this so let's do this too.
+---
+ dlls/winegstreamer/wg_parser.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index b89a25fd9ef..cd193b8f2af 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1885,6 +1885,8 @@ static NTSTATUS wg_parser_connect(void *args)
+     gst_pad_set_event_function(parser->my_src, src_event_cb);
+     gst_pad_set_element_private(parser->my_src, parser);
+ 
++    gst_element_set_clock(parser->container, gst_system_clock_obtain());
++
+     parser->start_offset = parser->next_offset = parser->stop_offset = 0;
+     parser->next_pull_offset = 0;
+     parser->error = false;
+-- 
+2.45.2
+

@@ -1,0 +1,109 @@
+From d74ea960a50420934759d2addfa649fae15f878a Mon Sep 17 00:00:00 2001
+From: Zhiyi Zhang <zzhang@codeweavers.com>
+Date: Fri, 28 Jul 2023 18:04:30 +0800
+Subject: [PATCH 04/43] mfmediaengine: Implement
+ IMFMediaEngineEx::SetCurrentTime/Ex().
+
+---
+ dlls/mfmediaengine/main.c | 62 +++++++++++++++++++++++++++++----------
+ 1 file changed, 47 insertions(+), 15 deletions(-)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index 9e41d9dad84..28a273616c8 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -96,6 +96,7 @@ enum media_engine_flags
+     FLAGS_ENGINE_NEW_FRAME = 0x8000,
+     FLAGS_ENGINE_SOURCE_PENDING = 0x10000,
+     FLAGS_ENGINE_PLAY_PENDING = 0x20000,
++    FLAGS_ENGINE_SEEKING = 0x40000,
+ };
+ 
+ struct vec3
+@@ -982,7 +983,14 @@ static HRESULT WINAPI media_engine_session_events_Invoke(IMFAsyncCallback *iface
+             break;
+         }
+         case MESessionStarted:
+-
++            EnterCriticalSection(&engine->cs);
++            if (engine->flags & FLAGS_ENGINE_SEEKING)
++            {
++                media_engine_set_flag(engine, FLAGS_ENGINE_SEEKING | FLAGS_ENGINE_IS_ENDED, FALSE);
++                IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_SEEKED, 0, 0);
++                IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_TIMEUPDATE, 0, 0);
++            }
++            LeaveCriticalSection(&engine->cs);
+             IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_PLAYING, 0, 0);
+             break;
+         case MESessionEnded:
+@@ -1846,19 +1854,9 @@ static double WINAPI media_engine_GetCurrentTime(IMFMediaEngineEx *iface)
+ 
+ static HRESULT WINAPI media_engine_SetCurrentTime(IMFMediaEngineEx *iface, double time)
+ {
+-    struct media_engine *engine = impl_from_IMFMediaEngineEx(iface);
+-    HRESULT hr = E_NOTIMPL;
++    TRACE("%p, %f.\n", iface, time);
+ 
+-    FIXME("(%p, %f): stub.\n", iface, time);
+-
+-    EnterCriticalSection(&engine->cs);
+-
+-    if (engine->flags & FLAGS_ENGINE_SHUT_DOWN)
+-        hr = MF_E_SHUTDOWN;
+-
+-    LeaveCriticalSection(&engine->cs);
+-
+-    return hr;
++    return IMFMediaEngineEx_SetCurrentTimeEx(iface, time, MF_MEDIA_ENGINE_SEEK_MODE_NORMAL);
+ }
+ 
+ static double WINAPI media_engine_GetStartTime(IMFMediaEngineEx *iface)
+@@ -3059,9 +3057,43 @@ static HRESULT WINAPI media_engine_SetRealTimeMode(IMFMediaEngineEx *iface, BOOL
+ 
+ static HRESULT WINAPI media_engine_SetCurrentTimeEx(IMFMediaEngineEx *iface, double seektime, MF_MEDIA_ENGINE_SEEK_MODE mode)
+ {
+-    FIXME("%p, %f, %#x stub.\n", iface, seektime, mode);
++    struct media_engine *engine = impl_from_IMFMediaEngineEx(iface);
++    PROPVARIANT position;
++    BOOL paused;
++    DWORD caps;
++    HRESULT hr;
+ 
+-    return E_NOTIMPL;
++    TRACE("%p, %f, %#x.\n", iface, seektime, mode);
++
++    if (mode)
++        FIXME("mode %#x is ignored.\n", mode);
++
++    EnterCriticalSection(&engine->cs);
++
++    if (engine->flags & FLAGS_ENGINE_SHUT_DOWN)
++        hr = MF_E_SHUTDOWN;
++    else
++    {
++        hr = IMFMediaSession_GetSessionCapabilities(engine->session, &caps);
++        if (SUCCEEDED(hr) && caps & MFSESSIONCAP_SEEK)
++        {
++            paused = IMFMediaEngineEx_IsPaused(iface);
++
++            position.vt = VT_I8;
++            position.hVal.QuadPart = min(max(0, seektime), engine->duration) * 10000000;
++            hr = IMFMediaSession_Start(engine->session, &GUID_NULL, &position);
++            if (SUCCEEDED(hr))
++            {
++                media_engine_set_flag(engine, FLAGS_ENGINE_SEEKING, TRUE);
++                IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_SEEKING, 0, 0);
++                if (paused)
++                    hr = IMFMediaSession_Pause(engine->session);
++            }
++        }
++    }
++
++    LeaveCriticalSection(&engine->cs);
++    return hr;
+ }
+ 
+ static HRESULT WINAPI media_engine_EnableTimeUpdateTimer(IMFMediaEngineEx *iface, BOOL enable)
+-- 
+2.45.2
+

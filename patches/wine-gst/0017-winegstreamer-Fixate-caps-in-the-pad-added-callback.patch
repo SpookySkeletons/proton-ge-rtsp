@@ -1,0 +1,38 @@
+From 8f8a63ac48264dac08febf3374f0a37a5df01318 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 22 Apr 2024 11:44:37 +0200
+Subject: [PATCH 17/43] winegstreamer: Fixate caps in the pad-added callback.
+
+Pad caps might not be fixed caps, and non-fixed caps can't be transformed to a wg_format.
+---
+ dlls/winegstreamer/wg_parser.c | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 089d659e50d..3a39a754b81 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1209,7 +1209,7 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+ {
+     struct wg_parser_stream *stream;
+     struct wg_parser *parser = user;
+-    GstCaps *caps;
++    GstCaps *caps, *caps2;
+ 
+     GST_LOG("parser %p, element %p, pad %p.", parser, element, pad);
+ 
+@@ -1220,7 +1220,10 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+         return;
+ 
+     caps = gst_pad_query_caps(pad, NULL);
+-    wg_format_from_caps(&stream->codec_format, caps);
++    /* uridecodebin can provide non-fixed pad caps, fixate them here */
++    caps2 = gst_caps_fixate(gst_caps_copy_nth(caps, 0));
++    wg_format_from_caps(&stream->codec_format, caps2);
++    gst_caps_unref(caps2);
+     gst_caps_unref(caps);
+ 
+     /* For compressed stream, create an extra decodebin to decode it. */
+-- 
+2.45.2
+
