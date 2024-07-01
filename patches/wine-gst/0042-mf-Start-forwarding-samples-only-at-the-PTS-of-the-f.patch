@@ -1,0 +1,290 @@
+From e950094cf2d13e5ad3ccbd04b4635127db6d1e8d Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 23 Feb 2024 21:50:22 +0100
+Subject: [PATCH 42/43] mf: Start forwarding samples only at the PTS of the
+ first sample.
+
+Hides desynchronization in applications that ignore the PTS, e.g. VRChat.
+---
+ dlls/mf/session.c | 179 ++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 172 insertions(+), 7 deletions(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 925566d6baf..5b0cc5a344c 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -163,6 +163,7 @@ enum topo_node_flags
+ {
+     TOPO_NODE_END_OF_STREAM = 0x1,
+     TOPO_NODE_SCRUB_SAMPLE_COMPLETE = 0x2,
++    TOPO_NODE_HAS_WAITED_FOR_PTS = 0x4,
+ };
+ 
+ struct topo_node
+@@ -188,6 +189,9 @@ struct topo_node
+         {
+             IMFMediaSource *source;
+             DWORD stream_id;
++            IUnknown *cancel_key;
++            struct list samples;
++            IMFAsyncCallback timer_callback;
+         } source;
+         struct
+         {
+@@ -237,6 +241,7 @@ struct media_session
+     IMFPresentationClock *clock;
+     IMFPresentationTimeSource *system_time_source;
+     IMFRateControl *clock_rate_control;
++    IMFTimer *timer;
+     IMFTopoLoader *topo_loader;
+     IMFQualityManager *quality_manager;
+     struct
+@@ -313,6 +318,11 @@ static struct session_op *impl_op_from_IUnknown(IUnknown *iface)
+     return CONTAINING_RECORD(iface, struct session_op, IUnknown_iface);
+ }
+ 
++static struct topo_node *impl_node_from_IMFAsyncCallback(IMFAsyncCallback *iface)
++{
++    return CONTAINING_RECORD(iface, struct topo_node, u.source.timer_callback);
++}
++
+ static struct topo_node *impl_node_from_IMFVideoSampleAllocatorNotify(IMFVideoSampleAllocatorNotify *iface)
+ {
+     return CONTAINING_RECORD(iface, struct topo_node, u.sink.notify_cb);
+@@ -712,6 +722,29 @@ static void transform_stream_drop_samples(struct transform_stream *stream)
+         IMFSample_Release(sample);
+ }
+ 
++static HRESULT topo_node_sourcestream_pop_sample(struct topo_node *source_node, IMFSample **sample)
++{
++    struct sample *entry;
++    struct list *ptr;
++
++    if (!(ptr = list_head(&source_node->u.source.samples)))
++        return MF_E_TRANSFORM_NEED_MORE_INPUT;
++
++    entry = LIST_ENTRY(ptr, struct sample, entry);
++    list_remove(&entry->entry);
++    *sample = entry->sample;
++    free(entry);
++    return S_OK;
++}
++
++static void topo_node_sourcestream_drop_samples(struct topo_node *source_node)
++{
++    IMFSample *sample;
++
++    while (SUCCEEDED(topo_node_sourcestream_pop_sample(source_node, &sample)))
++        IMFSample_Release(sample);
++}
++
+ static void release_topo_node(struct topo_node *node)
+ {
+     unsigned int i;
+@@ -721,6 +754,12 @@ static void release_topo_node(struct topo_node *node)
+         case MF_TOPOLOGY_SOURCESTREAM_NODE:
+             if (node->u.source.source)
+                 IMFMediaSource_Release(node->u.source.source);
++            topo_node_sourcestream_drop_samples(node);
++            if (node->u.source.cancel_key)
++            {
++                IMFTimer_CancelTimer(node->session->timer, node->u.source.cancel_key);
++                IUnknown_Release(node->u.source.cancel_key);
++            }
+             break;
+         case MF_TOPOLOGY_TRANSFORM_NODE:
+             for (i = 0; i < node->u.transform.input_count; ++i)
+@@ -1640,6 +1679,68 @@ static HRESULT session_get_stream_sink_type(IMFStreamSink *sink, IMFMediaType **
+     return hr;
+ }
+ 
++static HRESULT WINAPI node_timer_callback_QueryInterface(IMFAsyncCallback *iface,
++        REFIID riid, void **obj)
++{
++    if (IsEqualIID(riid, &IID_IMFAsyncCallback) ||
++            IsEqualIID(riid, &IID_IUnknown))
++    {
++        *obj = iface;
++        IMFAsyncCallback_AddRef(iface);
++        return S_OK;
++    }
++
++    *obj = NULL;
++    return E_NOINTERFACE;
++}
++
++static ULONG WINAPI node_timer_callback_AddRef(IMFAsyncCallback *iface)
++{
++    return 2;
++}
++
++static ULONG WINAPI node_timer_callback_Release(IMFAsyncCallback *iface)
++{
++    return 1;
++}
++
++static HRESULT WINAPI node_timer_callback_GetParameters(IMFAsyncCallback *iface,
++        DWORD *flags, DWORD *queue)
++{
++    return E_NOTIMPL;
++}
++
++static void session_deliver_sample_from_source(struct media_session *session, struct topo_node *source_node,
++        IMFSample *sample);
++
++static HRESULT WINAPI node_timer_callback_Invoke(IMFAsyncCallback *iface, IMFAsyncResult *result)
++{
++    struct topo_node *source_node = impl_node_from_IMFAsyncCallback(iface);
++    struct media_session *session = source_node->session;
++    IMFSample *sample;
++
++    TRACE("%p %p\n", iface, result);
++
++    EnterCriticalSection(&session->cs);
++    while (SUCCEEDED(topo_node_sourcestream_pop_sample(source_node, &sample)))
++    {
++        session_deliver_sample_from_source(session, source_node, sample);
++        IMFSample_Release(sample);
++    }
++    LeaveCriticalSection(&session->cs);
++
++    return S_OK;
++}
++
++static const IMFAsyncCallbackVtbl node_timer_callback_vtbl =
++{
++    node_timer_callback_QueryInterface,
++    node_timer_callback_AddRef,
++    node_timer_callback_Release,
++    node_timer_callback_GetParameters,
++    node_timer_callback_Invoke,
++};
++
+ static HRESULT WINAPI node_sample_allocator_cb_QueryInterface(IMFVideoSampleAllocatorNotify *iface,
+         REFIID riid, void **obj)
+ {
+@@ -1737,6 +1838,9 @@ static HRESULT session_append_node(struct media_session *session, IMFTopologyNod
+ 
+             break;
+         case MF_TOPOLOGY_SOURCESTREAM_NODE:
++            list_init(&topo_node->u.source.samples);
++            topo_node->u.source.timer_callback.lpVtbl = &node_timer_callback_vtbl;
++
+             if (FAILED(IMFTopologyNode_GetUnknown(node, &MF_TOPONODE_SOURCE, &IID_IMFMediaSource,
+                     (void **)&topo_node->u.source.source)))
+             {
+@@ -2039,6 +2143,8 @@ static ULONG WINAPI mfsession_Release(IMFMediaSession *iface)
+             IMFPresentationTimeSource_Release(session->system_time_source);
+         if (session->clock_rate_control)
+             IMFRateControl_Release(session->clock_rate_control);
++        if (session->timer)
++            IMFTimer_Release(session->timer);
+         if (session->topo_loader)
+             IMFTopoLoader_Release(session->topo_loader);
+         if (session->quality_manager)
+@@ -3513,11 +3619,41 @@ static void session_request_sample(struct media_session *session, IMFStreamSink
+     IMFTopologyNode_Release(upstream_node);
+ }
+ 
++static HRESULT topo_node_sourcestream_push_sample(struct topo_node *source_node, IMFSample *sample)
++{
++    struct sample *entry;
++
++    if (!(entry = calloc(1, sizeof(*entry))))
++        return E_OUTOFMEMORY;
++
++    entry->sample = sample;
++    IMFSample_AddRef(entry->sample);
++
++    list_add_tail(&source_node->u.source.samples, &entry->entry);
++    return S_OK;
++}
++
++static void session_deliver_sample_from_source(struct media_session *session, struct topo_node *source_node,
++        IMFSample *sample)
++{
++    IMFTopologyNode *downstream_node;
++    DWORD downstream_input;
++    HRESULT hr;
++
++    if (FAILED(hr = IMFTopologyNode_GetOutput(source_node->node, 0, &downstream_node, &downstream_input)))
++    {
++        WARN("Failed to get downstream node connection, hr %#lx.\n", hr);
++        return;
++    }
++
++    session_deliver_sample_to_node(session, downstream_node, downstream_input, sample);
++    IMFTopologyNode_Release(downstream_node);
++}
++
+ static void session_deliver_sample(struct media_session *session, IMFMediaStream *stream, const PROPVARIANT *value)
+ {
+     struct topo_node *source_node = NULL, *node;
+-    IMFTopologyNode *downstream_node;
+-    DWORD downstream_input;
++    IMFSample *sample;
+     HRESULT hr;
+ 
+     if (value && (value->vt != VT_UNKNOWN || !value->punkVal))
+@@ -3538,17 +3674,42 @@ static void session_deliver_sample(struct media_session *session, IMFMediaStream
+     if (!source_node)
+         return;
+ 
++    sample = value ? (IMFSample *)value->punkVal : NULL;
++
+     if (!value)
+         source_node->flags |= TOPO_NODE_END_OF_STREAM;
+-
+-    if (FAILED(hr = IMFTopologyNode_GetOutput(source_node->node, 0, &downstream_node, &downstream_input)))
++    else if (!(source_node->flags & TOPO_NODE_HAS_WAITED_FOR_PTS))
+     {
+-        WARN("Failed to get downstream node connection, hr %#lx.\n", hr);
++        LONGLONG sampletime;
++
++        source_node->flags |= TOPO_NODE_HAS_WAITED_FOR_PTS;
++
++        if (SUCCEEDED(hr = IMFSample_GetSampleTime(sample, &sampletime)))
++        {
++            if (source_node->u.source.cancel_key)
++            {
++                IUnknown_Release(source_node->u.source.cancel_key);
++                source_node->u.source.cancel_key = NULL;
++            }
++
++            if (SUCCEEDED(hr = IMFTimer_SetTimer(session->timer, 0, sampletime, &source_node->u.source.timer_callback,
++                    NULL, &source_node->u.source.cancel_key)))
++            {
++                topo_node_sourcestream_push_sample(source_node, sample);
++                return;
++            }
++
++            source_node->u.source.cancel_key = NULL;
++        }
++    }
++
++    if (!list_empty(&source_node->u.source.samples))
++    {
++        topo_node_sourcestream_push_sample(source_node, sample);
+         return;
+     }
+ 
+-    session_deliver_sample_to_node(session, downstream_node, downstream_input, value ? (IMFSample *)value->punkVal : NULL);
+-    IMFTopologyNode_Release(downstream_node);
++    session_deliver_sample_from_source(session, source_node, sample);
+ }
+ 
+ static void session_sink_invalidated(struct media_session *session, IMFMediaEvent *event, IMFStreamSink *sink)
+@@ -4342,6 +4503,10 @@ HRESULT WINAPI MFCreateMediaSession(IMFAttributes *config, IMFMediaSession **ses
+         goto failed;
+     }
+ 
++    if (FAILED(hr = IMFPresentationClock_QueryInterface(object->clock, &IID_IMFTimer,
++            (void **)&object->timer)))
++        goto failed;
++
+     if (config)
+     {
+         GUID clsid;
+-- 
+2.45.2
+

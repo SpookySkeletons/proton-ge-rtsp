@@ -1,0 +1,53 @@
+From 4af6bcfd88a8531d958175246a612285f819f88e Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 19 Mar 2024 05:11:11 +0100
+Subject: [PATCH 24/43] winegstreamer: Adjust buffer timestamps after seek.
+
+---
+ dlls/winegstreamer/wg_parser.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index e6170b96cb9..6da8dd3067c 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -109,6 +109,8 @@ struct wg_parser
+     bool use_mediaconv;
+     bool use_opengl;
+     GstContext *context;
++
++    guint64 seek_pos;
+ };
+ static const unsigned int input_cache_chunk_size = 512 << 10;
+ 
+@@ -377,7 +379,7 @@ retry:
+         if (stream->segment.format != GST_FORMAT_TIME)
+         {
+             /* Some types of streams (e.g. HLS) don't provide a segment. Assume that these start their PTS at zero. */
+-            wg_buffer->pts = GST_BUFFER_PTS(buffer) / 100;
++            wg_buffer->pts = (GST_BUFFER_PTS(buffer) + parser->seek_pos) / 100;
+         }
+         else
+         {
+@@ -387,7 +389,7 @@ retry:
+                 release_buffer(parser, stream);
+                 goto retry;
+             }
+-            wg_buffer->pts = stream_time / 100;
++            wg_buffer->pts = (stream_time + parser->seek_pos) / 100;
+         }
+     }
+     if ((wg_buffer->has_duration = GST_BUFFER_DURATION_IS_VALID(buffer)))
+@@ -492,6 +494,9 @@ static NTSTATUS wg_parser_stream_seek(void *args)
+             flags, start_type, params->start_pos * 100, stop_type,
+             params->stop_pos == stream->duration ? -1 : params->stop_pos * 100)))
+         GST_ERROR("Failed to seek.");
++    else
++        /* Pushing a seek event on one stream changes the decoding position of all streams */
++        stream->parser->seek_pos = params->start_pos * 100;
+ 
+     return S_OK;
+ }
+-- 
+2.45.2
+

@@ -306,6 +306,51 @@
     echo "WINE: -PENDING- Add options to disable proton media converter."
     patch -Np1 < ../patches/wine-hotfixes/pending/add-envvar-to-gate-media-converter.patch
 
+    echo "WINE: RTSP patch"
+    patch -Np1 < ../patches/wine-gst/0001-mf-Add-seeking-support-for-IMFMediaSession-Start.patch
+    patch -Np1 < ../patches/wine-gst/0002-mf-tests-Add-a-create_media_session_with_source_sink.patch
+    patch -Np1 < ../patches/wine-gst/0003-mf-tests-Test-IMFMediaSession-Start.patch
+    patch -Np1 < ../patches/wine-gst/0004-mfmediaengine-Implement-IMFMediaEngineEx-SetCurrentT.patch
+    patch -Np1 < ../patches/wine-gst/0005-mfmediaengine-tests-Test-IMFMediaEngineEx-SetCurrent.patch
+    patch -Np1 < ../patches/wine-gst/0006-mfmediaengine-Implement-IMFMediaEngine-IsSeeking.patch
+    patch -Np1 < ../patches/wine-gst/0007-AVPro-Video-seeking-support.patch
+    patch -Np1 < ../patches/wine-gst/0008-mf-session-Avoid-leaking-samples-in-transform_node_d.patch
+    patch -Np1 < ../patches/wine-gst/0009-Memory-leak-fixes.patch
+    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Initialize-condition-variable-of-struc.patch
+    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Connect-autoplug-continue-and-deep-ele.patch
+    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch
+    patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Ignore-an-assert-in-wg_parser.patch
+    patch -Np1 < ../patches/wine-gst/0014-winegstreamer-Fixate-caps-in-autoplug_continue_cb.patch
+    patch -Np1 < ../patches/wine-gst/0015-winegstreamer-Make-wg_parser-report-the-exact-suppor.patch
+    patch -Np1 < ../patches/wine-gst/0016-winegstreamer-Add-more-RTSP-based-URI-schemes-to-GSt.patch
+    patch -Np1 < ../patches/wine-gst/0017-winegstreamer-Fixate-caps-in-the-pad-added-callback.patch
+    patch -Np1 < ../patches/wine-gst/0018-winegstreamer-Mark-wg_parser-container-bin-as-stream.patch
+    patch -Np1 < ../patches/wine-gst/0019-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch
+    patch -Np1 < ../patches/wine-gst/0020-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch
+    patch -Np1 < ../patches/wine-gst/0021-winegstreamer-Put-pipeline-into-PLAYING-state-before.patch
+    patch -Np1 < ../patches/wine-gst/0022-winegstreamer-Don-t-only-accept-segment-events-when-.patch
+    patch -Np1 < ../patches/wine-gst/0023-winegstreamer-Convert-buffer-presentation-timestamps.patch
+    patch -Np1 < ../patches/wine-gst/0024-winegstreamer-Adjust-buffer-timestamps-after-seek.patch
+    patch -Np1 < ../patches/wine-gst/0025-winegstreamer-Reorder-parser-initialization-code-a-b.patch
+    patch -Np1 < ../patches/wine-gst/0026-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch
+    patch -Np1 < ../patches/wine-gst/0027-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch
+    patch -Np1 < ../patches/wine-gst/0028-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch
+    patch -Np1 < ../patches/wine-gst/0029-winegstreamer-Do-not-seek-live-sources.patch
+    patch -Np1 < ../patches/wine-gst/0030-winegstreamer-Implement-buffering-events.patch
+    patch -Np1 < ../patches/wine-gst/0031-mf-Send-sample-requests-for-unused-space-of-sample-q.patch
+    patch -Np1 < ../patches/wine-gst/0032-winegstreamer-Fix-race-between-wg_parser_stream_disa.patch
+    patch -Np1 < ../patches/wine-gst/0033-winegstreamer-Handle-Gstreamer-pipeline-flushes-grac.patch
+    patch -Np1 < ../patches/wine-gst/0034-winegstreamer-Do-waits-for-samples-on-stream-specifi.patch
+    patch -Np1 < ../patches/wine-gst/0035-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
+    patch -Np1 < ../patches/wine-gst/0036-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
+    patch -Np1 < ../patches/wine-gst/0037-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
+    patch -Np1 < ../patches/wine-gst/0038-Marker-commit-do-not-put-into-MR.patch
+    patch -Np1 < ../patches/wine-gst/0039-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch
+    patch -Np1 < ../patches/wine-gst/0040-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch
+    patch -Np1 < ../patches/wine-gst/0041-mf-Schedule-stored-timers-for-the-original-time-inst.patch
+    patch -Np1 < ../patches/wine-gst/0042-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch
+    patch -Np1 < ../patches/wine-gst/0043-ntdll-Use-unixcall-instead-of-syscall-for-QueryPerfo.patch
+
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch
 
