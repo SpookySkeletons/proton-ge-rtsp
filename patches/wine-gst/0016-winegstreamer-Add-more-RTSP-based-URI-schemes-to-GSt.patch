@@ -1,0 +1,56 @@
+From 9e7ea98869537829196b7da0b6e701f474c57039 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:54 +0100
+Subject: [PATCH 16/43] winegstreamer: Add more RTSP-based URI schemes to
+ GStreamer scheme handler.
+
+---
+ dlls/winegstreamer/winegstreamer.rgs | 32 ++++++++++++++++++++++++++++
+ 1 file changed, 32 insertions(+)
+
+diff --git a/dlls/winegstreamer/winegstreamer.rgs b/dlls/winegstreamer/winegstreamer.rgs
+index c50d3a05747..d0c0265f65a 100644
+--- a/dlls/winegstreamer/winegstreamer.rgs
++++ b/dlls/winegstreamer/winegstreamer.rgs
+@@ -35,6 +35,38 @@ HKLM
+                     {
+                         val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
+                     }
++                    'rtspu:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
++                    'rtspt:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
++                    'rtsph:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
++                    'rtsp-sdp:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
++                    'rtsps:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
++                    'rtspsu:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
++                    'rtspst:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
++                    'rtspsh:'
++                    {
++                        val '{587eeb6a-7336-4ebd-a4f2-91c948de622c}' = s 'GStreamer Scheme Handler'
++                    }
+                 }
+             }
+         }
+-- 
+2.45.2
+

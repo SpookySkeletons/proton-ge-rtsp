@@ -1,0 +1,32 @@
+From 87cbcd34173216b7363db897b1cb6b6a668a1a8e Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:55 +0100
+Subject: [PATCH 21/43] winegstreamer: Put pipeline into PLAYING state before
+ waiting for the no-more-pads callback.
+
+Some elements (e.g. uridecodebin with an RTSP URI) won't send no-more-pads in READY/PAUSED state.
+---
+ dlls/winegstreamer/wg_parser.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index fdbce6b5f25..83786a4aa4c 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1914,6 +1914,13 @@ static NTSTATUS wg_parser_connect(void *args)
+ 
+     pthread_mutex_lock(&parser->mutex);
+ 
++    if (parser->uri)
++    {
++        gst_element_set_state(parser->container, GST_STATE_PLAYING);
++        ret = gst_element_get_state(parser->container, NULL, NULL, -1);
++        if (ret == GST_STATE_CHANGE_FAILURE)
++            goto out;
++    }
+     while (!parser_no_more_pads(parser) && !parser->error)
+         pthread_cond_wait(&parser->init_cond, &parser->mutex);
+     if (parser->error)
+-- 
+2.45.2
+

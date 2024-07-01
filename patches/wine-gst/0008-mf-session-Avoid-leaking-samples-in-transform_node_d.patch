@@ -1,0 +1,28 @@
+From 377f775c4cda142df5c938b0c92ca99f6838364c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?R=C3=A9mi=20Bernon?= <rbernon@codeweavers.com>
+Date: Wed, 13 Mar 2024 10:27:26 +0100
+Subject: [PATCH 08/43] mf/session: Avoid leaking samples in
+ transform_node_deliver_samples.
+
+---
+ dlls/mf/session.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 3f3be2b84b0..925566d6baf 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -3337,7 +3337,10 @@ static void transform_node_deliver_samples(struct media_session *session, struct
+         stream = &topo_node->u.transform.inputs[input];
+ 
+         if (SUCCEEDED(transform_stream_pop_sample(stream, &sample)))
++        {
+             session_deliver_sample_to_node(session, topo_node->node, input, sample);
++            IMFSample_Release(sample);
++        }
+         else if (FAILED(hr = IMFTopologyNode_GetInput(topo_node->node, input, &up_node, &output)))
+             WARN("Failed to get node %p/%lu input, hr %#lx\n", topo_node->node, input, hr);
+         else
+-- 
+2.45.2
+
