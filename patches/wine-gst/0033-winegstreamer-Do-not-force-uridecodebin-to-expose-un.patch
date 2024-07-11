@@ -1,0 +1,55 @@
+From e9876a0d2951803c827955d74682f2db0bd7fc27 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 10 Jul 2024 22:50:17 +0200
+Subject: [PATCH 33/42] winegstreamer: Do not force uridecodebin to expose
+ uncompressed streams by failing autoplug-continue callbacks.
+
+Doing so makes uridecodebin expose pads that do not respond to CAPS queries correctly for HLS sources.
+---
+ dlls/winegstreamer/wg_parser.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 8030b6463e1..f3531753943 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1440,15 +1440,26 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+ {
+     struct wg_parser_stream *stream;
+     struct wg_parser *parser = user;
++    GstCaps *caps;
+ 
+     GST_LOG("parser %p, element %p, pad %p.", parser, element, pad);
+ 
+     if (gst_pad_is_linked(pad))
+         return;
+ 
++    /* Doesn't seem to work, included for future reference.
++       If uridecodebin exposes a pad with compressed data, enforced by
++       a check for parser->output_compressed in autoplug_continue_cb,
++       that pad seems to not respond correctly to CAPS queries. Specifically,
++       the query seems to be forwarded up to an hlsdemux element, and fail
++       there. There should already be a sticky CAPS event on the pad though,
++       so I do not understand why that happens. */
++    if (gst_caps_is_any(caps = gst_pad_query_caps(pad, NULL)))
++        caps = gst_pad_get_current_caps(pad);
++
+     if (!(stream = create_stream(parser, gst_pad_get_stream_id(pad))))
+         return;
+-    stream->codec_caps = gst_pad_query_caps(pad, NULL);
++    stream->codec_caps = caps;
+ 
+     /* For compressed stream, create an extra decodebin to decode it. */
+     if (!parser->output_compressed && caps_is_compressed(stream->codec_caps))
+@@ -2383,7 +2394,7 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+ 
+     if (!(element = create_element("uridecodebin", "base")))
+         return FALSE;
+-    parser->output_compressed = true;
++    parser->output_compressed = false;
+ 
+     gst_bin_add(GST_BIN(parser->container), element);
+     parser->decodebin = element;
+-- 
+2.45.2
+

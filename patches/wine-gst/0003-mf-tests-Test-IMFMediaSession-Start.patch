@@ -1,17 +1,17 @@
-From d4553e13b2110b7cfbcc39b5c5cc890e1a8da145 Mon Sep 17 00:00:00 2001
+From ca2e4786f3a1e43aa542d79df84a434a6bbe03d6 Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Mon, 7 Aug 2023 11:52:20 +0800
-Subject: [PATCH 03/43] mf/tests: Test IMFMediaSession::Start().
+Subject: [PATCH 03/42] mf/tests: Test IMFMediaSession::Start().
 
 ---
  dlls/mf/tests/mf.c | 704 ++++++++++++++++++++++++++++++++++++++++++++-
  1 file changed, 696 insertions(+), 8 deletions(-)
 
 diff --git a/dlls/mf/tests/mf.c b/dlls/mf/tests/mf.c
-index e0bcedac20f..f164a04b989 100644
+index 58d8ec73c4f..240cbf194ea 100644
 --- a/dlls/mf/tests/mf.c
 +++ b/dlls/mf/tests/mf.c
-@@ -2086,6 +2086,448 @@ static IMFMediaSource *create_media_source(const WCHAR *name, const WCHAR *mime)
+@@ -2087,6 +2087,448 @@ static IMFMediaSource *create_media_source(const WCHAR *name, const WCHAR *mime)
      return source;
  }
  
@@ -460,7 +460,7 @@ index e0bcedac20f..f164a04b989 100644
  static void test_media_session_events(void)
  {
      static const media_type_desc audio_float_44100 =
-@@ -2887,27 +3329,27 @@ static ULONG WINAPI test_grabber_callback_Release(IMFSampleGrabberSinkCallback *
+@@ -2888,27 +3330,27 @@ static ULONG WINAPI test_grabber_callback_Release(IMFSampleGrabberSinkCallback *
  
  static HRESULT WINAPI test_grabber_callback_OnClockStart(IMFSampleGrabberSinkCallback *iface, MFTIME time, LONGLONG offset)
  {
@@ -493,7 +493,7 @@ index e0bcedac20f..f164a04b989 100644
  }
  
  static HRESULT WINAPI test_grabber_callback_OnSetPresentationClock(IMFSampleGrabberSinkCallback *iface,
-@@ -4995,9 +5437,9 @@ static void test_sample_grabber_is_mediatype_supported(void)
+@@ -4996,9 +5438,9 @@ static void test_sample_grabber_is_mediatype_supported(void)
      IMFSampleGrabberSinkCallback_Release(grabber_callback);
  }
  
@@ -505,7 +505,7 @@ index e0bcedac20f..f164a04b989 100644
  {
      IMFTopologyNode *src_node, *sink_node;
      IMFPresentationDescriptor *pd;
-@@ -5025,6 +5467,11 @@ static void create_media_session_with_source_sink(IMFMediaSource *source, IMFAct
+@@ -5026,6 +5468,11 @@ static void create_media_session_with_source_sink(IMFMediaSource *source, IMFAct
      hr = IMFPresentationDescriptor_GetStreamDescriptorByIndex(pd, 0, &selected, &sd);
      ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
      ok(selected, "got selected %u.\n", !!selected);
@@ -517,7 +517,7 @@ index e0bcedac20f..f164a04b989 100644
      init_source_node(source, -1, src_node, pd, sd);
      hr = IMFTopologyNode_SetObject(sink_node, (IUnknown *)sink_activate);
      ok(hr == S_OK, "Failed to set object, hr %#lx.\n", hr);
-@@ -5084,7 +5531,7 @@ static void test_sample_grabber_orientation(GUID subtype)
+@@ -5085,7 +5532,7 @@ static void test_sample_grabber_orientation(GUID subtype)
      ok(hr == S_OK, "Failed to create grabber sink, hr %#lx.\n", hr);
      IMFMediaType_Release(output_type);
  
@@ -526,7 +526,7 @@ index e0bcedac20f..f164a04b989 100644
  
      propvar.vt = VT_EMPTY;
      hr = IMFMediaSession_Start(session, &GUID_NULL, &propvar);
-@@ -7280,6 +7727,246 @@ static void test_MFCreateSequencerSegmentOffset(void)
+@@ -7286,6 +7733,246 @@ static void test_MFCreateSequencerSegmentOffset(void)
      PropVariantClear(&propvar);
  }
  
@@ -773,7 +773,7 @@ index e0bcedac20f..f164a04b989 100644
  START_TEST(mf)
  {
      init_functions();
-@@ -7316,4 +8003,5 @@ START_TEST(mf)
+@@ -7322,4 +8009,5 @@ START_TEST(mf)
      test_MFRequireProtectedEnvironment();
      test_mpeg4_media_sink();
      test_MFCreateSequencerSegmentOffset();

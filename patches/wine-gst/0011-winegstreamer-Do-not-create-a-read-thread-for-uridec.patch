@@ -1,0 +1,43 @@
+From ff6e615f58cb792b871b77f1d2ceb0806382a0c3 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 25 Mar 2024 09:19:18 +0100
+Subject: [PATCH 11/42] winegstreamer: Do not create a read thread for
+ uridecodebin-based media sources.
+
+---
+ dlls/winegstreamer/media_source.c | 12 ++++++++----
+ 1 file changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 119fde3e04f..93ddf6c6051 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -1501,9 +1501,12 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+ 
+     wg_parser_disconnect(source->wg_parser);
+ 
+-    source->read_thread_shutdown = true;
+-    WaitForSingleObject(source->read_thread, INFINITE);
+-    CloseHandle(source->read_thread);
++    if (source->read_thread)
++    {
++        source->read_thread_shutdown = true;
++        WaitForSingleObject(source->read_thread, INFINITE);
++        CloseHandle(source->read_thread);
++    }
+ 
+     IMFMediaEventQueue_Shutdown(source->event_queue);
+     IMFByteStream_Close(source->byte_stream);
+@@ -1598,7 +1601,8 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+     }
+     object->wg_parser = parser;
+ 
+-    object->read_thread = CreateThread(NULL, 0, read_thread, object, 0, NULL);
++    if (context->type != WG_PARSER_URIDECODEBIN)
++        object->read_thread = CreateThread(NULL, 0, read_thread, object, 0, NULL);
+ 
+     object->state = SOURCE_OPENING;
+ 
+-- 
+2.45.2
+
