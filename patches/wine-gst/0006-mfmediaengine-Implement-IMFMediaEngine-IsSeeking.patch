@@ -1,17 +1,17 @@
-From eaba25d360906caaa566ab0e086a954d17e8f4a5 Mon Sep 17 00:00:00 2001
+From 93a92705c0b31f0d80bc75ff40222e1f36911a0a Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:09:34 +0200
-Subject: [PATCH 06/43] mfmediaengine: Implement IMFMediaEngine::IsSeeking.
+Subject: [PATCH 06/42] mfmediaengine: Implement IMFMediaEngine::IsSeeking.
 
 ---
  dlls/mfmediaengine/main.c | 11 +++++++++--
  1 file changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index 28a273616c8..a40f8d64f58 100644
+index 6aa84e1562b..fba338a8438 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -1825,9 +1825,16 @@ static USHORT WINAPI media_engine_GetReadyState(IMFMediaEngineEx *iface)
+@@ -1823,9 +1823,16 @@ static USHORT WINAPI media_engine_GetReadyState(IMFMediaEngineEx *iface)
  
  static BOOL WINAPI media_engine_IsSeeking(IMFMediaEngineEx *iface)
  {

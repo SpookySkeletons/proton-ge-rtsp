@@ -1,0 +1,25 @@
+From fbfbf77dc4e36b616d669915df71b72a0c77e420 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sun, 31 Mar 2024 15:49:33 +0200
+Subject: [PATCH 10/42] winegstreamer: Connect autoplug-continue and
+ deep-element-added callbacks to uridecodebin-based parsers too.
+
+---
+ dlls/winegstreamer/wg_parser.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 7a6e0de7ca2..166c47720fb 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -2198,6 +2198,7 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+     g_signal_connect(element, "autoplug-select", G_CALLBACK(autoplug_select_cb), parser);
+     g_signal_connect(element, "autoplug-sort", G_CALLBACK(autoplug_sort_cb), parser);
+     g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
++    g_signal_connect(element, "deep-element-added", G_CALLBACK(deep_element_added_cb), parser);
+ 
+     pthread_mutex_lock(&parser->mutex);
+     parser->no_more_pads = false;
+-- 
+2.45.2
+

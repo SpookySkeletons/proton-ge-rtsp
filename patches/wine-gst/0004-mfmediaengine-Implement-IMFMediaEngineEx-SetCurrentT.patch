@@ -1,7 +1,7 @@
-From d74ea960a50420934759d2addfa649fae15f878a Mon Sep 17 00:00:00 2001
+From 502f072eec3417eb1ae1fde7c28ac68529d51ba5 Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Fri, 28 Jul 2023 18:04:30 +0800
-Subject: [PATCH 04/43] mfmediaengine: Implement
+Subject: [PATCH 04/42] mfmediaengine: Implement
  IMFMediaEngineEx::SetCurrentTime/Ex().
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 04/43] mfmediaengine: Implement
  1 file changed, 47 insertions(+), 15 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index 9e41d9dad84..28a273616c8 100644
+index 85b4dbb471a..6aa84e1562b 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
 @@ -96,6 +96,7 @@ enum media_engine_flags
@@ -36,7 +36,7 @@ index 9e41d9dad84..28a273616c8 100644
              IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_PLAYING, 0, 0);
              break;
          case MESessionEnded:
-@@ -1846,19 +1854,9 @@ static double WINAPI media_engine_GetCurrentTime(IMFMediaEngineEx *iface)
+@@ -1844,19 +1852,9 @@ static double WINAPI media_engine_GetCurrentTime(IMFMediaEngineEx *iface)
  
  static HRESULT WINAPI media_engine_SetCurrentTime(IMFMediaEngineEx *iface, double time)
  {
@@ -58,7 +58,7 @@ index 9e41d9dad84..28a273616c8 100644
  }
  
  static double WINAPI media_engine_GetStartTime(IMFMediaEngineEx *iface)
-@@ -3059,9 +3057,43 @@ static HRESULT WINAPI media_engine_SetRealTimeMode(IMFMediaEngineEx *iface, BOOL
+@@ -3135,9 +3133,43 @@ static HRESULT WINAPI media_engine_SetRealTimeMode(IMFMediaEngineEx *iface, BOOL
  
  static HRESULT WINAPI media_engine_SetCurrentTimeEx(IMFMediaEngineEx *iface, double seektime, MF_MEDIA_ENGINE_SEEK_MODE mode)
  {
