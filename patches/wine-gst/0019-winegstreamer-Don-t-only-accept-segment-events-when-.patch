@@ -1,7 +1,7 @@
 From bd8e19cee12ac63c010fddab30c2bde88472f682 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 23 Apr 2024 19:30:17 +0200
-Subject: [PATCH 19/42] winegstreamer: Don't only accept segment events when
+Subject: [PATCH 19/43] winegstreamer: Don't only accept segment events when
  streams are enabled.
 
 I don't know why this was done previously but this just creates a race condition, with no to me apparent benefit.

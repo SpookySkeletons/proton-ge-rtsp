@@ -1,7 +1,7 @@
 From 3a3c7d17c4961282b72d521354c2fe0c34dd288d Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 22/42] winegstreamer: Do away with the per-stream condvars and
+Subject: [PATCH 22/43] winegstreamer: Do away with the per-stream condvars and
  use one parser-wide condvar instead.
 
 ---

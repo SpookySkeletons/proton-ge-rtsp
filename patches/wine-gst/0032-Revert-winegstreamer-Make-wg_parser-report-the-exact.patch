@@ -1,7 +1,7 @@
 From 70ecdbf3a1602d8c468855f5d7be4a660d5745cb Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 9 Jul 2024 07:39:21 +0200
-Subject: [PATCH 32/42] Revert "winegstreamer: Make wg_parser report the exact
+Subject: [PATCH 32/43] Revert "winegstreamer: Make wg_parser report the exact
  supported formats to gstreamer instead of just ANY."
 
 This reverts commit 7696a4041c007e7a978535b4bfe5c9cb4f349ed9.

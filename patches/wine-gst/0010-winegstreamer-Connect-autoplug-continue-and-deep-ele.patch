@@ -1,7 +1,7 @@
 From fbfbf77dc4e36b616d669915df71b72a0c77e420 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 31 Mar 2024 15:49:33 +0200
-Subject: [PATCH 10/42] winegstreamer: Connect autoplug-continue and
+Subject: [PATCH 10/43] winegstreamer: Connect autoplug-continue and
  deep-element-added callbacks to uridecodebin-based parsers too.
 
 ---

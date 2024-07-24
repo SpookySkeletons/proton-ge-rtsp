@@ -1,7 +1,7 @@
 From 770cb2d26ef8b749dd093028b5167628df8f25ab Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 14 Apr 2024 06:12:55 +0200
-Subject: [PATCH 25/42] winegstreamer: Do not seek live sources.
+Subject: [PATCH 25/43] winegstreamer: Do not seek live sources.
 
 souphttpsrc seems to break from seeking sometimes:
 

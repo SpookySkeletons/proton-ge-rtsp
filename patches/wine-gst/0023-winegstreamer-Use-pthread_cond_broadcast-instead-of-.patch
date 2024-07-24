@@ -1,7 +1,7 @@
 From 23d10aa44bd2230077a8fe9b11d9733803510600 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 18 Mar 2024 10:18:07 +0100
-Subject: [PATCH 23/42] winegstreamer: Use pthread_cond_broadcast instead of
+Subject: [PATCH 23/43] winegstreamer: Use pthread_cond_broadcast instead of
  pthread_cond_signal for stream_event_cond.
 
 ---
