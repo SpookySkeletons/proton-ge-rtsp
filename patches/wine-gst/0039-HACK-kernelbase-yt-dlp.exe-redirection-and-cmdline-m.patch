@@ -1,7 +1,7 @@
 From d31c5ce2ae25a086a889a6ddb6117fcc4c673e65 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Thu, 28 Mar 2024 16:43:07 +0100
-Subject: [PATCH 39/42] [HACK] kernelbase: yt-dlp.exe redirection and cmdline
+Subject: [PATCH 39/43] [HACK] kernelbase: yt-dlp.exe redirection and cmdline
  modification to read cookies from browser.
 
 ---

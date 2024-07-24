@@ -1,7 +1,7 @@
 From 5a42c6f7a56ffae4ac2d1367eac2d659b5336ca8 Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Tue, 1 Aug 2023 10:52:21 +0800
-Subject: [PATCH 01/42] mf: Add seeking support for IMFMediaSession::Start().
+Subject: [PATCH 01/43] mf: Add seeking support for IMFMediaSession::Start().
 
 ---
  dlls/mf/session.c | 57 ++++++++++++++++++++++++++++++++++++++++++-----

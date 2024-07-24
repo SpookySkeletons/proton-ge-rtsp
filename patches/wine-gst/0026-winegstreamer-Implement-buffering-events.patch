@@ -1,7 +1,7 @@
 From f375665f64fd9d2903ddd5c2b7e9f9543bf43c6f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 10 Apr 2024 15:11:02 +0200
-Subject: [PATCH 26/42] winegstreamer: Implement buffering events.
+Subject: [PATCH 26/43] winegstreamer: Implement buffering events.
 
 ---
  dlls/winegstreamer/gst_private.h  |  3 ++

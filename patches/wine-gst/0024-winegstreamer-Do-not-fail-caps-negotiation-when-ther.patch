@@ -1,7 +1,7 @@
 From 92f1b0e6ccf780224021b266b9db8738604c0675 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:09:59 +0100
-Subject: [PATCH 24/42] winegstreamer: Do not fail caps negotiation when
+Subject: [PATCH 24/43] winegstreamer: Do not fail caps negotiation when
  there's a concurrent reconfigure.
 
 If wg_parser_stream_enable is called between the time our sink's GST_QUERY_CAPS returns and the time our sink gets the

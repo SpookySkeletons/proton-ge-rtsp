@@ -1,7 +1,7 @@
 From 6a3d0ad6f545fe0e4ea981d2523fd30c254a9957 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 3 Jun 2024 11:05:38 +0200
-Subject: [PATCH 28/42] winegstreamer: Fix race between
+Subject: [PATCH 28/43] winegstreamer: Fix race between
  wg_parser_stream_disable and GST_EVENT_FLUSH_STOP.
 
 ---

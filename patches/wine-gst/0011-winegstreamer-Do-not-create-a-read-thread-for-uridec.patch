@@ -1,7 +1,7 @@
 From ff6e615f58cb792b871b77f1d2ceb0806382a0c3 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 25 Mar 2024 09:19:18 +0100
-Subject: [PATCH 11/42] winegstreamer: Do not create a read thread for
+Subject: [PATCH 11/43] winegstreamer: Do not create a read thread for
  uridecodebin-based media sources.
 
 ---
