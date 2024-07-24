@@ -1,7 +1,7 @@
 From bc58aec4522d7dcbfab9e23074f4135b5845af4c Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 20/42] winegstreamer: Convert buffer presentation timestamps
+Subject: [PATCH 20/43] winegstreamer: Convert buffer presentation timestamps
  into stream time.
 
 ---

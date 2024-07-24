@@ -1,7 +1,7 @@
 From 23003a1845e60b6ff8626b4e0c616c9a7b906567 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 22 Apr 2024 11:43:45 +0200
-Subject: [PATCH 15/42] winegstreamer: Mark wg_parser container bin as
+Subject: [PATCH 15/43] winegstreamer: Mark wg_parser container bin as
  streams-aware.
 
 Mirroring wg_source.

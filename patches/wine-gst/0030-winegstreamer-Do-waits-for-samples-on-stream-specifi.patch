@@ -1,7 +1,7 @@
 From 3c5be2333f0068736fcd506790077ab801de134e Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:08:48 +0200
-Subject: [PATCH 30/42] winegstreamer: Do waits for samples on stream-specific
+Subject: [PATCH 30/43] winegstreamer: Do waits for samples on stream-specific
  work queues.
 
 ---

@@ -1,7 +1,7 @@
 From 487aa0da570b4516ad51e4dbb6ee01e7ef77a1ba Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 24 Apr 2024 22:00:49 +0200
-Subject: [PATCH 42/42] ntdll: Use unixcall instead of syscall for
+Subject: [PATCH 42/43] ntdll: Use unixcall instead of syscall for
  QueryPerformanceCounter.
 
 ---

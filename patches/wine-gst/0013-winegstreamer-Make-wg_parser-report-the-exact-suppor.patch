@@ -1,7 +1,7 @@
 From 7696a4041c007e7a978535b4bfe5c9cb4f349ed9 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 20 Feb 2024 23:17:28 +0100
-Subject: [PATCH 13/42] winegstreamer: Make wg_parser report the exact
+Subject: [PATCH 13/43] winegstreamer: Make wg_parser report the exact
  supported formats to gstreamer instead of just ANY.
 
 ---

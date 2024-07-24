@@ -1,7 +1,7 @@
 From 0ff3652d413dff8a4bb75681eedcac05339f55b8 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:20:49 +0100
-Subject: [PATCH 38/42] [DEBUG] winegstreamer: GST_LOG -> GST_DEBUG.
+Subject: [PATCH 38/43] [DEBUG] winegstreamer: GST_LOG -> GST_DEBUG.
 
 ---
  dlls/winegstreamer/wg_parser.c | 34 +++++++++++++++++-----------------
