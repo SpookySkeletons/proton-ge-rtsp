@@ -1,0 +1,29 @@
+From 18bfb391767c92f7438937ef7a22c385ae5179aa Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 9 Aug 2024 22:27:57 +0200
+Subject: [PATCH 39/46] [HACK] mfmediaengine: Never report INFINITY duration.
+
+ProTV seems to have problems with a duration of INFINITY, at least with our current implementation of the media
+engine and media session. For the time being, let's pretend that live streams are just very long videos.
+---
+ dlls/mfmediaengine/main.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index 2986c75902f..342367791b0 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -1328,6 +1328,10 @@ static HRESULT media_engine_create_topology(struct media_engine *engine, IMFMedi
+     else
+         engine->duration = INFINITY;
+ 
++    /* HACK: HLS streams */
++    if (engine->duration == 0.0)
++        engine->duration = 10000000.0;
++
+     if (SUCCEEDED(hr = MFCreateTopology(&topology)))
+     {
+         IMFTopologyNode *sar_node = NULL, *audio_src = NULL;
+-- 
+2.46.0
+
