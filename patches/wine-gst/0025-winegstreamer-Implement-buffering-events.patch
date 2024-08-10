@@ -1,0 +1,313 @@
+From 07003f24e0ac6027b70c85c1498b366aabedb477 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 10 Apr 2024 15:11:02 +0200
+Subject: [PATCH 25/46] winegstreamer: Implement buffering events.
+
+---
+ dlls/winegstreamer/gst_private.h  |  3 ++
+ dlls/winegstreamer/main.c         | 21 ++++++++++
+ dlls/winegstreamer/media_source.c | 54 ++++++++++++++++++++++++
+ dlls/winegstreamer/unixlib.h      | 12 ++++++
+ dlls/winegstreamer/wg_parser.c    | 68 +++++++++++++++++++++++++++++++
+ 5 files changed, 158 insertions(+)
+
+diff --git a/dlls/winegstreamer/gst_private.h b/dlls/winegstreamer/gst_private.h
+index adefeaba15c..bdc59e1e347 100644
+--- a/dlls/winegstreamer/gst_private.h
++++ b/dlls/winegstreamer/gst_private.h
+@@ -79,6 +79,9 @@ void wg_parser_disconnect(wg_parser_t parser);
+ bool wg_parser_get_next_read_offset(wg_parser_t parser, uint64_t *offset, uint32_t *size);
+ void wg_parser_push_data(wg_parser_t parser, const void *data, uint32_t size);
+ 
++bool wg_parser_get_next_event(wg_parser_t parser, int *stream, MediaEventType *event_type,
++        GUID *ext_type, HRESULT *evt_hr, PROPVARIANT *data);
++
+ uint32_t wg_parser_get_stream_count(wg_parser_t parser);
+ wg_parser_stream_t wg_parser_get_stream(wg_parser_t parser, uint32_t index);
+ 
+diff --git a/dlls/winegstreamer/main.c b/dlls/winegstreamer/main.c
+index 374924a3e6a..fd1bf034a69 100644
+--- a/dlls/winegstreamer/main.c
++++ b/dlls/winegstreamer/main.c
+@@ -230,6 +230,27 @@ bool wg_parser_get_next_read_offset(wg_parser_t parser, uint64_t *offset, uint32
+     return true;
+ }
+ 
++bool wg_parser_get_next_event(wg_parser_t parser, int *stream, MediaEventType *event_type,
++        GUID *ext_type, HRESULT *evt_hr, PROPVARIANT *data)
++{
++    struct wg_parser_get_next_event_params params =
++    {
++        .parser = parser,
++        .data = data,
++    };
++
++    TRACE("parser %#I64x, stream %p, event_type %p, ext_type %p, evt_hr %p, data %p.\n",
++            parser, stream, event_type, ext_type, evt_hr, data);
++
++    if (WINE_UNIX_CALL(unix_wg_parser_get_next_event, &params))
++        return false;
++    *stream = params.stream;
++    *event_type = params.event_type;
++    *ext_type = params.ext_type;
++    *evt_hr = params.evt_hr;
++    return true;
++}
++
+ void wg_parser_push_data(wg_parser_t parser, const void *data, uint32_t size)
+ {
+     struct wg_parser_push_data_params params =
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index ce6de32d1c4..4f3c5d101f0 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -207,6 +207,9 @@ struct media_source
+ 
+     HANDLE read_thread;
+     bool read_thread_shutdown;
++
++    HANDLE event_thread;
++    bool event_thread_shutdown;
+ };
+ 
+ static inline struct media_stream *impl_from_IMFMediaStream(IMFMediaStream *iface)
+@@ -696,6 +699,7 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
+ 
+     stream->busy = TRUE;
+     LeaveCriticalSection(&source->cs);
++    memset(&buffer, 0, sizeof(buffer));
+     ret = wg_parser_stream_get_buffer(source->wg_parser, stream->wg_stream, &buffer);
+     EnterCriticalSection(&source->cs);
+     stream->busy = FALSE;
+@@ -832,6 +836,41 @@ static DWORD CALLBACK read_thread(void *arg)
+     return 0;
+ }
+ 
++static DWORD CALLBACK event_thread(void *arg)
++{
++    struct media_source *source = arg;
++
++    TRACE("Starting event thread for media source %p.\n", source);
++
++    while (!source->event_thread_shutdown)
++    {
++        PROPVARIANT data = {.vt = VT_EMPTY};
++        MediaEventType event_type = 0;
++        IMFMediaEventQueue *queue;
++        GUID ext_type = GUID_NULL;
++        HRESULT hr, evt_hr = E_FAIL;
++        int stream = -1;
++
++        if (!wg_parser_get_next_event(source->wg_parser, &stream, &event_type, &ext_type, &evt_hr, &data))
++            continue;
++
++        if (!event_type)
++            continue;
++
++        if (stream != -1)
++            queue = source->streams[stream]->event_queue;
++        else
++            queue = source->event_queue;
++
++        if (FAILED(hr = IMFMediaEventQueue_QueueEventParamVar(queue, event_type, &ext_type, evt_hr, &data)))
++            ERR("Failed to enqueue event %lx, ext_type %s, evt_hr %lx, data %s, hr %#lx.\n", event_type,
++                debugstr_guid(&ext_type), evt_hr, wine_dbgstr_variant((VARIANT *)&data), hr);
++    }
++
++    TRACE("Media source is shutting down; exiting.\n");
++    return 0;
++}
++
+ static HRESULT WINAPI media_stream_QueryInterface(IMFMediaStream *iface, REFIID riid, void **out)
+ {
+     struct media_stream *stream = impl_from_IMFMediaStream(iface);
+@@ -1504,6 +1543,13 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+ 
+     wg_parser_disconnect(source->wg_parser);
+ 
++    if (source->event_thread)
++    {
++        source->event_thread_shutdown = true;
++        WaitForSingleObject(source->event_thread, INFINITE);
++        CloseHandle(source->event_thread);
++    }
++
+     if (source->read_thread)
+     {
+         source->read_thread_shutdown = true;
+@@ -1607,6 +1653,8 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+     if (context->type != WG_PARSER_URIDECODEBIN)
+         object->read_thread = CreateThread(NULL, 0, read_thread, object, 0, NULL);
+ 
++    object->event_thread = CreateThread(NULL, 0, event_thread, object, 0, NULL);
++
+     object->state = SOURCE_OPENING;
+ 
+     if (FAILED(hr = wg_parser_connect(parser, object->file_size, context->url)))
+@@ -1689,6 +1737,12 @@ fail:
+ 
+     if (stream_count != UINT_MAX)
+         wg_parser_disconnect(object->wg_parser);
++    if (object->event_thread)
++    {
++        object->event_thread_shutdown = true;
++        WaitForSingleObject(object->event_thread, INFINITE);
++        CloseHandle(object->event_thread);
++    }
+     if (object->read_thread)
+     {
+         object->read_thread_shutdown = true;
+diff --git a/dlls/winegstreamer/unixlib.h b/dlls/winegstreamer/unixlib.h
+index f9b87e51b93..f4b33557d1a 100644
+--- a/dlls/winegstreamer/unixlib.h
++++ b/dlls/winegstreamer/unixlib.h
+@@ -257,6 +257,16 @@ struct wg_parser_push_data_params
+     UINT32 size;
+ };
+ 
++struct wg_parser_get_next_event_params
++{
++    wg_parser_t parser;
++    int stream;
++    UINT32 event_type;
++    GUID ext_type;
++    HRESULT evt_hr;
++    PROPVARIANT *data;
++};
++
+ struct wg_parser_get_stream_count_params
+ {
+     wg_parser_t parser;
+@@ -524,6 +534,8 @@ enum unix_funcs
+     unix_wg_parser_get_next_read_offset,
+     unix_wg_parser_push_data,
+ 
++    unix_wg_parser_get_next_event,
++
+     unix_wg_parser_get_stream_count,
+     unix_wg_parser_get_stream,
+ 
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 20dae3e8cdd..59ff8495e09 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -43,6 +43,12 @@
+ #include "winternl.h"
+ #include "dshow.h"
+ 
++#define COBJMACROS
++#include "mfapi.h"
++#include "mferror.h"
++#include "mfobjects.h"
++#include "mfidl.h"
++
+ #include "unix_private.h"
+ 
+ extern GstGLDisplay *gl_display;
+@@ -112,6 +118,9 @@ struct wg_parser
+     GstContext *context;
+ 
+     bool is_live;
++
++    bool buffering;
++    bool sent_buffering_event;
+ };
+ static const unsigned int input_cache_chunk_size = 512 << 10;
+ 
+@@ -244,6 +253,47 @@ static NTSTATUS wg_parser_push_data(void *args)
+     return S_OK;
+ }
+ 
++static NTSTATUS wg_parser_get_next_event(void *args)
++{
++    struct wg_parser_get_next_event_params *params = args;
++    struct wg_parser *parser = get_parser(params->parser);
++    HRESULT hr = S_FALSE;
++
++    pthread_mutex_lock(&parser->mutex);
++
++    while (parser->sink_connected && (parser->buffering == parser->sent_buffering_event))
++        pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
++
++    if (!parser->sink_connected)
++    {
++        pthread_mutex_unlock(&parser->mutex);
++        return VFW_E_WRONG_STATE;
++    }
++
++    params->stream = -1;
++    params->event_type = 0;
++    memset(&params->ext_type, 0, sizeof(params->ext_type));
++    params->evt_hr = S_OK;
++    params->data->vt = VT_EMPTY;
++
++    if (parser->buffering && !parser->sent_buffering_event)
++    {
++        params->event_type = MEBufferingStarted;
++        parser->sent_buffering_event = TRUE;
++        hr = S_OK;
++    }
++    else if (!parser->buffering && parser->sent_buffering_event)
++    {
++        params->event_type = MEBufferingStopped;
++        parser->sent_buffering_event = FALSE;
++        hr = S_OK;
++    }
++
++    pthread_mutex_unlock(&parser->mutex);
++
++    return hr;
++}
++
+ static NTSTATUS wg_parser_stream_get_current_format(void *args)
+ {
+     const struct wg_parser_stream_get_current_format_params *params = args;
+@@ -1860,6 +1910,19 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+         break;
+     }
+ 
++    case GST_MESSAGE_BUFFERING:
++    {
++        gint percent;
++
++        gst_message_parse_buffering(msg, &percent);
++        pthread_mutex_lock(&parser->mutex);
++        parser->buffering = percent < 100;
++        pthread_mutex_unlock(&parser->mutex);
++        pthread_cond_broadcast(&parser->stream_event_cond);
++        GST_DEBUG("parser %p, message %s, buffering %d.", parser, GST_MESSAGE_TYPE_NAME(msg), parser->buffering);
++        break;
++    }
++
+     default:
+         break;
+     }
+@@ -2260,6 +2323,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
+     parser->sink_connected = false;
+     pthread_mutex_unlock(&parser->mutex);
+     pthread_cond_signal(&parser->read_cond);
++    pthread_cond_broadcast(&parser->stream_event_cond);
+ 
+     for (i = 0; i < parser->stream_count; ++i)
+         free_stream(parser->streams[i]);
+@@ -2474,6 +2538,8 @@ const unixlib_entry_t __wine_unix_call_funcs[] =
+     X(wg_parser_get_next_read_offset),
+     X(wg_parser_push_data),
+ 
++    X(wg_parser_get_next_event),
++
+     X(wg_parser_get_stream_count),
+     X(wg_parser_get_stream),
+ 
+@@ -3040,6 +3106,8 @@ const unixlib_entry_t __wine_unix_call_wow64_funcs[] =
+     X(wg_parser_get_next_read_offset),
+     X64(wg_parser_push_data),
+ 
++    X(wg_parser_get_next_event),
++
+     X(wg_parser_get_stream_count),
+     X(wg_parser_get_stream),
+ 
+-- 
+2.46.0
+
