@@ -1,0 +1,84 @@
+From 28164789e9edeb964df886636f719ef3a307bf01 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:55 +0100
+Subject: [PATCH 20/46] winegstreamer: Reorder parser initialization code a bit
+ to prevent race conditions.
+
+---
+ dlls/winegstreamer/wg_parser.c | 28 ++++++++++++++--------------
+ 1 file changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 54e7f81b105..0ba9b2f81f4 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -2195,7 +2195,10 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+     gst_bin_add(GST_BIN(parser->container), element);
+     parser->decodebin = element;
+ 
+-    g_object_set(element, "max-size-bytes", G_MAXUINT, NULL);
++    pthread_mutex_lock(&parser->mutex);
++    parser->no_more_pads = false;
++    pthread_mutex_unlock(&parser->mutex);
++
+     g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
+     g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
+     g_signal_connect(element, "autoplug-continue", G_CALLBACK(autoplug_continue_cb), parser);
+@@ -2203,10 +2206,7 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+     g_signal_connect(element, "autoplug-sort", G_CALLBACK(autoplug_sort_cb), parser);
+     g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
+     g_signal_connect(element, "deep-element-added", G_CALLBACK(deep_element_added_cb), parser);
+-
+-    pthread_mutex_lock(&parser->mutex);
+-    parser->no_more_pads = false;
+-    pthread_mutex_unlock(&parser->mutex);
++    g_object_set(element, "max-size-bytes", G_MAXUINT, NULL);
+ 
+     if (!link_src_to_element(parser->my_src, element))
+         return FALSE;
+@@ -2225,7 +2225,10 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+     gst_bin_add(GST_BIN(parser->container), element);
+     parser->decodebin = element;
+ 
+-    g_object_set(parser->decodebin, "uri", parser->uri, NULL);
++    pthread_mutex_lock(&parser->mutex);
++    parser->no_more_pads = false;
++    pthread_mutex_unlock(&parser->mutex);
++
+     g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
+     g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
+     g_signal_connect(element, "autoplug-continue", G_CALLBACK(autoplug_continue_cb), parser);
+@@ -2233,10 +2236,7 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+     g_signal_connect(element, "autoplug-sort", G_CALLBACK(autoplug_sort_cb), parser);
+     g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
+     g_signal_connect(element, "deep-element-added", G_CALLBACK(deep_element_added_cb), parser);
+-
+-    pthread_mutex_lock(&parser->mutex);
+-    parser->no_more_pads = false;
+-    pthread_mutex_unlock(&parser->mutex);
++    g_object_set(parser->decodebin, "uri", parser->uri, NULL);
+ 
+     return TRUE;
+ }
+@@ -2250,14 +2250,14 @@ static BOOL avi_parser_init_gst(struct wg_parser *parser)
+ 
+     gst_bin_add(GST_BIN(parser->container), element);
+ 
+-    g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
+-    g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
+-    g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
+-
+     pthread_mutex_lock(&parser->mutex);
+     parser->no_more_pads = false;
+     pthread_mutex_unlock(&parser->mutex);
+ 
++    g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
++    g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
++    g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
++
+     if (!link_src_to_element(parser->my_src, element))
+         return FALSE;
+ 
+-- 
+2.46.0
+

@@ -1,0 +1,132 @@
+From eda2f0f1be65ba35413acae0edd1e382049824bf Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:55 +0100
+Subject: [PATCH 19/46] winegstreamer: Convert buffer presentation timestamps
+ into stream time.
+
+---
+ dlls/winegstreamer/wg_parser.c | 56 ++++++++++++++++++++++++----------
+ 1 file changed, 40 insertions(+), 16 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index bf26f875fd0..54e7f81b105 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -86,7 +86,7 @@ struct wg_parser
+ 
+     pthread_cond_t init_cond;
+     bool output_compressed;
+-    bool no_more_pads, has_duration, error;
++    bool no_more_pads, has_duration, has_seeked, error;
+     bool err_on, warn_on;
+ 
+     pthread_cond_t read_cond, read_done_cond;
+@@ -378,6 +378,18 @@ static GstBuffer *wait_parser_stream_buffer(struct wg_parser *parser, struct wg_
+     return buffer;
+ }
+ 
++static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *stream)
++{
++    if (stream->buffer)
++    {
++        gst_buffer_unmap(stream->buffer, &stream->map_info);
++        gst_buffer_unref(stream->buffer);
++        stream->buffer = NULL;
++    }
++
++    pthread_cond_signal(&stream->event_empty_cond);
++}
++
+ static NTSTATUS wg_parser_stream_get_buffer(void *args)
+ {
+     const struct wg_parser_stream_get_buffer_params *params = args;
+@@ -389,6 +401,7 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)
+ 
+     pthread_mutex_lock(&parser->mutex);
+ 
++retry:
+     if (stream)
+         buffer = wait_parser_stream_buffer(parser, stream);
+     else
+@@ -431,13 +444,24 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)
+         return S_FALSE;
+     }
+ 
+-    /* FIXME: Should we use gst_segment_to_stream_time_full()? Under what
+-     * circumstances is the stream time not equal to the buffer PTS? Note
+-     * that this will need modification to wg_parser_stream_notify_qos() as
+-     * well. */
+-
+     if ((wg_buffer->has_pts = GST_BUFFER_PTS_IS_VALID(buffer)))
+-        wg_buffer->pts = GST_BUFFER_PTS(buffer) / 100;
++    {
++        if (stream->segment.format != GST_FORMAT_TIME)
++        {
++            /* Some types of streams (e.g. HLS) don't provide a segment. Assume that these start their PTS at zero. */
++            wg_buffer->pts = GST_BUFFER_PTS(buffer) / 100;
++        }
++        else
++        {
++            guint64 stream_time = gst_segment_to_stream_time(&stream->segment, GST_FORMAT_TIME, GST_BUFFER_PTS(buffer));
++            if (stream_time == -1)
++            {
++                release_buffer(parser, stream);
++                goto retry;
++            }
++            wg_buffer->pts = stream_time / 100;
++        }
++    }
+     if ((wg_buffer->has_duration = GST_BUFFER_DURATION_IS_VALID(buffer)))
+         wg_buffer->duration = GST_BUFFER_DURATION(buffer) / 100;
+     wg_buffer->discontinuity = GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DISCONT);
+@@ -480,16 +504,8 @@ static NTSTATUS wg_parser_stream_release_buffer(void *args)
+     struct wg_parser *parser = stream->parser;
+ 
+     pthread_mutex_lock(&parser->mutex);
+-
+-    if (stream->buffer)
+-    {
+-        gst_buffer_unmap(stream->buffer, &stream->map_info);
+-        gst_buffer_unref(stream->buffer);
+-        stream->buffer = NULL;
+-    }
+-
++    release_buffer(parser, stream);
+     pthread_mutex_unlock(&parser->mutex);
+-    pthread_cond_signal(&stream->event_empty_cond);
+ 
+     return S_OK;
+ }
+@@ -548,6 +564,8 @@ static NTSTATUS wg_parser_stream_seek(void *args)
+             flags, start_type, params->start_pos * 100, stop_type,
+             params->stop_pos == stream->duration ? -1 : params->stop_pos * 100)))
+         GST_ERROR("Failed to seek.");
++    else
++        stream->parser->has_seeked = TRUE;
+ 
+     return S_OK;
+ }
+@@ -795,6 +813,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+         case GST_EVENT_SEGMENT:
+         {
+             const GstSegment *segment;
++            GstFormat old_format;
+ 
+             gst_event_parse_segment(event, &segment);
+             if (segment->format != GST_FORMAT_TIME)
+@@ -803,7 +822,12 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+                 break;
+             }
+             pthread_mutex_lock(&parser->mutex);
++            old_format = stream->segment.format;
+             gst_segment_copy_into(segment, &stream->segment);
++            /* HLS starts playing at the last possible stream segment, which may be far into the stream.
++                Zero out the segment's starting stream time if there hasn't been a seek yet. */
++            if (old_format == GST_FORMAT_UNDEFINED && !parser->has_seeked)
++                stream->segment.time = 0;
+             pthread_mutex_unlock(&parser->mutex);
+             break;
+         }
+-- 
+2.46.0
+

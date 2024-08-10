@@ -1,0 +1,21 @@
+From e3c0c9a17f211bc56a58f0fbe19669ce56e2933f Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 25 Mar 2024 09:58:04 +0100
+Subject: [PATCH 40/46] === Marker commit, do not put into MR ===
+
+---
+ MAINTAINERS | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/MAINTAINERS b/MAINTAINERS
+index a414cc846c8..8fe2ee79f1d 100644
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -437,3 +437,4 @@ P:	Erich E. Hoover <erich.e.hoover@wine-staging.com>
+ W:	https://wine-staging.com/
+ 
+ seek
++tmp
+-- 
+2.46.0
+
