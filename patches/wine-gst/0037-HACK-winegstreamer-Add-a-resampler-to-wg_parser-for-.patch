@@ -1,7 +1,7 @@
-From 9b39d1bbd2ba6f114f83474c0022f96c78a9d503 Mon Sep 17 00:00:00 2001
+From 4d4ce8b73809fc67cea763a6525bd8d3b473902a Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 36/46] [HACK] winegstreamer: Add a resampler to wg_parser for
+Subject: [PATCH 37/46] [HACK] winegstreamer: Add a resampler to wg_parser for
  raw audio.
 
 ---
