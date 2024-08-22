@@ -1,4 +1,4 @@
-From 2095a3e5d925831e904d32c5061400b9879f2805 Mon Sep 17 00:00:00 2001
+From 5048fc33b556e29dbbb45d1bbb1685bb157110be Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 24 Apr 2024 22:00:49 +0200
 Subject: [PATCH 45/46] ntdll: Use unixcall instead of syscall for

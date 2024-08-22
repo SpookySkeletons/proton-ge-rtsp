@@ -342,10 +342,10 @@
     patch -Np1 < ../patches/wine-gst/0033-winegstreamer-Also-flush-token-queue-on-seek.patch
     patch -Np1 < ../patches/wine-gst/0034-mf-session-Fix-pausing-a-media-session-when-the-medi.patch
     patch -Np1 < ../patches/wine-gst/0035-winegstreamer-Do-not-force-uridecodebin-to-expose-un.patch
-    patch -Np1 < ../patches/wine-gst/0036-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
-    patch -Np1 < ../patches/wine-gst/0037-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
-    patch -Np1 < ../patches/wine-gst/0038-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
-    patch -Np1 < ../patches/wine-gst/0039-HACK-mfmediaengine-Never-report-INFINITY-duration.patch
+    patch -Np1 < ../patches/wine-gst/0036-mfmediaengine-Unstub-IMFMediaEngine-SetAutoPlay.patch
+    patch -Np1 < ../patches/wine-gst/0037-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
+    patch -Np1 < ../patches/wine-gst/0038-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
+    patch -Np1 < ../patches/wine-gst/0039-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
     patch -Np1 < ../patches/wine-gst/0040-Marker-commit-do-not-put-into-MR.patch
     patch -Np1 < ../patches/wine-gst/0041-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch
     patch -Np1 < ../patches/wine-gst/0042-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch

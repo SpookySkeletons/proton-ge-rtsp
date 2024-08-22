@@ -1,4 +1,4 @@
-From 62ef0a44da0d1e592137fa1475a68985d154e95b Mon Sep 17 00:00:00 2001
+From 1912edea5c9e3542b495fcdee7ca8b7932bea483 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:20:49 +0100
 Subject: [PATCH 41/46] [DEBUG] winegstreamer: GST_LOG -> GST_DEBUG.
