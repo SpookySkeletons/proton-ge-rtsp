@@ -1,18 +1,18 @@
-From cfcce02f2492ba9ea34c704caea062a883a75ddc Mon Sep 17 00:00:00 2001
+From 2f19878dd2d52c52e97f95b455427d4d7bb8f9b1 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 29 Jul 2024 10:41:23 +0200
 Subject: [PATCH 32/46] mf/sar: Allow starting audio renderer again after
  pausing it.
 
 ---
- dlls/mf/sar.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ dlls/mf/sar.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/dlls/mf/sar.c b/dlls/mf/sar.c
-index 970063497b1..59a9300e573 100644
+index 970063497b1..d588aa68871 100644
 --- a/dlls/mf/sar.c
 +++ b/dlls/mf/sar.c
-@@ -636,12 +636,14 @@ static HRESULT WINAPI audio_renderer_clock_sink_OnClockStart(IMFClockStateSink *
+@@ -636,7 +636,7 @@ static HRESULT WINAPI audio_renderer_clock_sink_OnClockStart(IMFClockStateSink *
      EnterCriticalSection(&renderer->cs);
      if (renderer->audio_client)
      {
@@ -21,13 +21,6 @@ index 970063497b1..59a9300e573 100644
          {
              if (FAILED(hr = IAudioClient_Start(renderer->audio_client)))
                  WARN("Failed to start audio client, hr %#lx.\n", hr);
-             renderer->state = STREAM_STATE_RUNNING;
-         }
-+        else
-+            hr = MF_E_INVALID_STATE_TRANSITION;
-     }
-     else
-         hr = MF_E_NOT_INITIALIZED;
 -- 
 2.46.0
 

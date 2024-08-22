@@ -1,0 +1,48 @@
+From 9e693363fe2066b7d39040d29c88c783c43fb51e Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 16 Aug 2024 02:29:05 +0200
+Subject: [PATCH 36/46] mfmediaengine: Unstub IMFMediaEngine::SetAutoPlay.
+
+---
+ dlls/mfmediaengine/main.c | 13 +++++++++----
+ 1 file changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index fba338a8438..7bf51afcf82 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -1434,7 +1434,7 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+     engine->network_state = MF_MEDIA_ENGINE_NETWORK_LOADING;
+     IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_LOADSTART, 0, 0);
+ 
+-    start_playback = engine->flags & FLAGS_ENGINE_PLAY_PENDING;
++    start_playback = (engine->flags & FLAGS_ENGINE_PLAY_PENDING) || (engine->flags & FLAGS_ENGINE_AUTO_PLAY);
+     media_engine_set_flag(engine, FLAGS_ENGINE_SOURCE_PENDING | FLAGS_ENGINE_PLAY_PENDING, FALSE);
+ 
+     if (SUCCEEDED(IMFAsyncResult_GetState(result, &state)))
+@@ -2050,14 +2050,19 @@ static BOOL WINAPI media_engine_GetAutoPlay(IMFMediaEngineEx *iface)
+ static HRESULT WINAPI media_engine_SetAutoPlay(IMFMediaEngineEx *iface, BOOL autoplay)
+ {
+     struct media_engine *engine = impl_from_IMFMediaEngineEx(iface);
++    HRESULT hr = S_OK;
+ 
+-    FIXME("(%p, %d): stub.\n", iface, autoplay);
++    TRACE("%p, %d.\n", iface, autoplay);
+ 
+     EnterCriticalSection(&engine->cs);
+-    media_engine_set_flag(engine, FLAGS_ENGINE_AUTO_PLAY, autoplay);
++    if (autoplay && !(engine->flags & FLAGS_ENGINE_SHUT_DOWN) &&
++        engine->network_state == MF_MEDIA_ENGINE_NETWORK_IDLE)
++        hr = IMFMediaEngineEx_Play(iface);
++    if (SUCCEEDED(hr))
++        media_engine_set_flag(engine, FLAGS_ENGINE_AUTO_PLAY, autoplay);
+     LeaveCriticalSection(&engine->cs);
+ 
+-    return S_OK;
++    return hr;
+ }
+ 
+ static BOOL WINAPI media_engine_GetLoop(IMFMediaEngineEx *iface)
+-- 
+2.46.0
+
