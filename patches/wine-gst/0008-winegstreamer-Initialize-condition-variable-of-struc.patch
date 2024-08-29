@@ -1,7 +1,7 @@
-From 0fb28de8800bd06d15e0d82f7a042236ea745cca Mon Sep 17 00:00:00 2001
+From 322e1f96e0f2ef1c65ab4a3d05a2ecab327dd2cb Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:15:57 +0200
-Subject: [PATCH 08/46] winegstreamer: Initialize condition variable of struct
+Subject: [PATCH 08/49] winegstreamer: Initialize condition variable of struct
  media_stream.
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH 08/46] winegstreamer: Initialize condition variable of struct
  1 file changed, 1 insertion(+)
 
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index eb6ab3d21cd..119fde3e04f 100644
+index a4ac0085dea..93a4425dd06 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
-@@ -1043,6 +1043,7 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
+@@ -1172,6 +1172,7 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
      object->active = TRUE;
      object->eos = FALSE;
      object->wg_stream = wg_stream;

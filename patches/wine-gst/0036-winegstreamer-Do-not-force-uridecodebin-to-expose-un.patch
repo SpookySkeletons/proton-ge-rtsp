@@ -1,0 +1,39 @@
+From bf894a4e8cc7076b9d62a217c4ad00529ab8626c Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 10 Jul 2024 22:50:17 +0200
+Subject: [PATCH 36/49] winegstreamer: Do not force uridecodebin to expose
+ uncompressed streams by failing autoplug-continue callbacks.
+
+Doing so makes uridecodebin expose pads that do not respond to CAPS queries correctly for HLS sources.
+---
+ dlls/winegstreamer/wg_parser.c | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index b5acba93fdd..7915084ed5d 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1366,10 +1366,19 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+     if (gst_pad_is_linked(pad))
+         return;
+ 
++    /* Doesn't seem to work, included for future reference.
++       If uridecodebin exposes a pad with compressed data, enforced by
++       a check for parser->output_compressed in autoplug_continue_cb,
++       that pad seems to not respond correctly to CAPS queries. Specifically,
++       the query seems to be forwarded up to an hlsdemux element, and fail
++       there. There should already be a sticky CAPS event on the pad though,
++       so I do not understand why that happens. */
++    if (gst_caps_is_any(caps = gst_pad_query_caps(pad, NULL)))
++        caps = gst_pad_get_current_caps(pad);
++
+     if (!(stream = create_stream(parser, gst_pad_get_stream_id(pad))))
+         return;
+ 
+-    caps = gst_pad_query_caps(pad, NULL);
+     wg_format_from_caps(&stream->codec_format, caps);
+     gst_caps_unref(caps);
+ 
+-- 
+2.46.0
+

@@ -1,0 +1,48 @@
+From d01a36044e2625b46fb02560705daf6167836192 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sat, 10 Aug 2024 01:43:37 +0200
+Subject: [PATCH 18/49] winegstreamer: Handle a duration of -1 correctly.
+
+Live sources will return a duration of -1 to signify that the duration is unknown.
+By dividing this by 100 this value gets wrongfully changed to 0.
+
+Media sources without a known duration should also not set a MF_PD_DURATION attribute on their presentation descriptors.
+---
+ dlls/winegstreamer/media_source.c | 7 +++++--
+ dlls/winegstreamer/wg_parser.c    | 2 +-
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 6709af89444..d0e9b6fdf71 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -1487,8 +1487,11 @@ static HRESULT WINAPI media_source_CreatePresentationDescriptor(IMFMediaSource *
+         hr = MF_E_SHUTDOWN;
+     else if (SUCCEEDED(hr = MFCreatePresentationDescriptor(source->stream_count, source->descriptors, descriptor)))
+     {
+-        if (FAILED(hr = IMFPresentationDescriptor_SetUINT64(*descriptor, &MF_PD_DURATION, source->duration)))
+-            WARN("Failed to set presentation descriptor MF_PD_DURATION, hr %#lx\n", hr);
++        if (source->duration != (UINT64)-1)
++        {
++            if (FAILED(hr = IMFPresentationDescriptor_SetUINT64(*descriptor, &MF_PD_DURATION, source->duration)))
++                WARN("Failed to set presentation descriptor MF_PD_DURATION, hr %#lx\n", hr);
++        }
+ 
+         for (i = 0; i < source->stream_count; ++i)
+         {
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index a2fa8f494f9..8bf5e1e0bde 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1986,7 +1986,7 @@ static NTSTATUS wg_parser_connect(void *args)
+             }
+             if (gst_pad_peer_query_duration(stream->my_sink, GST_FORMAT_TIME, &duration))
+             {
+-                stream->duration = duration / 100;
++                stream->duration = duration == -1 ? (uint64_t)-1 : duration / 100;
+                 break;
+             }
+ 
+-- 
+2.46.0
+
