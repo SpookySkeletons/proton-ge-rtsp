@@ -1,0 +1,72 @@
+From 85969d22ab64e0dcdeb33e0354ad7a1617c765c1 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 23 Feb 2024 21:45:44 +0100
+Subject: [PATCH 47/49] mf: Schedule stored timers for the original time
+ instead of calling callbacks immediately when changing presentation clock
+ state.
+
+---
+ dlls/mf/clock.c | 19 ++++++++++---------
+ 1 file changed, 10 insertions(+), 9 deletions(-)
+
+diff --git a/dlls/mf/clock.c b/dlls/mf/clock.c
+index e6be05d2794..474874330bf 100644
+--- a/dlls/mf/clock.c
++++ b/dlls/mf/clock.c
+@@ -74,6 +74,8 @@ struct clock_timer
+     LONG refcount;
+     IMFAsyncResult *result;
+     IMFAsyncCallback *callback;
++    DWORD flags;
++    LONGLONG time;
+     MFWORKITEM_KEY key;
+     struct list entry;
+ };
+@@ -556,6 +558,9 @@ static HRESULT clock_call_state_change(MFTIME system_time, struct clock_state_ch
+     return hr;
+ }
+ 
++static HRESULT present_clock_schedule_timer(struct presentation_clock *clock, DWORD flags, LONGLONG time,
++        struct clock_timer *timer);
++
+ static HRESULT clock_change_state(struct presentation_clock *clock, enum clock_command command,
+         struct clock_state_change_param param)
+ {
+@@ -583,7 +588,6 @@ static HRESULT clock_change_state(struct presentation_clock *clock, enum clock_c
+     enum clock_notification notification;
+     struct clock_sink *sink;
+     MFCLOCK_STATE old_state;
+-    IMFAsyncResult *result;
+     MFTIME system_time;
+     HRESULT hr;
+ 
+@@ -623,14 +627,9 @@ static HRESULT clock_change_state(struct presentation_clock *clock, enum clock_c
+         {
+             LIST_FOR_EACH_ENTRY_SAFE(timer, timer2, &clock->timers, struct clock_timer, entry)
+             {
+-                list_remove(&timer->entry);
+-                hr = MFCreateAsyncResult(&timer->IUnknown_iface, &clock->timer_callback, NULL, &result);
+-                IUnknown_Release(&timer->IUnknown_iface);
+-                if (SUCCEEDED(hr))
+-                {
+-                    MFPutWorkItemEx(MFASYNC_CALLBACK_QUEUE_TIMER, result);
+-                    IMFAsyncResult_Release(result);
+-                }
++                hr = present_clock_schedule_timer(clock, timer->flags, timer->time, timer);
++                if (FAILED(hr))
++                    list_remove(&timer->entry);
+             }
+         }
+         else
+@@ -902,6 +901,8 @@ static HRESULT WINAPI present_clock_timer_SetTimer(IMFTimer *iface, DWORD flags,
+     clock_timer->IUnknown_iface.lpVtbl = &clock_timer_vtbl;
+     clock_timer->refcount = 1;
+     clock_timer->callback = callback;
++    clock_timer->flags = flags;
++    clock_timer->time = time;
+     IMFAsyncCallback_AddRef(clock_timer->callback);
+ 
+     EnterCriticalSection(&clock->cs);
+-- 
+2.46.0
+

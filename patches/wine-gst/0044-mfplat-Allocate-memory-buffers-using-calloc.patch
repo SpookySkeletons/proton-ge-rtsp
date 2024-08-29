@@ -1,0 +1,76 @@
+From d19dc81ab7023ec68b0c1de410c14714da0caac3 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 26 Aug 2024 19:12:39 +0200
+Subject: [PATCH 44/49] mfplat: Allocate memory buffers using calloc.
+
+Skips the need to memset the allocated memory.
+---
+ dlls/mfplat/buffer.c | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/mfplat/buffer.c b/dlls/mfplat/buffer.c
+index b7f32f12cdc..44048c8f4af 100644
+--- a/dlls/mfplat/buffer.c
++++ b/dlls/mfplat/buffer.c
+@@ -18,6 +18,7 @@
+ 
+ #define COBJMACROS
+ 
++#include <assert.h>
+ #include <malloc.h>
+ 
+ #include "mfplat_private.h"
+@@ -31,6 +32,7 @@
+ WINE_DEFAULT_DEBUG_CHANNEL(mfplat);
+ 
+ #define ALIGN_SIZE(size, alignment) (((size) + (alignment)) & ~((alignment)))
++#define ALIGN_PTR(ptr, alignment) ((void*)ALIGN_SIZE((DWORD_PTR)(ptr), (DWORD_PTR)(alignment)))
+ 
+ typedef void (*p_copy_image_func)(BYTE *dest, LONG dest_stride, const BYTE *src, LONG src_stride, DWORD width, DWORD lines);
+ 
+@@ -42,7 +44,7 @@ struct buffer
+     IMFGetService IMFGetService_iface;
+     LONG refcount;
+ 
+-    BYTE *data;
++    BYTE *unaligned_data, *data;
+     DWORD max_length;
+     DWORD current_length;
+ 
+@@ -173,7 +175,7 @@ static ULONG WINAPI memory_buffer_Release(IMFMediaBuffer *iface)
+         }
+         DeleteCriticalSection(&buffer->cs);
+         free(buffer->_2d.linear_buffer);
+-        _aligned_free(buffer->data);
++        free(buffer->unaligned_data);
+         free(buffer);
+     }
+ 
+@@ -1335,6 +1337,8 @@ static const IMFDXGIBufferVtbl dxgi_buffer_vtbl =
+ static HRESULT memory_buffer_init(struct buffer *buffer, DWORD max_length, DWORD alignment,
+         const IMFMediaBufferVtbl *vtbl)
+ {
++    DWORD total_length = max_length;
++
+     if (alignment < MF_16_BYTE_ALIGNMENT)
+         alignment = MF_16_BYTE_ALIGNMENT;
+     alignment++;
+@@ -1350,9 +1354,13 @@ static HRESULT memory_buffer_init(struct buffer *buffer, DWORD max_length, DWORD
+         alignment++;
+     }
+ 
+-    if (!(buffer->data = _aligned_malloc(max_length, alignment)))
++    if (alignment > MEMORY_ALLOCATION_ALIGNMENT)
++        total_length += alignment - 1;
++    if (!(buffer->unaligned_data = calloc(1, total_length)))
+         return E_OUTOFMEMORY;
+-    memset(buffer->data, 0, max_length);
++    assert(alignment > MEMORY_ALLOCATION_ALIGNMENT ||
++           ((DWORD_PTR)buffer->unaligned_data % MEMORY_ALLOCATION_ALIGNMENT) == 0);
++    buffer->data = ALIGN_PTR(buffer->unaligned_data, alignment - 1);
+ 
+     buffer->IMFMediaBuffer_iface.lpVtbl = vtbl;
+     buffer->refcount = 1;
+-- 
+2.46.0
+
