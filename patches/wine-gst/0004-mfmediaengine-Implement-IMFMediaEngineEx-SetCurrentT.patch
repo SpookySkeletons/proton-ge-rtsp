@@ -1,4 +1,4 @@
-From c9cb24b06e0d2b41d9026eeddc929474006a606d Mon Sep 17 00:00:00 2001
+From 538f935fa7b23f9502975f7902c24e5c9de0757d Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Fri, 28 Jul 2023 18:04:30 +0800
 Subject: [PATCH 04/49] mfmediaengine: Implement
@@ -9,7 +9,7 @@ Subject: [PATCH 04/49] mfmediaengine: Implement
  1 file changed, 47 insertions(+), 15 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index 9e41d9dad84..28a273616c8 100644
+index 57bd2f82cec..d6d6b2fd7ab 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
 @@ -96,6 +96,7 @@ enum media_engine_flags
@@ -20,7 +20,7 @@ index 9e41d9dad84..28a273616c8 100644
  };
  
  struct vec3
-@@ -982,7 +983,14 @@ static HRESULT WINAPI media_engine_session_events_Invoke(IMFAsyncCallback *iface
+@@ -955,7 +956,14 @@ static HRESULT WINAPI media_engine_session_events_Invoke(IMFAsyncCallback *iface
              break;
          }
          case MESessionStarted:
@@ -36,7 +36,7 @@ index 9e41d9dad84..28a273616c8 100644
              IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_PLAYING, 0, 0);
              break;
          case MESessionEnded:
-@@ -1846,19 +1854,9 @@ static double WINAPI media_engine_GetCurrentTime(IMFMediaEngineEx *iface)
+@@ -1817,19 +1825,9 @@ static double WINAPI media_engine_GetCurrentTime(IMFMediaEngineEx *iface)
  
  static HRESULT WINAPI media_engine_SetCurrentTime(IMFMediaEngineEx *iface, double time)
  {
@@ -58,7 +58,7 @@ index 9e41d9dad84..28a273616c8 100644
  }
  
  static double WINAPI media_engine_GetStartTime(IMFMediaEngineEx *iface)
-@@ -3059,9 +3057,43 @@ static HRESULT WINAPI media_engine_SetRealTimeMode(IMFMediaEngineEx *iface, BOOL
+@@ -3108,9 +3106,43 @@ static HRESULT WINAPI media_engine_SetRealTimeMode(IMFMediaEngineEx *iface, BOOL
  
  static HRESULT WINAPI media_engine_SetCurrentTimeEx(IMFMediaEngineEx *iface, double seektime, MF_MEDIA_ENGINE_SEEK_MODE mode)
  {
@@ -105,5 +105,5 @@ index 9e41d9dad84..28a273616c8 100644
  
  static HRESULT WINAPI media_engine_EnableTimeUpdateTimer(IMFMediaEngineEx *iface, BOOL enable)
 -- 
-2.46.0
+2.47.0
 

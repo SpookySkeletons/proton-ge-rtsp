@@ -1,4 +1,4 @@
-From 80c2e192ecb2c3aeccb387f7d2f7a92d46fe5451 Mon Sep 17 00:00:00 2001
+From a1975484f860600b5dbdb87daa94e4cdc08e82de Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Thu, 25 Jul 2024 00:17:20 +0200
 Subject: [PATCH 49/49] [HACK] kernelbase: Replace stderr of yt-dlp process.
@@ -48,5 +48,5 @@ index 163e15d920a..dc03d6d121c 100644
          app_name = name;
  
 -- 
-2.46.0
+2.47.0
 

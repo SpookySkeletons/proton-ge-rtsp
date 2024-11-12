@@ -1,4 +1,4 @@
-From 20d5d0ab5f9678f88842c2c8f98d6f2148089d35 Mon Sep 17 00:00:00 2001
+From bd5deabc2c980da0704bf8741d22b47e210425a0 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:11:44 +0200
 Subject: [PATCH 29/49] winegstreamer: Handle Gstreamer pipeline flushes
@@ -9,15 +9,19 @@ and wg_parser_stream_copy_buffer, the latter function will return an error, resu
 dropped without having delivered a sample.
 
 If wg_parser_stream_copy_buffer returns an error, retry the whole wait_on_sample procedure.
+
+CW-Bug-Id: #21644
+CW-Bug-Id: #22799
+CW-Bug-Id: #24115
 ---
  dlls/winegstreamer/media_source.c | 12 +++++++++---
  1 file changed, 9 insertions(+), 3 deletions(-)
 
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index b9054f48ccf..5030838bf2c 100644
+index d6051a7e4db..dc5f67a5686 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
-@@ -764,6 +764,7 @@ static HRESULT media_stream_send_sample(struct media_stream *stream, const struc
+@@ -635,6 +635,7 @@ static HRESULT media_stream_send_sample(struct media_stream *stream, const struc
  
      if (!wg_parser_stream_copy_buffer(stream->wg_stream, data, 0, wg_buffer->size))
      {
@@ -25,7 +29,7 @@ index b9054f48ccf..5030838bf2c 100644
          wg_parser_stream_release_buffer(stream->wg_stream);
          IMFMediaBuffer_Unlock(buffer);
          goto out;
-@@ -822,10 +823,10 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
+@@ -693,10 +694,10 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
  {
      struct media_source *source = impl_from_IMFMediaSource(stream->media_source);
      struct wg_parser_buffer buffer;
@@ -38,7 +42,7 @@ index b9054f48ccf..5030838bf2c 100644
      stream->busy = TRUE;
      LeaveCriticalSection(&source->cs);
      memset(&buffer, 0, sizeof(buffer));
-@@ -841,7 +842,12 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
+@@ -712,7 +713,12 @@ static HRESULT wait_on_sample(struct media_stream *stream, IUnknown *token)
      }
  
      if (ret)
@@ -53,5 +57,5 @@ index b9054f48ccf..5030838bf2c 100644
  }
  
 -- 
-2.46.0
+2.47.0
 

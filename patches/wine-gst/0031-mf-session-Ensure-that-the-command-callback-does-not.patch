@@ -1,4 +1,4 @@
-From 05dcbdb7e95a3e2d8a9e16eb5712fd2743eedd7e Mon Sep 17 00:00:00 2001
+From 4933e5870be0176ed4595a161c33f135d029abdf Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 8 Jul 2024 10:30:50 +0200
 Subject: [PATCH 31/49] mf/session: Ensure that the command callback does not
@@ -11,15 +11,17 @@ Thus, it is never valid to leave the function without clearing the SESSION_FLAG_
 This case can be hit by SESSION_CMD_START, and leaves the session unable to process any commands.
 
 Fix this by ensuring that SESSION_FLAG_PENDING_COMMAND is always cleared before the command callback returns.
+
+CW-Bug-Id: #24115
 ---
  dlls/mf/session.c | 5 +++--
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/dlls/mf/session.c b/dlls/mf/session.c
-index 3f3be2b84b0..d43cede7874 100644
+index a5caad3c97a..752bdcf1c21 100644
 --- a/dlls/mf/session.c
 +++ b/dlls/mf/session.c
-@@ -2645,7 +2645,6 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+@@ -2744,7 +2744,6 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
              break;
          case SESSION_CMD_SET_TOPOLOGY:
              session_set_topology(session, op->set_topology.flags, op->set_topology.topology);
@@ -27,7 +29,7 @@ index 3f3be2b84b0..d43cede7874 100644
              break;
          case SESSION_CMD_START:
              session_start(session, &op->start.time_format, &op->start.start_position);
-@@ -2668,12 +2667,14 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+@@ -2767,12 +2766,14 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
              break;
          case SESSION_CMD_SHUTDOWN:
              session_clear_command_list(session);
@@ -44,5 +46,5 @@ index 3f3be2b84b0..d43cede7874 100644
  
      IUnknown_Release(&op->IUnknown_iface);
 -- 
-2.46.0
+2.47.0
 

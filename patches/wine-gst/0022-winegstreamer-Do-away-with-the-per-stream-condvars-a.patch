@@ -1,15 +1,16 @@
-From 8ce5fc567d6366479f03c6aa2632c61ecdacd162 Mon Sep 17 00:00:00 2001
+From 490744bd1ac88608d53e562ce953a9c8199879d9 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
 Subject: [PATCH 22/49] winegstreamer: Do away with the per-stream condvars and
  use one parser-wide condvar instead.
 
+CW-Bug-Id: #21644
 ---
  dlls/winegstreamer/wg_parser.c | 27 ++++++++++-----------------
  1 file changed, 10 insertions(+), 17 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 6f656db98c1..293671a9c08 100644
+index 3aeafae2175..11bac45a9f9 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -90,6 +90,7 @@ struct wg_parser
@@ -20,17 +21,17 @@ index 6f656db98c1..293671a9c08 100644
      struct
      {
          GstBuffer *buffer;
-@@ -122,7 +123,6 @@ struct wg_parser_stream
-     GstSegment segment;
-     struct wg_format preferred_format, current_format, codec_format;
+@@ -124,7 +125,6 @@ struct wg_parser_stream
+     GstCaps *current_caps;
+     GstCaps *desired_caps;
  
 -    pthread_cond_t event_cond, event_empty_cond;
      GstBuffer *buffer;
      GstMapInfo map_info;
  
-@@ -302,8 +302,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
-     stream->enabled = false;
-     stream->current_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
+@@ -360,8 +360,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
+         stream->desired_caps = NULL;
+     }
      pthread_mutex_unlock(&parser->mutex);
 -    pthread_cond_signal(&stream->event_cond);
 -    pthread_cond_signal(&stream->event_empty_cond);
@@ -38,7 +39,7 @@ index 6f656db98c1..293671a9c08 100644
      return S_OK;
  }
  
-@@ -315,7 +314,7 @@ static GstBuffer *wait_parser_stream_buffer(struct wg_parser *parser, struct wg_
+@@ -373,7 +372,7 @@ static GstBuffer *wait_parser_stream_buffer(struct wg_parser *parser, struct wg_
       * must return the buffer. */
  
      while (stream->enabled && !(buffer = stream->buffer) && !stream->eos)
@@ -47,7 +48,7 @@ index 6f656db98c1..293671a9c08 100644
  
      return buffer;
  }
-@@ -329,7 +328,7 @@ static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *st
+@@ -387,7 +386,7 @@ static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *st
          stream->buffer = NULL;
      }
  
@@ -56,7 +57,7 @@ index 6f656db98c1..293671a9c08 100644
  }
  
  static NTSTATUS wg_parser_stream_get_buffer(void *args)
-@@ -741,7 +740,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -837,7 +836,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
              pthread_mutex_lock(&parser->mutex);
              stream->eos = true;
              if (stream->enabled)
@@ -65,7 +66,7 @@ index 6f656db98c1..293671a9c08 100644
              else
                  pthread_cond_signal(&parser->init_cond);
              pthread_mutex_unlock(&parser->mutex);
-@@ -753,7 +752,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -849,7 +848,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
              if (stream->enabled)
              {
                  stream->flushing = true;
@@ -74,7 +75,7 @@ index 6f656db98c1..293671a9c08 100644
  
                  if (stream->buffer)
                  {
-@@ -831,7 +830,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -926,7 +925,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
       * implementing a queue object here. */
  
      while (stream->enabled && !stream->flushing && stream->buffer)
@@ -83,7 +84,7 @@ index 6f656db98c1..293671a9c08 100644
  
      if (!stream->enabled)
      {
-@@ -860,7 +859,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -955,7 +954,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
      stream->buffer = buffer;
  
      pthread_mutex_unlock(&parser->mutex);
@@ -92,16 +93,16 @@ index 6f656db98c1..293671a9c08 100644
  
      /* The chain callback is given a reference to the buffer. Transfer that
       * reference to the stream object, which will release it in
-@@ -1004,8 +1003,6 @@ static struct wg_parser_stream *create_stream(struct wg_parser *parser, char *id
+@@ -1060,8 +1059,6 @@ static struct wg_parser_stream *create_stream(struct wg_parser *parser, char *id
+     stream->parser = parser;
      stream->number = parser->stream_count;
      stream->no_more_pads = true;
-     stream->current_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
 -    pthread_cond_init(&stream->event_cond, NULL);
 -    pthread_cond_init(&stream->event_empty_cond, NULL);
  
      sprintf(pad_name, "qz_sink_%u", parser->stream_count);
      stream->my_sink = gst_pad_new(pad_name, GST_PAD_SINK);
-@@ -1037,9 +1034,6 @@ static void free_stream(struct wg_parser_stream *stream)
+@@ -1093,9 +1090,6 @@ static void free_stream(struct wg_parser_stream *stream)
          stream->buffer = NULL;
      }
  
@@ -111,7 +112,7 @@ index 6f656db98c1..293671a9c08 100644
      for (i = 0; i < ARRAY_SIZE(stream->tags); ++i)
      {
          if (stream->tags[i])
-@@ -2096,10 +2090,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2148,10 +2142,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
      /* Unblock all of our streams. */
      pthread_mutex_lock(&parser->mutex);
      for (i = 0; i < parser->stream_count; ++i)
@@ -123,7 +124,7 @@ index 6f656db98c1..293671a9c08 100644
      pthread_mutex_unlock(&parser->mutex);
  
      gst_element_set_state(parser->container, GST_STATE_NULL);
-@@ -2275,6 +2267,7 @@ static NTSTATUS wg_parser_create(void *args)
+@@ -2328,6 +2320,7 @@ static NTSTATUS wg_parser_create(void *args)
      pthread_cond_init(&parser->init_cond, NULL);
      pthread_cond_init(&parser->read_cond, NULL);
      pthread_cond_init(&parser->read_done_cond, NULL);
@@ -132,5 +133,5 @@ index 6f656db98c1..293671a9c08 100644
      parser->output_compressed = params->output_compressed;
      parser->err_on = params->err_on;
 -- 
-2.46.0
+2.47.0
 

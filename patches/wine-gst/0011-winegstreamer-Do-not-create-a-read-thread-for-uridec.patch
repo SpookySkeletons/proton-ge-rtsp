@@ -1,18 +1,19 @@
-From 50959df819d44760e3ec0e2966baad75d8ec8ab0 Mon Sep 17 00:00:00 2001
+From f40f133d6db8f882641a5375fd2ed112c8361df9 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 25 Mar 2024 09:19:18 +0100
-Subject: [PATCH 10/49] winegstreamer: Do not create a read thread for
+Subject: [PATCH 11/49] winegstreamer: Do not create a read thread for
  uridecodebin-based media sources.
 
+CW-Bug-Id: #21644
 ---
  dlls/winegstreamer/media_source.c | 12 ++++++++----
  1 file changed, 8 insertions(+), 4 deletions(-)
 
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index 93a4425dd06..6709af89444 100644
+index 119fde3e04f..93ddf6c6051 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
-@@ -1625,9 +1625,12 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+@@ -1501,9 +1501,12 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
  
      wg_parser_disconnect(source->wg_parser);
  
@@ -28,7 +29,7 @@ index 93a4425dd06..6709af89444 100644
  
      IMFMediaEventQueue_Shutdown(source->event_queue);
      IMFByteStream_Close(source->byte_stream);
-@@ -1722,7 +1725,8 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+@@ -1598,7 +1601,8 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
      }
      object->wg_parser = parser;
  
@@ -39,5 +40,5 @@ index 93a4425dd06..6709af89444 100644
      object->state = SOURCE_OPENING;
  
 -- 
-2.46.0
+2.47.0
 

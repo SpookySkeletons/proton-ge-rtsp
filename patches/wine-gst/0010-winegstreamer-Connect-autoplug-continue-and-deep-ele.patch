@@ -1,22 +1,19 @@
-From 5f965c4a5c870321b55de94b380eddbf13538a79 Mon Sep 17 00:00:00 2001
+From c751866d1efd4346ea0c91476f3b2bb02d6bf90b Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 31 Mar 2024 15:49:33 +0200
-Subject: [PATCH 09/49] winegstreamer: Connect autoplug-continue and
+Subject: [PATCH 10/49] winegstreamer: Connect autoplug-continue and
  deep-element-added callbacks to uridecodebin-based parsers too.
 
+CW-Bug-Id: #21644
 ---
- dlls/winegstreamer/wg_parser.c | 2 ++
- 1 file changed, 2 insertions(+)
+ dlls/winegstreamer/wg_parser.c | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 1cd44a90e6e..e4b2d57bf7c 100644
+index 2b3e19cdab7..8523ef0af1e 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -2102,9 +2102,11 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
-     g_object_set(parser->decodebin, "uri", parser->uri, NULL);
-     g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
-     g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
-+    g_signal_connect(element, "autoplug-continue", G_CALLBACK(autoplug_continue_cb), parser);
+@@ -2199,6 +2199,7 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
      g_signal_connect(element, "autoplug-select", G_CALLBACK(autoplug_select_cb), parser);
      g_signal_connect(element, "autoplug-sort", G_CALLBACK(autoplug_sort_cb), parser);
      g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
@@ -25,5 +22,5 @@ index 1cd44a90e6e..e4b2d57bf7c 100644
      pthread_mutex_lock(&parser->mutex);
      parser->no_more_pads = false;
 -- 
-2.46.0
+2.47.0
 

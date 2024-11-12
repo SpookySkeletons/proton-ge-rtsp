@@ -1,27 +1,28 @@
-From 31c788f0093a57a8e8195eb4bd4047afe527397f Mon Sep 17 00:00:00 2001
+From 3cbe876714831c1b43dae8f76ecde771cbfe499f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 18 Mar 2024 10:18:07 +0100
 Subject: [PATCH 23/49] winegstreamer: Use pthread_cond_broadcast instead of
  pthread_cond_signal for stream_event_cond.
 
+CW-Bug-Id: #21644
 ---
  dlls/winegstreamer/wg_parser.c | 12 ++++++------
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 293671a9c08..56acd04d39c 100644
+index 11bac45a9f9..fd9ecaadb7c 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -302,7 +302,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
-     stream->enabled = false;
-     stream->current_format.major_type = WG_MAJOR_TYPE_UNKNOWN;
+@@ -360,7 +360,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
+         stream->desired_caps = NULL;
+     }
      pthread_mutex_unlock(&parser->mutex);
 -    pthread_cond_signal(&parser->stream_event_cond);
 +    pthread_cond_broadcast(&parser->stream_event_cond);
      return S_OK;
  }
  
-@@ -328,7 +328,7 @@ static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *st
+@@ -386,7 +386,7 @@ static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *st
          stream->buffer = NULL;
      }
  
@@ -30,7 +31,7 @@ index 293671a9c08..56acd04d39c 100644
  }
  
  static NTSTATUS wg_parser_stream_get_buffer(void *args)
-@@ -740,7 +740,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -836,7 +836,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
              pthread_mutex_lock(&parser->mutex);
              stream->eos = true;
              if (stream->enabled)
@@ -39,7 +40,7 @@ index 293671a9c08..56acd04d39c 100644
              else
                  pthread_cond_signal(&parser->init_cond);
              pthread_mutex_unlock(&parser->mutex);
-@@ -752,7 +752,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -848,7 +848,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
              if (stream->enabled)
              {
                  stream->flushing = true;
@@ -48,7 +49,7 @@ index 293671a9c08..56acd04d39c 100644
  
                  if (stream->buffer)
                  {
-@@ -859,7 +859,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -954,7 +954,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
      stream->buffer = buffer;
  
      pthread_mutex_unlock(&parser->mutex);
@@ -57,7 +58,7 @@ index 293671a9c08..56acd04d39c 100644
  
      /* The chain callback is given a reference to the buffer. Transfer that
       * reference to the stream object, which will release it in
-@@ -2091,7 +2091,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2143,7 +2143,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
      pthread_mutex_lock(&parser->mutex);
      for (i = 0; i < parser->stream_count; ++i)
          parser->streams[i]->flushing = true;
@@ -67,5 +68,5 @@ index 293671a9c08..56acd04d39c 100644
  
      gst_element_set_state(parser->container, GST_STATE_NULL);
 -- 
-2.46.0
+2.47.0
 

@@ -1,4 +1,4 @@
-From d9c2cacdaa98534ec969baf4e361d5ba7004d308 Mon Sep 17 00:00:00 2001
+From 227aa1a62098daa8c44b840143e235b8cf9253d0 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Thu, 28 Mar 2024 16:43:07 +0100
 Subject: [PATCH 46/49] [HACK] kernelbase: yt-dlp.exe redirection and cmdline
@@ -78,5 +78,5 @@ index abf789d6033..163e15d920a 100644
  
      if (flags & (IDLE_PRIORITY_CLASS | HIGH_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS |
 -- 
-2.46.0
+2.47.0
 

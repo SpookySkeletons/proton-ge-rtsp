@@ -1,18 +1,19 @@
-From 54c89667f04907474169d104949b508e95f484c8 Mon Sep 17 00:00:00 2001
+From 9fec3ce721e930a22400f34063ce5c11b30d61eb Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 7 Aug 2024 02:09:31 +0200
 Subject: [PATCH 35/49] mf/session: Fix pausing a media session when the media
  source sends buffering events.
 
+CW-Bug-Id: #24115
 ---
  dlls/mf/session.c | 125 +++++++++++++++++++++++++++++-----------------
  1 file changed, 79 insertions(+), 46 deletions(-)
 
 diff --git a/dlls/mf/session.c b/dlls/mf/session.c
-index 170a31ef2ad..c341a59f925 100644
+index e119755f732..eab36a88234 100644
 --- a/dlls/mf/session.c
 +++ b/dlls/mf/session.c
-@@ -261,6 +261,7 @@ struct media_session
+@@ -262,6 +262,7 @@ struct media_session
      struct list commands;
      enum session_state state;
      DWORD caps;
@@ -20,7 +21,7 @@ index 170a31ef2ad..c341a59f925 100644
      CRITICAL_SECTION cs;
  };
  
-@@ -1097,6 +1098,38 @@ static void session_set_closed(struct media_session *session, HRESULT status)
+@@ -1179,6 +1180,38 @@ static void session_set_closed(struct media_session *session, HRESULT status)
      session_command_complete_with_event(session, MESessionClosed, status, NULL);
  }
  
@@ -59,7 +60,7 @@ index 170a31ef2ad..c341a59f925 100644
  static void session_pause(struct media_session *session)
  {
      unsigned int state = ~0u;
-@@ -1107,7 +1140,12 @@ static void session_pause(struct media_session *session)
+@@ -1189,7 +1222,12 @@ static void session_pause(struct media_session *session)
          case SESSION_STATE_STARTED:
  
              /* Transition in two steps - pause the clock, wait for sinks, then pause sources. */
@@ -73,7 +74,7 @@ index 170a31ef2ad..c341a59f925 100644
                  session_set_state(session, SESSION_STATE_PAUSING_SINKS);
              state = SESSION_STATE_PAUSED;
  
-@@ -1159,6 +1197,28 @@ static void session_set_stopped(struct media_session *session, HRESULT status)
+@@ -1241,6 +1279,28 @@ static void session_set_stopped(struct media_session *session, HRESULT status)
      session_command_complete(session);
  }
  
@@ -102,7 +103,7 @@ index 170a31ef2ad..c341a59f925 100644
  static void session_stop(struct media_session *session)
  {
      HRESULT hr = MF_E_INVALIDREQUEST;
-@@ -1170,7 +1230,12 @@ static void session_stop(struct media_session *session)
+@@ -1252,7 +1312,12 @@ static void session_stop(struct media_session *session)
  
              /* Transition in two steps - stop the clock, wait for sinks, then stop sources. */
              IMFPresentationClock_GetTime(session->clock, &session->presentation.clock_stop_time);
@@ -116,7 +117,7 @@ index 170a31ef2ad..c341a59f925 100644
                  session_set_state(session, SESSION_STATE_STOPPING_SINKS);
              else
                  session_set_stopped(session, hr);
-@@ -1228,7 +1293,12 @@ static void session_close(struct media_session *session)
+@@ -1310,7 +1375,12 @@ static void session_close(struct media_session *session)
          case SESSION_STATE_STARTED:
          case SESSION_STATE_PAUSED:
              session->presentation.flags |= SESSION_FLAG_FINALIZE_SINKS;
@@ -130,7 +131,7 @@ index 170a31ef2ad..c341a59f925 100644
                  session_set_state(session, SESSION_STATE_STOPPING_SINKS);
              break;
          default:
-@@ -2866,19 +2936,6 @@ static BOOL session_is_source_nodes_state(struct media_session *session, enum ob
+@@ -2963,19 +3033,6 @@ static BOOL session_is_source_nodes_state(struct media_session *session, enum ob
      return TRUE;
  }
  
@@ -150,7 +151,7 @@ index 170a31ef2ad..c341a59f925 100644
  static enum object_state session_get_object_state_for_event(MediaEventType event)
  {
      switch (event)
-@@ -2923,6 +2980,8 @@ static HRESULT session_start_clock(struct media_session *session)
+@@ -3020,6 +3077,8 @@ static HRESULT session_start_clock(struct media_session *session)
  
      if (FAILED(hr = IMFPresentationClock_Start(session->clock, start_offset)))
          WARN("Failed to start session clock, hr %#lx.\n", hr);
@@ -159,7 +160,7 @@ index 170a31ef2ad..c341a59f925 100644
  
      return hr;
  }
-@@ -3090,7 +3149,6 @@ static void session_set_source_object_state(struct media_session *session, IUnkn
+@@ -3187,7 +3246,6 @@ static void session_set_source_object_state(struct media_session *session, IUnkn
  static void session_set_sink_stream_state(struct media_session *session, IMFStreamSink *stream,
          MediaEventType event_type)
  {
@@ -167,7 +168,7 @@ index 170a31ef2ad..c341a59f925 100644
      enum object_state state;
      HRESULT hr = S_OK;
      BOOL changed;
-@@ -3117,38 +3175,12 @@ static void session_set_sink_stream_state(struct media_session *session, IMFStre
+@@ -3214,38 +3272,12 @@ static void session_set_sink_stream_state(struct media_session *session, IMFStre
              session_set_started(session);
              break;
          case SESSION_STATE_PAUSING_SINKS:
@@ -208,7 +209,7 @@ index 170a31ef2ad..c341a59f925 100644
              break;
          default:
              ;
-@@ -3814,8 +3846,9 @@ static HRESULT WINAPI session_events_callback_Invoke(IMFAsyncCallback *iface, IM
+@@ -4138,8 +4170,9 @@ static HRESULT WINAPI session_events_callback_Invoke(IMFAsyncCallback *iface, IM
              {
                  if (event_type == MEBufferingStarted)
                      IMFPresentationClock_Pause(session->clock);
@@ -220,5 +221,5 @@ index 170a31ef2ad..c341a59f925 100644
                  IMFMediaEventQueue_QueueEvent(session->event_queue, event);
              }
 -- 
-2.46.0
+2.47.0
 

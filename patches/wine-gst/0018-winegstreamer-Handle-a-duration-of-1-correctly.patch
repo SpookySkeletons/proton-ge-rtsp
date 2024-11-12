@@ -1,4 +1,4 @@
-From d01a36044e2625b46fb02560705daf6167836192 Mon Sep 17 00:00:00 2001
+From a3303110d4691ceb99d44c9e4e0a3fee848614aa Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sat, 10 Aug 2024 01:43:37 +0200
 Subject: [PATCH 18/49] winegstreamer: Handle a duration of -1 correctly.
@@ -7,16 +7,18 @@ Live sources will return a duration of -1 to signify that the duration is unknow
 By dividing this by 100 this value gets wrongfully changed to 0.
 
 Media sources without a known duration should also not set a MF_PD_DURATION attribute on their presentation descriptors.
+
+CW-Bug-Id: #21644
 ---
  dlls/winegstreamer/media_source.c | 7 +++++--
  dlls/winegstreamer/wg_parser.c    | 2 +-
  2 files changed, 6 insertions(+), 3 deletions(-)
 
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index 6709af89444..d0e9b6fdf71 100644
+index 93ddf6c6051..ce6de32d1c4 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
-@@ -1487,8 +1487,11 @@ static HRESULT WINAPI media_source_CreatePresentationDescriptor(IMFMediaSource *
+@@ -1358,8 +1358,11 @@ static HRESULT WINAPI media_source_CreatePresentationDescriptor(IMFMediaSource *
          hr = MF_E_SHUTDOWN;
      else if (SUCCEEDED(hr = MFCreatePresentationDescriptor(source->stream_count, source->descriptors, descriptor)))
      {
@@ -31,10 +33,10 @@ index 6709af89444..d0e9b6fdf71 100644
          for (i = 0; i < source->stream_count; ++i)
          {
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index a2fa8f494f9..8bf5e1e0bde 100644
+index 47922146d9a..caee2cadfb7 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1986,7 +1986,7 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -2038,7 +2038,7 @@ static NTSTATUS wg_parser_connect(void *args)
              }
              if (gst_pad_peer_query_duration(stream->my_sink, GST_FORMAT_TIME, &duration))
              {
@@ -44,5 +46,5 @@ index a2fa8f494f9..8bf5e1e0bde 100644
              }
  
 -- 
-2.46.0
+2.47.0
 

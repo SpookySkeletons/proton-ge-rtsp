@@ -1,4 +1,4 @@
-From aa917ac9bc5d31f786f16bb4d5765d53d63b50ea Mon Sep 17 00:00:00 2001
+From 0961c4c7828f15209444a55e807a0360f6037a08 Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Mon, 7 Aug 2023 11:53:41 +0800
 Subject: [PATCH 05/49] mfmediaengine/tests: Test
@@ -9,10 +9,10 @@ Subject: [PATCH 05/49] mfmediaengine/tests: Test
  1 file changed, 183 insertions(+)
 
 diff --git a/dlls/mfmediaengine/tests/mfmediaengine.c b/dlls/mfmediaengine/tests/mfmediaengine.c
-index 47130d8e436..29a11d034cd 100644
+index 63a7e139193..506faec231c 100644
 --- a/dlls/mfmediaengine/tests/mfmediaengine.c
 +++ b/dlls/mfmediaengine/tests/mfmediaengine.c
-@@ -2185,6 +2185,9 @@ struct test_seek_notify
+@@ -2156,6 +2156,9 @@ struct test_seek_notify
  {
      IMFMediaEngineNotify IMFMediaEngineNotify_iface;
      HANDLE playing_event;
@@ -22,7 +22,7 @@ index 47130d8e436..29a11d034cd 100644
      HRESULT expected_error;
      HRESULT error;
      LONG refcount;
-@@ -2224,6 +2227,9 @@ static ULONG WINAPI test_seek_notify_Release(IMFMediaEngineNotify *iface)
+@@ -2195,6 +2198,9 @@ static ULONG WINAPI test_seek_notify_Release(IMFMediaEngineNotify *iface)
      if (!refcount)
      {
          CloseHandle(notify->playing_event);
@@ -32,7 +32,7 @@ index 47130d8e436..29a11d034cd 100644
          free(notify);
      }
  
-@@ -2240,6 +2246,15 @@ static HRESULT WINAPI test_seek_notify_EventNotify(IMFMediaEngineNotify *iface,
+@@ -2211,6 +2217,15 @@ static HRESULT WINAPI test_seek_notify_EventNotify(IMFMediaEngineNotify *iface,
      case MF_MEDIA_ENGINE_EVENT_PLAYING:
          SetEvent(notify->playing_event);
          break;
@@ -48,7 +48,7 @@ index 47130d8e436..29a11d034cd 100644
      case MF_MEDIA_ENGINE_EVENT_ERROR:
          ok(param2 == notify->expected_error, "Unexpected error %#lx\n", param2);
          notify->error = param2;
-@@ -2264,7 +2279,13 @@ static struct test_seek_notify *create_seek_notify(void)
+@@ -2235,7 +2250,13 @@ static struct test_seek_notify *create_seek_notify(void)
      object = calloc(1, sizeof(*object));
      object->IMFMediaEngineNotify_iface.lpVtbl = &test_seek_notify_vtbl;
      object->playing_event = CreateEventW(NULL, FALSE, FALSE, NULL);
@@ -62,7 +62,7 @@ index 47130d8e436..29a11d034cd 100644
      object->refcount = 1;
      return object;
  }
-@@ -2510,6 +2531,167 @@ static void test_media_extension(void)
+@@ -2481,6 +2502,167 @@ static void test_media_extension(void)
      IMFMediaEngineExtension_Release(&extension->IMFMediaEngineExtension_iface);
  }
  
@@ -230,7 +230,7 @@ index 47130d8e436..29a11d034cd 100644
  START_TEST(mfmediaengine)
  {
      HRESULT hr;
-@@ -2545,6 +2727,7 @@ START_TEST(mfmediaengine)
+@@ -2516,6 +2698,7 @@ START_TEST(mfmediaengine)
      test_GetDuration();
      test_GetSeekable();
      test_media_extension();
@@ -239,5 +239,5 @@ index 47130d8e436..29a11d034cd 100644
      IMFMediaEngineClassFactory_Release(factory);
  
 -- 
-2.46.0
+2.47.0
 

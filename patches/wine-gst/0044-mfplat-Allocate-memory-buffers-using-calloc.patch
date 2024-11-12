@@ -1,4 +1,4 @@
-From d19dc81ab7023ec68b0c1de410c14714da0caac3 Mon Sep 17 00:00:00 2001
+From e03822b0aed50898f8b3e9ec747cd4bd768f19ed Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 26 Aug 2024 19:12:39 +0200
 Subject: [PATCH 44/49] mfplat: Allocate memory buffers using calloc.
@@ -9,7 +9,7 @@ Skips the need to memset the allocated memory.
  1 file changed, 12 insertions(+), 4 deletions(-)
 
 diff --git a/dlls/mfplat/buffer.c b/dlls/mfplat/buffer.c
-index b7f32f12cdc..44048c8f4af 100644
+index d1fd2a99529..f3a34749d6f 100644
 --- a/dlls/mfplat/buffer.c
 +++ b/dlls/mfplat/buffer.c
 @@ -18,6 +18,7 @@
@@ -46,7 +46,7 @@ index b7f32f12cdc..44048c8f4af 100644
          free(buffer);
      }
  
-@@ -1335,6 +1337,8 @@ static const IMFDXGIBufferVtbl dxgi_buffer_vtbl =
+@@ -1336,6 +1338,8 @@ static const IMFDXGIBufferVtbl dxgi_buffer_vtbl =
  static HRESULT memory_buffer_init(struct buffer *buffer, DWORD max_length, DWORD alignment,
          const IMFMediaBufferVtbl *vtbl)
  {
@@ -55,7 +55,7 @@ index b7f32f12cdc..44048c8f4af 100644
      if (alignment < MF_16_BYTE_ALIGNMENT)
          alignment = MF_16_BYTE_ALIGNMENT;
      alignment++;
-@@ -1350,9 +1354,13 @@ static HRESULT memory_buffer_init(struct buffer *buffer, DWORD max_length, DWORD
+@@ -1351,9 +1355,13 @@ static HRESULT memory_buffer_init(struct buffer *buffer, DWORD max_length, DWORD
          alignment++;
      }
  
@@ -72,5 +72,5 @@ index b7f32f12cdc..44048c8f4af 100644
      buffer->IMFMediaBuffer_iface.lpVtbl = vtbl;
      buffer->refcount = 1;
 -- 
-2.46.0
+2.47.0
 
