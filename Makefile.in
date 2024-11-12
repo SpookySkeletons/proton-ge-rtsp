@@ -686,7 +686,6 @@ $(eval $(call rules-wine-requests,wine))
 $(OBJ)/.wine-post-source:
 	cd $(WINE_SRC) && dlls/winevulkan/make_vulkan -x vk.xml
 	-cd $(WINE_SRC) && tools/make_specfiles
-	-cd $(WINE_SRC) && tools/make_requests
 	touch $@
 
 $(OBJ)/.wine-post-build64:
@@ -799,6 +798,9 @@ VKD3D_CONFIGURE_ARGS = \
   --without-ncurses \
   SONAME_LIBVULKAN=vulkan-1 \
 
+# LTO is enabled by default, but causes the build to fail. I havent't
+# investigated this yet.
+VKD3D_CFLAGS = -fno-lto
 VKD3D_LDFLAGS = -static-libgcc $(CROSSLDFLAGS)
 VKD3D_DEPENDS = vulkan-headers spirv-headers
 
@@ -1215,7 +1217,7 @@ all-dist: $(DIST_GECKO32) $(DIST_GECKO64)
 ## wine-mono
 ##
 
-WINEMONO_VER := 9.2.0
+WINEMONO_VER := 9.3.0
 WINEMONO_TARBALL := wine-mono-$(WINEMONO_VER)-x86.tar.xz
 DIST_WINEMONO_DIR := $(DST_DIR)/share/wine/mono
 DIST_WINEMONO := $(OBJ)/.wine-mono-dist
@@ -1238,7 +1240,7 @@ all-dist: $(DIST_WINEMONO)
 ## xalia
 ##
 
-XALIA_VER := 0.4.2
+XALIA_VER := 0.4.4
 XALIA_ZIP := xalia-$(XALIA_VER)-net48-mono.zip
 DIST_XALIA_DIR := $(DST_DIR)/share/xalia
 DIST_XALIA := $(OBJ)/.xalia-dist
@@ -1256,6 +1258,19 @@ $(DIST_XALIA): $(SRC)/contrib/$(XALIA_ZIP)
 
 all-dist: $(DIST_XALIA)
 
+##
+## ICU
+##
+ICU_VER := 6.8.2
+DIST_ICU_DIR := $(DST_DIR)/lib64/icu
+DIST_ICU := $(OBJ)/.icu-dist
+ICU_TARBALL := icu-$(ICU_VER)-x86_64.tar.xz
+$(DIST_ICU): $(SRC)/icu/$(ICU_TARBALL)
+	mkdir -p $(DIST_ICU_DIR)
+	rm -rf $(DIST_ICU_DIR)/*.dll
+	tar --no-same-owner -xf $< -C $(DIST_ICU_DIR)
+	touch $@
+all-dist: $(DIST_ICU)
 
 ##
 ## openvr
@@ -1278,7 +1293,7 @@ all-dist: $(DIST_OVR32) $(DIST_OVR64)
 ## default_pfx
 ##
 
-default_pfx: wine gst_good gst_libav gst_plugins_rs lsteamclient steamexe vrclient wineopenxr dxvk dxvk-nvapi vkd3d-proton
+default_pfx: wine gst_good gst_bad gst_libav gst_plugins_rs lsteamclient steamexe vrclient wineopenxr dxvk dxvk-nvapi vkd3d-proton
 	find $(DST_LIBDIR32)/wine -type f -execdir chmod a-w '{}' '+'
 	find $(DST_LIBDIR64)/wine -type f -execdir chmod a-w '{}' '+'
 	rm -rf $(abspath $(DIST_PREFIX))
@@ -1332,6 +1347,23 @@ $(DIST_AV1_PATENTS): $(AV1_PATENTS)
 
 all-dist: $(DIST_LICENSE) $(DIST_OFL_LICENSE) $(DIST_AV1_PATENTS)
 
+##
+## protonfixes
+##
+
+PROTONFIXES_TARGET := $(addprefix $(DST_BASE)/,protonfixes)
+$(PROTONFIXES_TARGET): $(addprefix $(SRCDIR)/,protonfixes)
+
+$(OBJ)/.build-protonfixes:
+	cd $(SRCDIR)/protonfixes && make
+	touch $(@)
+
+$(PROTONFIXES_TARGET): $(OBJ)/.build-protonfixes
+	cd $(SRCDIR)/protonfixes && make install
+	cp -a $(SRCDIR)/protonfixes/dist/protonfixes $(PROTONFIXES_TARGET)
+	rm -r $(SRCDIR)/protonfixes/dist
+
+all-dist: $(PROTONFIXES_TARGET)
 
 ##
 ## proton(.py), filelock.py, etc.
@@ -1349,12 +1381,8 @@ $(PROTON37_TRACKED_FILES_TARGET): $(addprefix $(SRCDIR)/,proton_3.7_tracked_file
 USER_SETTINGS_PY_TARGET := $(addprefix $(DST_BASE)/,user_settings.sample.py)
 $(USER_SETTINGS_PY_TARGET): $(addprefix $(SRCDIR)/,user_settings.sample.py)
 
-PROTONFIXES_TARGET := $(addprefix $(DST_BASE)/,protonfixes)
-$(PROTONFIXES_TARGET): $(addprefix $(SRCDIR)/,protonfixes)
-
 DIST_COPY_TARGETS := $(FILELOCK_TARGET) $(PROTON_PY_TARGET) \
-                     $(PROTON37_TRACKED_FILES_TARGET) $(USER_SETTINGS_PY_TARGET) \
-                     $(PROTONFIXES_TARGET)
+                     $(PROTON37_TRACKED_FILES_TARGET) $(USER_SETTINGS_PY_TARGET)
 
 $(DIST_COPY_TARGETS): | $(DST_DIR)
 	cp -a $(SRCDIR)/$(notdir $@) $@
@@ -1388,7 +1416,8 @@ redist: all
 	mkdir -p $(REDIST_DIR)
 	rsync --delete -arx $(DST_BASE)/ $(REDIST_DIR)
 	cp $(PROTONFIXES_TARGET)/cabextract $(REDIST_DIR)/files/bin/
-	cp $(PROTONFIXES_TARGET)/libmspack.so.0 $(REDIST_DIR)/files/lib64/
+	cp -a $(PROTONFIXES_TARGET)/libmspack.so $(REDIST_DIR)/files/lib64/
+	cp -a $(PROTONFIXES_TARGET)/libmspack.so.0 $(REDIST_DIR)/files/lib64/
 	cp $(PROTONFIXES_TARGET)/libmspack.so.0.1.0 $(REDIST_DIR)/files/lib64/
 	mv $(REDIST_DIR) $(BUILD_NAME)
 	tar -cvzf $(BUILD_NAME).tar.gz $(BUILD_NAME)

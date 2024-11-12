@@ -24,6 +24,24 @@ struct callback_entry
 static struct list callbacks = LIST_INIT( callbacks );
 static pthread_mutex_t callbacks_lock = PTHREAD_MUTEX_INITIALIZER;
 
+static const struct callback_def *find_first_callback_def_by_id( int id );
+
+static int callback_len_utow( int cb_id, int u_len )
+{
+    const struct callback_def *c, *end;
+
+    if (!(c = find_first_callback_def_by_id( cb_id ))) return u_len;
+
+    end = callback_data + callback_data_size;
+    while (c != end && c->id == cb_id)
+    {
+        if (c->u_callback_len == u_len) return c->w_callback_len;
+        ++c;
+    }
+    ERR( "Unix len %d not found for callback %d.\n", u_len, cb_id );
+    return find_first_callback_def_by_id( cb_id )->w_callback_len;
+}
+
 void queue_vtable_callback( struct w_steam_iface *w_iface, enum callback_type type, uint64_t arg0, uint64_t arg1, uint64_t arg2 )
 {
     struct callback_entry *entry;
@@ -298,7 +316,10 @@ NTSTATUS steamclient_Steam_BGetCallback( void *args )
         params->_ret = false;
     else
     {
-        callback_message_utow( params->u_msg, params->w_msg );
+        TRACE( "id %d, u_size %d.\n", params->u_msg->m_iCallback, params->u_msg->m_cubParam );
+        params->w_msg->m_hSteamUser = params->u_msg->m_hSteamUser;
+        params->w_msg->m_iCallback = params->u_msg->m_iCallback;
+        params->w_msg->m_cubParam = callback_len_utow( params->u_msg->m_iCallback, params->u_msg->m_cubParam );
         params->_ret = true;
     }
 
@@ -311,6 +332,23 @@ NTSTATUS steamclient_callback_message_receive( void *args )
     convert_callback_utow( params->u_msg->m_iCallback, (void *)params->u_msg->m_pubParam,
                            params->u_msg->m_cubParam, (void *)params->w_msg->m_pubParam,
                            params->w_msg->m_cubParam );
+    if (params->w_msg->m_iCallback == 703 /* SteamAPICallCompleted_t::k_iCallback */)
+    {
+        SteamAPICallCompleted_t_137 *c = (SteamAPICallCompleted_t_137 *)params->w_msg->m_pubParam;
+
+        if (sizeof(SteamAPICallCompleted_t_137) == params->w_msg->m_cubParam)
+        {
+            int len;
+
+            len = callback_len_utow( c->m_iCallback, c->m_cubParam );
+            TRACE( "SteamAPICallCompleted_t id %d, size %d -> %d.\n", c->m_iCallback, c->m_cubParam, len );
+            c->m_cubParam = len;
+        }
+        else
+        {
+            WARN( "Unexpected SteamAPICallCompleted_t callback size %d, not doing API callback size conversion." );
+        }
+    }
     return 0;
 }
 
@@ -814,33 +852,4 @@ void convert_callback_utow(int id, void *u_callback, int u_callback_len, void *w
 
     if (best->conv_w_from_u) best->conv_w_from_u( w_callback, u_callback );
     else                     memcpy( w_callback, u_callback, u_callback_len );
-}
-
-void callback_message_utow( const u_CallbackMsg_t *u_msg, w_CallbackMsg_t *w_msg )
-{
-    const struct callback_def *c, *end;
-    int len = u_msg->m_cubParam;
-
-    if ((c = find_first_callback_def_by_id( u_msg->m_iCallback )))
-    {
-        end = callback_data + callback_data_size;
-        while (c != end && c->id == u_msg->m_iCallback)
-        {
-            if (c->u_callback_len == u_msg->m_cubParam)
-            {
-                len = c->w_callback_len;
-                break;
-            }
-            ++c;
-        }
-        if (c == end || c->id != u_msg->m_iCallback)
-        {
-            ERR( "Unix len %d not found for callback %d.\n", u_msg->m_cubParam, u_msg->m_iCallback );
-            len = find_first_callback_def_by_id( u_msg->m_iCallback )->w_callback_len;
-        }
-    }
-
-    w_msg->m_hSteamUser = u_msg->m_hSteamUser;
-    w_msg->m_iCallback = u_msg->m_iCallback;
-    w_msg->m_cubParam = len;
 }

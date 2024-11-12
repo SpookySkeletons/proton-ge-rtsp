@@ -68,7 +68,6 @@ struct callback_def
 extern const struct callback_def callback_data[];
 extern const unsigned int callback_data_size;
 
-void callback_message_utow( const u_CallbackMsg_t *u_msg, w_CallbackMsg_t *w_msg );
 void *alloc_callback_wtou( int id, void *callback, int *callback_len );
 void convert_callback_utow( int id, void *u_callback, int u_callback_len, void *w_callback, int w_callback_len );
 

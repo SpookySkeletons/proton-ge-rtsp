@@ -1,0 +1,35 @@
+diff --git a/dlls/shlwapi/wsprintf.c b/dlls/shlwapi/wsprintf.c
+index fbd2a7e75bf..e352131bc79 100644
+--- a/dlls/shlwapi/wsprintf.c
++++ b/dlls/shlwapi/wsprintf.c
+@@ -32,6 +32,7 @@
+ #include "shlwapi.h"
+ 
+ #include "wine/debug.h"
++#include "wine/exception.h"
+ 
+ WINE_DEFAULT_DEBUG_CHANNEL(string);
+ 
+@@ -604,10 +605,20 @@ int WINAPIV wnsprintfA(LPSTR lpOut, int cchLimitIn, LPCSTR lpFmt, ...)
+ {
+     va_list valist;
+     INT res;
++    
++    __TRY
++    {
++        va_start( valist, lpFmt );
++        res = wvnsprintfA( lpOut, cchLimitIn, lpFmt, valist );
++        va_end( valist );
++    }
++    __EXCEPT_PAGE_FAULT
++    {
++        FIXME("wsprintf page fault!\n");
++        return -1;
++    }
++    __ENDTRY
+ 
+-    va_start( valist, lpFmt );
+-    res = wvnsprintfA( lpOut, cchLimitIn, lpFmt, valist );
+-    va_end( valist );
+     return res;
+ }

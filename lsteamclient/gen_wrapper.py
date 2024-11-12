@@ -165,6 +165,9 @@ SDK_SOURCES = {
     "steamnetworkingfakeip.h": [
         "ISteamNetworkingFakeUDPPort"
     ],
+    "isteamtimeline.h": [
+        "ISteamTimeline"
+    ],
 }
 
 SDK_CLASSES = {klass: source for source, klasses in SDK_SOURCES.items()
@@ -381,6 +384,9 @@ PATH_CONV_METHODS_WTOU = {
     },
     "ISteamInput_SetInputActionManifestFilePath": {
         "pchInputActionManifestAbsolutePath": {"array": False, "url": False},
+    },
+    "ISteamFriends_ActivateGameOverlayToWebPage": {
+        "pchURL": {"array": False, "url": True},
     },
 }
 

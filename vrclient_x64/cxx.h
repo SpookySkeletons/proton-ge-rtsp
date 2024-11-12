@@ -16,6 +16,8 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#ifndef __WINE_CXX_H
+#define __WINE_CXX_H
 #include "wine/asm.h"
 
 #ifdef _WIN64
@@ -474,3 +476,5 @@ __ASM_BLOCK_BEGIN(type_info_vtables) \
     __ASM_VTABLE(type_info, \
             VTABLE_ADD_FUNC(type_info_vector_dtor)); \
 __ASM_BLOCK_END
+
+#endif

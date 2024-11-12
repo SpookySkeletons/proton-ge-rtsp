@@ -33,10 +33,24 @@
     pushd gstreamer
     git reset --hard HEAD
     git clean -xdf
-    
     echo "GSTREAMER: fix for unclosable invisible wayland opengl windows in taskbar"
     patch -Np1 < ../patches/gstreamer/5509.patch
     patch -Np1 < ../patches/gstreamer/5511.patch
+    popd
+
+    pushd protonfixes
+    git reset --hard HEAD
+    git clean -xdf
+    pushd subprojects
+    pushd x11-xserver-utils
+    git reset --hard HEAD
+    git clean -xdf
+    popd
+    pushd xutils-dev
+    git reset --hard HEAD
+    git clean -xdf
+    popd
+    popd
     popd
 
 ### END PREP SECTION ###
@@ -120,7 +134,12 @@
     -W winedevice-Default_Drivers \
     -W winex11-Fixed-scancodes \
     -W ntdll-RtlQueryPackageIdentity \
-    -W d3dx9_36-DDS
+    -W d3dx9_36-DDS \
+    -W d3dx11_43-D3DX11CreateTextureFromMemory \
+    -W d3dx9_36-BumpLuminance \
+    -W shell32-SHFileOperation_Move \
+    -W shell32-registry-lookup-app \
+    -W Staging
 
     # NOTE: Some patches are applied manually because they -do- apply, just not cleanly, ie with patch fuzz.
     # A detailed list of why the above patches are disabled is listed below:
@@ -195,6 +214,11 @@
     # wined3d-SWVP-shaders -- interferes with proton's wined3d -- currently also disabled in upstream staging
     # wined3d-Indexed_Vertex_Blending -- interferes with proton's wined3d -- currently also disabled in upstream staging
     # d3dx9_36-DDS - incompatible with upstream proton 7/27/24
+    # d3dx11_43-D3DX11CreateTextureFromMemory - already applied
+    # d3dx9_36-BumpLuminance - already applied
+    # shell32-SHFileOperation_Move - already applied
+    # shell32-registry-lookup-app - already applied
+    # **Staging - applied manually
 
     echo "WINE: -STAGING- loader-KeyboardLayouts manually applied"
     patch -Np1 < ../patches/wine-hotfixes/staging/loader-KeyboardLayouts/0001-loader-Add-Keyboard-Layouts-registry-enteries.patch
@@ -256,6 +280,10 @@
     patch -Np1 < ../wine-staging/patches/fltmgr.sys-FltBuildDefaultSecurityDescriptor/0002-fltmgr.sys-Create-import-library.patch
     patch -Np1 < ../wine-staging/patches/fltmgr.sys-FltBuildDefaultSecurityDescriptor/0003-ntoskrnl.exe-Add-FltBuildDefaultSecurityDescriptor-t.patch
 
+    echo "WINE: -STAGING- Staging manually applied"
+    patch -Np1 < ../patches/wine-hotfixes/staging/Staging/0001-ntdll-Print-a-warning-message-specifying-the-wine-st.patch
+    patch -Np1 < ../patches/wine-hotfixes/staging/Staging/0002-winelib-Append-Staging-at-the-end-of-the-version-s.patch
+
 ### END WINE STAGING APPLY SECTION ###
 
 ### (2-3) GAME PATCH SECTION ###
@@ -268,6 +296,9 @@
 
     echo "WINE: -GAME FIXES- add xinput support to Dragon Age Inquisition"
     patch -Np1 < ../patches/game-patches/dai_xinput.patch
+
+    echo "WINE: -GAME FIXES- add __TRY/__EXCEPT_PAGE_FAULT wnsprintfA xDefiant patch because of a bad arg passed by the game that would exit to desktop"
+    patch -Np1 < ../patches/game-patches/xdefiant.patch
 
 ### END GAME PATCH SECTION ###
 
@@ -286,16 +317,8 @@
     echo "WINE: -PENDING- Add WINE_DISABLE_SFN option. (Yakuza 5 cutscenes fix)"
     patch -Np1 < ../patches/wine-hotfixes/pending/ntdll_add_wine_disable_sfn.patch
 
-    echo "WINE: -PENDING- Add TCP_KEEP patch (Star Citizen Launcher 2.0 fix)"
-    patch -Np1 < ../patches/wine-hotfixes/pending/TCP_KEEP-fixup.patch
-
-    echo "WINE: -PENDING- shell32: Implement some file_operation apis. (Solo Leveling netmarble launcher)"
-    # https://gitlab.winehq.org/wine/wine/-/merge_requests/5671
-    patch -Np1 < ../patches/wine-hotfixes/pending/5671.patch
-
     echo "WINE: -PENDING- ncrypt: NCryptDecrypt implementation (PSN Login for Ghost of Tsushima)"
     patch -Np1 < ../patches/wine-hotfixes/pending/NCryptDecrypt_implementation.patch
-
 
     echo "WINE: -PENDING- DXGI_FORMAT_R8G8B8A8_UNORM: Suport for DXGI_FORMAT_R8G8B8A8_UNORM on d2d_wic_render_target_init (Alt:V GTA V coustom client)"
     patch -Np1 < ../patches/wine-hotfixes/pending/support_for_DXGI_FORMAT_R8G8B8A8_UNORM.patch
@@ -363,6 +386,9 @@
 
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch
+
+    echo "WINE: -CUSTOM- Downgrade MESSAGE to TRACE to remove write_watches spam"
+    patch -Np1 < ../patches/proton/0001-ntdll-Downgrade-using-kernel-write-watches-from-MESS.patch
 
     popd
 

@@ -1,6 +1,8 @@
 /* asm thunks for the flat (FnTable) API */
 
 #ifdef __i386__
+
+#include "cxx.h"
 #include "pshpack1.h"
 struct thunk
 {
@@ -24,7 +26,11 @@ static inline void init_thunk( struct thunk *thunk, void *this, void *proc,
   thunk->mov_edx = 0xba;
   thunk->proc = proc;
   thunk->jmp = 0xe9;
+#ifdef __ASM_USE_THISCALL_WRAPPER
   thunk->call_flat = (char *)call_flat_method - (char *)(&thunk->call_flat + 1);
+#else
+  thunk->call_flat = (char *)proc - (char *)(&thunk->call_flat + 1);
+#endif
 }
 
 #else
