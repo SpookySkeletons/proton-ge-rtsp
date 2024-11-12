@@ -1,16 +1,17 @@
-From c87cdc5bca26ea3aac4fc520eae4deb02413f30f Mon Sep 17 00:00:00 2001
+From 950575219b384d35ff8682c98140ad28448c0f62 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:08:48 +0200
 Subject: [PATCH 30/49] winegstreamer: Do waits for samples on stream-specific
  work queues.
 
+CW-Bug-Id: #21644
 ---
  dlls/winegstreamer/media_source.c     | 181 +++++++++++++++++++++-----
  dlls/winegstreamer/new_media_source.c | 179 ++++++++++++++++++++-----
  2 files changed, 296 insertions(+), 64 deletions(-)
 
 diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
-index 5030838bf2c..4dd6db8c9f5 100644
+index dc5f67a5686..e8c3b8339a6 100644
 --- a/dlls/winegstreamer/media_source.c
 +++ b/dlls/winegstreamer/media_source.c
 @@ -121,9 +121,29 @@ static HRESULT object_context_create(DWORD flags, IMFByteStream *stream, const W
@@ -172,7 +173,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
      source_async_command_AddRef,
      source_async_command_Release,
  };
-@@ -568,7 +635,6 @@ static BOOL enqueue_token(struct media_stream *stream, IUnknown *token)
+@@ -435,7 +502,6 @@ static BOOL enqueue_token(struct media_stream *stream, IUnknown *token)
  
  static void flush_token_queue(struct media_stream *stream, BOOL send)
  {
@@ -180,7 +181,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
      LONG i;
  
      for (i = 0; i < stream->token_queue_count; i++)
-@@ -578,13 +644,12 @@ static void flush_token_queue(struct media_stream *stream, BOOL send)
+@@ -445,13 +511,12 @@ static void flush_token_queue(struct media_stream *stream, BOOL send)
              IUnknown *op;
              HRESULT hr;
  
@@ -197,7 +198,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
                  IUnknown_Release(op);
              }
              if (FAILED(hr))
-@@ -884,15 +949,6 @@ static HRESULT WINAPI source_async_commands_Invoke(IMFAsyncCallback *iface, IMFA
+@@ -755,15 +820,6 @@ static HRESULT WINAPI source_async_commands_Invoke(IMFAsyncCallback *iface, IMFA
              if (FAILED(hr = media_source_stop(source)))
                  WARN("Failed to stop source %p, hr %#lx\n", source, hr);
              break;
@@ -213,7 +214,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
      }
  
      LeaveCriticalSection(&source->cs);
-@@ -911,6 +967,61 @@ static const IMFAsyncCallbackVtbl source_async_commands_callback_vtbl =
+@@ -782,6 +838,61 @@ static const IMFAsyncCallbackVtbl source_async_commands_callback_vtbl =
      source_async_commands_Invoke,
  };
  
@@ -275,7 +276,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
  static DWORD CALLBACK read_thread(void *arg)
  {
      struct media_source *source = arg;
-@@ -1158,15 +1269,14 @@ static HRESULT WINAPI media_stream_RequestSample(IMFMediaStream *iface, IUnknown
+@@ -1029,15 +1140,14 @@ static HRESULT WINAPI media_stream_RequestSample(IMFMediaStream *iface, IUnknown
          hr = MF_E_MEDIA_SOURCE_WRONGSTATE;
      else if (stream->eos)
          hr = MF_E_END_OF_STREAM;
@@ -294,7 +295,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
          IUnknown_Release(op);
      }
  
-@@ -1201,9 +1311,11 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
+@@ -1072,9 +1182,11 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
          return E_OUTOFMEMORY;
  
      object->IMFMediaStream_iface.lpVtbl = &media_stream_vtbl;
@@ -307,7 +308,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
      {
          free(object);
          return hr;
-@@ -1699,6 +1811,7 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+@@ -1575,6 +1687,7 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
          struct media_stream *stream = source->streams[source->stream_count];
          IMFStreamDescriptor_Release(source->descriptors[source->stream_count]);
          IMFMediaEventQueue_Shutdown(stream->event_queue);
@@ -315,7 +316,7 @@ index 5030838bf2c..4dd6db8c9f5 100644
          IMFMediaStream_Release(&stream->IMFMediaStream_iface);
      }
      free(source->descriptors);
-@@ -1861,7 +1974,11 @@ fail:
+@@ -1735,7 +1848,11 @@ fail:
      for (i = 0; i < stream_count; i++)
      {
          if (object->streams && object->streams[i])
@@ -328,11 +329,11 @@ index 5030838bf2c..4dd6db8c9f5 100644
      for (i = 0; i < stream_count; i++)
      {
 diff --git a/dlls/winegstreamer/new_media_source.c b/dlls/winegstreamer/new_media_source.c
-index efaf6a3e087..7444fc1c788 100644
+index a97d659e58d..06482fd36dc 100644
 --- a/dlls/winegstreamer/new_media_source.c
 +++ b/dlls/winegstreamer/new_media_source.c
-@@ -239,15 +239,37 @@ static HRESULT create_media_source_fallback(struct object_context *context, IUnk
-     return hr;
+@@ -153,15 +153,37 @@ static HRESULT object_context_create(DWORD flags, IMFByteStream *stream, const W
+     return S_OK;
  }
  
 +enum stream_async_op
@@ -369,7 +370,7 @@ index efaf6a3e087..7444fc1c788 100644
      IUnknown **token_queue;
      LONG token_queue_count;
      LONG token_queue_cap;
-@@ -261,7 +283,6 @@ enum source_async_op
+@@ -175,7 +197,6 @@ enum source_async_op
      SOURCE_ASYNC_START,
      SOURCE_ASYNC_PAUSE,
      SOURCE_ASYNC_STOP,
@@ -377,7 +378,7 @@ index efaf6a3e087..7444fc1c788 100644
  };
  
  struct source_async_command
-@@ -277,11 +298,6 @@ struct source_async_command
+@@ -191,11 +212,6 @@ struct source_async_command
              GUID format;
              PROPVARIANT position;
          } start;
@@ -389,7 +390,7 @@ index efaf6a3e087..7444fc1c788 100644
      } u;
  };
  
-@@ -326,6 +342,16 @@ static inline struct media_stream *impl_from_IMFMediaStream(IMFMediaStream *ifac
+@@ -240,6 +256,16 @@ static inline struct media_stream *impl_from_IMFMediaStream(IMFMediaStream *ifac
      return CONTAINING_RECORD(iface, struct media_stream, IMFMediaStream_iface);
  }
  
@@ -406,7 +407,7 @@ index efaf6a3e087..7444fc1c788 100644
  static inline struct media_source *impl_from_IMFMediaSource(IMFMediaSource *iface)
  {
      return CONTAINING_RECORD(iface, struct media_source, IMFMediaSource_iface);
-@@ -356,7 +382,7 @@ static inline struct source_async_command *impl_from_async_command_IUnknown(IUnk
+@@ -270,7 +296,7 @@ static inline struct source_async_command *impl_from_async_command_IUnknown(IUnk
      return CONTAINING_RECORD(iface, struct source_async_command, IUnknown_iface);
  }
  
@@ -415,7 +416,7 @@ index efaf6a3e087..7444fc1c788 100644
  {
      if (IsEqualIID(riid, &IID_IUnknown))
      {
-@@ -370,6 +396,52 @@ static HRESULT WINAPI source_async_command_QueryInterface(IUnknown *iface, REFII
+@@ -284,6 +310,52 @@ static HRESULT WINAPI source_async_command_QueryInterface(IUnknown *iface, REFII
      return E_NOINTERFACE;
  }
  
@@ -468,7 +469,7 @@ index efaf6a3e087..7444fc1c788 100644
  static ULONG WINAPI source_async_command_AddRef(IUnknown *iface)
  {
      struct source_async_command *command = impl_from_async_command_IUnknown(iface);
-@@ -388,11 +460,6 @@ static ULONG WINAPI source_async_command_Release(IUnknown *iface)
+@@ -302,11 +374,6 @@ static ULONG WINAPI source_async_command_Release(IUnknown *iface)
              IMFPresentationDescriptor_Release(command->u.start.descriptor);
              PropVariantClear(&command->u.start.position);
          }
@@ -480,7 +481,7 @@ index efaf6a3e087..7444fc1c788 100644
          free(command);
      }
  
-@@ -401,7 +468,7 @@ static ULONG WINAPI source_async_command_Release(IUnknown *iface)
+@@ -315,7 +382,7 @@ static ULONG WINAPI source_async_command_Release(IUnknown *iface)
  
  static const IUnknownVtbl source_async_command_vtbl =
  {
@@ -489,7 +490,7 @@ index efaf6a3e087..7444fc1c788 100644
      source_async_command_AddRef,
      source_async_command_Release,
  };
-@@ -568,7 +635,6 @@ static BOOL enqueue_token(struct media_stream *stream, IUnknown *token)
+@@ -452,7 +519,6 @@ static BOOL enqueue_token(struct media_stream *stream, IUnknown *token)
  
  static void flush_token_queue(struct media_stream *stream, BOOL send)
  {
@@ -497,7 +498,7 @@ index efaf6a3e087..7444fc1c788 100644
      LONG i;
  
      for (i = 0; i < stream->token_queue_count; i++)
-@@ -578,13 +644,12 @@ static void flush_token_queue(struct media_stream *stream, BOOL send)
+@@ -462,13 +528,12 @@ static void flush_token_queue(struct media_stream *stream, BOOL send)
              IUnknown *op;
              HRESULT hr;
  
@@ -514,7 +515,7 @@ index efaf6a3e087..7444fc1c788 100644
                  IUnknown_Release(op);
              }
              if (FAILED(hr))
-@@ -844,15 +909,6 @@ static HRESULT WINAPI source_async_commands_Invoke(IMFAsyncCallback *iface, IMFA
+@@ -734,15 +799,6 @@ static HRESULT WINAPI source_async_commands_Invoke(IMFAsyncCallback *iface, IMFA
              if (FAILED(hr = media_source_stop(source)))
                  WARN("Failed to stop source %p, hr %#lx\n", source, hr);
              break;
@@ -530,7 +531,7 @@ index efaf6a3e087..7444fc1c788 100644
      }
  
      LeaveCriticalSection(&source->cs);
-@@ -871,6 +927,61 @@ static const IMFAsyncCallbackVtbl source_async_commands_callback_vtbl =
+@@ -761,6 +817,61 @@ static const IMFAsyncCallbackVtbl source_async_commands_callback_vtbl =
      source_async_commands_Invoke,
  };
  
@@ -592,7 +593,7 @@ index efaf6a3e087..7444fc1c788 100644
  static HRESULT WINAPI media_stream_QueryInterface(IMFMediaStream *iface, REFIID riid, void **out)
  {
      struct media_stream *stream = impl_from_IMFMediaStream(iface);
-@@ -1023,15 +1134,14 @@ static HRESULT WINAPI media_stream_RequestSample(IMFMediaStream *iface, IUnknown
+@@ -913,15 +1024,14 @@ static HRESULT WINAPI media_stream_RequestSample(IMFMediaStream *iface, IUnknown
          hr = MF_E_MEDIA_SOURCE_WRONGSTATE;
      else if (stream->eos)
          hr = MF_E_END_OF_STREAM;
@@ -611,7 +612,7 @@ index efaf6a3e087..7444fc1c788 100644
          IUnknown_Release(op);
      }
  
-@@ -1065,9 +1175,11 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
+@@ -955,9 +1065,11 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
          return E_OUTOFMEMORY;
  
      object->IMFMediaStream_iface.lpVtbl = &media_stream_vtbl;
@@ -624,7 +625,7 @@ index efaf6a3e087..7444fc1c788 100644
      {
          free(object);
          return hr;
-@@ -1517,6 +1629,7 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+@@ -1407,6 +1519,7 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
          struct media_stream *stream = source->streams[source->stream_count];
          IMFStreamDescriptor_Release(source->descriptors[source->stream_count]);
          IMFMediaEventQueue_Shutdown(stream->event_queue);
@@ -632,7 +633,7 @@ index efaf6a3e087..7444fc1c788 100644
          IMFMediaStream_Release(&stream->IMFMediaStream_iface);
      }
      free(source->stream_map);
-@@ -1731,6 +1844,8 @@ fail:
+@@ -1640,6 +1753,8 @@ fail:
      {
          struct media_stream *stream = object->streams[object->stream_count];
          IMFStreamDescriptor_Release(object->descriptors[object->stream_count]);
@@ -642,5 +643,5 @@ index efaf6a3e087..7444fc1c788 100644
      }
      free(object->stream_map);
 -- 
-2.46.0
+2.47.0
 

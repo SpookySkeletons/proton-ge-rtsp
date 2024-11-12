@@ -341,11 +341,11 @@
     patch -Np1 < ../patches/wine-gst/0005-mfmediaengine-tests-Test-IMFMediaEngineEx-SetCurrent.patch
     patch -Np1 < ../patches/wine-gst/0006-mfmediaengine-Implement-IMFMediaEngine-IsSeeking.patch
     patch -Np1 < ../patches/wine-gst/0007-AVPro-Video-seeking-support.patch
-    patch -Np1 < ../patches/wine-gst/0008-winegstreamer-Initialize-condition-variable-of-struc.patch
-    patch -Np1 < ../patches/wine-gst/0009-winegstreamer-Connect-autoplug-continue-and-deep-ele.patch
-    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch
-    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Ignore-an-assert-in-wg_parser.patch
-    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Make-wg_parser-report-the-exact-suppor.patch
+    patch -Np1 < ../patches/wine-gst/0008-quartz-Fix-buffer-overflow-when-passing-url-as-filen.patch
+    patch -Np1 < ../patches/wine-gst/0009-winegstreamer-Initialize-condition-variable-of-struc.patch
+    patch -Np1 < ../patches/wine-gst/0010-winegstreamer-Connect-autoplug-continue-and-deep-ele.patch
+    patch -Np1 < ../patches/wine-gst/0011-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch
+    patch -Np1 < ../patches/wine-gst/0012-winegstreamer-Ignore-an-assert-in-wg_parser.patch
     patch -Np1 < ../patches/wine-gst/0013-winegstreamer-Add-more-RTSP-based-URI-schemes-to-GSt.patch
     patch -Np1 < ../patches/wine-gst/0014-winegstreamer-Mark-wg_parser-container-bin-as-stream.patch
     patch -Np1 < ../patches/wine-gst/0015-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch
@@ -371,12 +371,12 @@
     patch -Np1 < ../patches/wine-gst/0035-mf-session-Fix-pausing-a-media-session-when-the-medi.patch
     patch -Np1 < ../patches/wine-gst/0036-winegstreamer-Do-not-force-uridecodebin-to-expose-un.patch
     patch -Np1 < ../patches/wine-gst/0037-mfmediaengine-Unstub-IMFMediaEngine-SetAutoPlay.patch
-    patch -Np1 < ../patches/wine-gst/0038-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
-    patch -Np1 < ../patches/wine-gst/0039-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
-    patch -Np1 < ../patches/wine-gst/0040-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
-    patch -Np1 < ../patches/wine-gst/0041-Marker-commit-do-not-put-into-MR.patch
-    patch -Np1 < ../patches/wine-gst/0042-ntdll-Use-unixcall-instead-of-syscall-for-QueryPerfo.patch
-    patch -Np1 < ../patches/wine-gst/0043-quartz-Fix-buffer-overflow-when-passing-url-as-filen.patch
+    patch -Np1 < ../patches/wine-gst/0038-mfmediaengine-Allow-video_frame_sink-to-continue-to-.patch
+    patch -Np1 < ../patches/wine-gst/0039-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
+    patch -Np1 < ../patches/wine-gst/0040-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
+    patch -Np1 < ../patches/wine-gst/0041-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
+    patch -Np1 < ../patches/wine-gst/0042-Marker-commit-do-not-put-into-MR.patch
+    patch -Np1 < ../patches/wine-gst/0043-ntdll-Use-unixcall-instead-of-syscall-for-QueryPerfo.patch
     patch -Np1 < ../patches/wine-gst/0044-mfplat-Allocate-memory-buffers-using-calloc.patch
     patch -Np1 < ../patches/wine-gst/0045-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch
     patch -Np1 < ../patches/wine-gst/0046-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch

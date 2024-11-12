@@ -1,18 +1,19 @@
-From a6e00f61b2dd22d948fc77f2d2b893cfe5bd4416 Mon Sep 17 00:00:00 2001
+From d094f8e4fab75229510736b73f127401d43579fa Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
 Subject: [PATCH 21/49] winegstreamer: Reorder parser initialization code a bit
  to prevent race conditions.
 
+CW-Bug-Id: #21644
 ---
  dlls/winegstreamer/wg_parser.c | 28 ++++++++++++++--------------
  1 file changed, 14 insertions(+), 14 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index fd678f111e0..6f656db98c1 100644
+index 34188d8b658..3aeafae2175 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -2145,7 +2145,10 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+@@ -2197,7 +2197,10 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
      gst_bin_add(GST_BIN(parser->container), element);
      parser->decodebin = element;
  
@@ -24,7 +25,7 @@ index fd678f111e0..6f656db98c1 100644
      g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
      g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
      g_signal_connect(element, "autoplug-continue", G_CALLBACK(autoplug_continue_cb), parser);
-@@ -2153,10 +2156,7 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+@@ -2205,10 +2208,7 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
      g_signal_connect(element, "autoplug-sort", G_CALLBACK(autoplug_sort_cb), parser);
      g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
      g_signal_connect(element, "deep-element-added", G_CALLBACK(deep_element_added_cb), parser);
@@ -36,7 +37,7 @@ index fd678f111e0..6f656db98c1 100644
  
      if (!link_src_to_element(parser->my_src, element))
          return FALSE;
-@@ -2174,7 +2174,10 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+@@ -2227,7 +2227,10 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
      gst_bin_add(GST_BIN(parser->container), element);
      parser->decodebin = element;
  
@@ -48,7 +49,7 @@ index fd678f111e0..6f656db98c1 100644
      g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
      g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
      g_signal_connect(element, "autoplug-continue", G_CALLBACK(autoplug_continue_cb), parser);
-@@ -2182,10 +2185,7 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
+@@ -2235,10 +2238,7 @@ static BOOL uridecodebin_parser_init_gst(struct wg_parser *parser)
      g_signal_connect(element, "autoplug-sort", G_CALLBACK(autoplug_sort_cb), parser);
      g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
      g_signal_connect(element, "deep-element-added", G_CALLBACK(deep_element_added_cb), parser);
@@ -60,7 +61,7 @@ index fd678f111e0..6f656db98c1 100644
  
      return TRUE;
  }
-@@ -2199,14 +2199,14 @@ static BOOL avi_parser_init_gst(struct wg_parser *parser)
+@@ -2252,14 +2252,14 @@ static BOOL avi_parser_init_gst(struct wg_parser *parser)
  
      gst_bin_add(GST_BIN(parser->container), element);
  
@@ -80,5 +81,5 @@ index fd678f111e0..6f656db98c1 100644
          return FALSE;
  
 -- 
-2.46.0
+2.47.0
 

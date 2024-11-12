@@ -1,4 +1,4 @@
-From db326d9633962a78802f104d3d1eb10b4df9fd60 Mon Sep 17 00:00:00 2001
+From bd72831d81187c1a476563bd12b0e2c782ead62a Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:09:34 +0200
 Subject: [PATCH 06/49] mfmediaengine: Implement IMFMediaEngine::IsSeeking.
@@ -8,10 +8,10 @@ Subject: [PATCH 06/49] mfmediaengine: Implement IMFMediaEngine::IsSeeking.
  1 file changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index 28a273616c8..a40f8d64f58 100644
+index d6d6b2fd7ab..cd68c122851 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -1825,9 +1825,16 @@ static USHORT WINAPI media_engine_GetReadyState(IMFMediaEngineEx *iface)
+@@ -1796,9 +1796,16 @@ static USHORT WINAPI media_engine_GetReadyState(IMFMediaEngineEx *iface)
  
  static BOOL WINAPI media_engine_IsSeeking(IMFMediaEngineEx *iface)
  {
@@ -31,5 +31,5 @@ index 28a273616c8..a40f8d64f58 100644
  
  static double WINAPI media_engine_GetCurrentTime(IMFMediaEngineEx *iface)
 -- 
-2.46.0
+2.47.0
 

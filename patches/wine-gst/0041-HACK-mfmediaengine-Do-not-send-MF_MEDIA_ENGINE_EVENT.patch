@@ -1,7 +1,7 @@
-From 2e0f8ccdcf8de7e1706b9e8490588c46cfbee720 Mon Sep 17 00:00:00 2001
+From 22780ab7e02bd6803182da82e11fce3cb9c1458e Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sat, 2 Mar 2024 21:19:25 +0100
-Subject: [PATCH 40/49] [HACK] mfmediaengine: Do not send
+Subject: [PATCH 41/49] [HACK] mfmediaengine: Do not send
  MF_MEDIA_ENGINE_EVENT_ERROR for VRChat.
 
 Breaks AVPro Video (used by VRChat) when a IMFMediaEngine::GetError call inside the event handler doesn't return an
@@ -10,15 +10,17 @@ which segfaults.
 
 I don't know why IMFMediaEngine::GetError returns a NULL instance inside the error callback. This should be fixed
 properly. In the meantime, this hack works around the problem.
+
+CW-Bug-Id: #21644
 ---
  dlls/mfmediaengine/main.c | 20 +++++++++++++++-----
  1 file changed, 15 insertions(+), 5 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index bd844bace6c..176ad38e1c1 100644
+index cf2944bb8b9..986c9fc293d 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -1468,11 +1468,21 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+@@ -1444,11 +1444,21 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
      }
      else
      {
@@ -46,5 +48,5 @@ index bd844bace6c..176ad38e1c1 100644
  
      LeaveCriticalSection(&engine->cs);
 -- 
-2.46.0
+2.47.0
 

@@ -1,7 +1,7 @@
-From 933c1b42e16baf390ec45e30f43b868e66add60e Mon Sep 17 00:00:00 2001
+From aaa26551f8fc5804c5c1c0ab63d6f86479352a2e Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 24 Apr 2024 22:00:49 +0200
-Subject: [PATCH 42/49] ntdll: Use unixcall instead of syscall for
+Subject: [PATCH 43/49] ntdll: Use unixcall instead of syscall for
  QueryPerformanceCounter.
 
 ---
@@ -27,7 +27,7 @@ index 105a6cf5bc8..9bd182e4cb2 100644
  
  /******************************************************************************
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
-index f8695a70deb..04f3fda6d4d 100644
+index 1e75eff1595..0232474cf8c 100644
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
 @@ -1203,6 +1203,7 @@ static const unixlib_entry_t unix_call_funcs[] =
@@ -47,10 +47,10 @@ index f8695a70deb..04f3fda6d4d 100644
  
  #endif  /* _WIN64 */
 diff --git a/dlls/ntdll/unix/sync.c b/dlls/ntdll/unix/sync.c
-index 23f17e72e08..355f4658fca 100644
+index 8361f12bb89..03154060119 100644
 --- a/dlls/ntdll/unix/sync.c
 +++ b/dlls/ntdll/unix/sync.c
-@@ -1706,12 +1706,20 @@ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeou
+@@ -1716,12 +1716,20 @@ NTSTATUS WINAPI NtDelayExecution( BOOLEAN alertable, const LARGE_INTEGER *timeou
  }
  
  
@@ -73,10 +73,10 @@ index 23f17e72e08..355f4658fca 100644
      return STATUS_SUCCESS;
  }
 diff --git a/dlls/ntdll/unix/unix_private.h b/dlls/ntdll/unix/unix_private.h
-index 2b62d5c7754..02d6a8a0d41 100644
+index 9dc8ea627e0..3d917166df0 100644
 --- a/dlls/ntdll/unix/unix_private.h
 +++ b/dlls/ntdll/unix/unix_private.h
-@@ -265,6 +265,8 @@ extern unsigned int alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, stru
+@@ -268,6 +268,8 @@ extern unsigned int alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, stru
                                               data_size_t *ret_len );
  extern NTSTATUS system_time_precise( void *args );
  
@@ -98,5 +98,5 @@ index e0870584a68..030801de407 100644
      unix_is_pc_in_native_so,
      unix_debugstr_pc,
 -- 
-2.46.0
+2.47.0
 

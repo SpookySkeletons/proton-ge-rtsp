@@ -1,4 +1,4 @@
-From d2546730e1c900ceb2688ba94cb3433777099580 Mon Sep 17 00:00:00 2001
+From 6c06159c765dfdf524b3729e3e046954dd4baaa1 Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Tue, 8 Aug 2023 15:24:34 +0800
 Subject: [PATCH 02/49] mf/tests: Add a create_media_session_with_source_sink()
@@ -9,10 +9,10 @@ Subject: [PATCH 02/49] mf/tests: Add a create_media_session_with_source_sink()
  1 file changed, 48 insertions(+), 44 deletions(-)
 
 diff --git a/dlls/mf/tests/mf.c b/dlls/mf/tests/mf.c
-index 0a34329bd75..e0bcedac20f 100644
+index 9382d8cae35..58d8ec73c4f 100644
 --- a/dlls/mf/tests/mf.c
 +++ b/dlls/mf/tests/mf.c
-@@ -4995,6 +4995,53 @@ static void test_sample_grabber_is_mediatype_supported(void)
+@@ -4996,6 +4996,53 @@ static void test_sample_grabber_is_mediatype_supported(void)
      IMFSampleGrabberSinkCallback_Release(grabber_callback);
  }
  
@@ -66,7 +66,7 @@ index 0a34329bd75..e0bcedac20f 100644
  static void test_sample_grabber_orientation(GUID subtype)
  {
      media_type_desc video_rgb32_desc =
-@@ -5004,17 +5051,12 @@ static void test_sample_grabber_orientation(GUID subtype)
+@@ -5005,17 +5052,12 @@ static void test_sample_grabber_orientation(GUID subtype)
      };
  
      struct test_grabber_callback *grabber_callback;
@@ -84,7 +84,7 @@ index 0a34329bd75..e0bcedac20f 100644
      HRESULT hr;
      DWORD res;
  
-@@ -5035,33 +5077,6 @@ static void test_sample_grabber_orientation(GUID subtype)
+@@ -5036,33 +5078,6 @@ static void test_sample_grabber_orientation(GUID subtype)
      grabber_callback->done_event = CreateEventW(NULL, FALSE, FALSE, NULL);
      ok(!!grabber_callback->done_event, "CreateEventW failed, error %lu\n", GetLastError());
  
@@ -118,7 +118,7 @@ index 0a34329bd75..e0bcedac20f 100644
      hr = MFCreateMediaType(&output_type);
      ok(hr == S_OK, "Unexpected hr %#lx.\n", hr);
      init_media_type(output_type, video_rgb32_desc, -1);
-@@ -5069,18 +5084,7 @@ static void test_sample_grabber_orientation(GUID subtype)
+@@ -5070,18 +5085,7 @@ static void test_sample_grabber_orientation(GUID subtype)
      ok(hr == S_OK, "Failed to create grabber sink, hr %#lx.\n", hr);
      IMFMediaType_Release(output_type);
  
@@ -139,5 +139,5 @@ index 0a34329bd75..e0bcedac20f 100644
      propvar.vt = VT_EMPTY;
      hr = IMFMediaSession_Start(session, &GUID_NULL, &propvar);
 -- 
-2.46.0
+2.47.0
 

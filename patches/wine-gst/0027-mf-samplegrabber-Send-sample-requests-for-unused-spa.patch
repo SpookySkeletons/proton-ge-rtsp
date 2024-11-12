@@ -1,9 +1,10 @@
-From f4d59ae9cc3de7105919c862757c17eafd90b3fd Mon Sep 17 00:00:00 2001
+From fc7d51add445aeee5bb38b5c71a7d5e89138cd3e Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 21 May 2024 08:25:47 +0200
 Subject: [PATCH 27/49] mf/samplegrabber: Send sample requests for unused space
  of sample queue on pause => restart.
 
+CW-Bug-Id: #24115
 ---
  dlls/mf/samplegrabber.c | 27 ++++++++++++++-------------
  1 file changed, 14 insertions(+), 13 deletions(-)
@@ -83,5 +84,5 @@ index de599139736..77a05a6adc1 100644
                  grabber->sample_count = 0;
              }
 -- 
-2.46.0
+2.47.0
 

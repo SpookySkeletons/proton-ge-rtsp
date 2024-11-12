@@ -1,15 +1,16 @@
-From d09d4a21ad532521c8a561227071ae6067ab12b8 Mon Sep 17 00:00:00 2001
+From 1524e48ebff544374216ea134633cc3189468aef Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
 Subject: [PATCH 20/49] winegstreamer: Convert buffer presentation timestamps
  into stream time.
 
+CW-Bug-Id: #21644
 ---
  dlls/winegstreamer/wg_parser.c | 56 ++++++++++++++++++++++++----------
  1 file changed, 40 insertions(+), 16 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index a3a71262b68..fd678f111e0 100644
+index 5451523eaf0..34188d8b658 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -86,7 +86,7 @@ struct wg_parser
@@ -21,7 +22,7 @@ index a3a71262b68..fd678f111e0 100644
      bool err_on, warn_on;
  
      pthread_cond_t read_cond, read_done_cond;
-@@ -320,6 +320,18 @@ static GstBuffer *wait_parser_stream_buffer(struct wg_parser *parser, struct wg_
+@@ -378,6 +378,18 @@ static GstBuffer *wait_parser_stream_buffer(struct wg_parser *parser, struct wg_
      return buffer;
  }
  
@@ -40,7 +41,7 @@ index a3a71262b68..fd678f111e0 100644
  static NTSTATUS wg_parser_stream_get_buffer(void *args)
  {
      const struct wg_parser_stream_get_buffer_params *params = args;
-@@ -331,6 +343,7 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)
+@@ -389,6 +401,7 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)
  
      pthread_mutex_lock(&parser->mutex);
  
@@ -48,7 +49,7 @@ index a3a71262b68..fd678f111e0 100644
      if (stream)
          buffer = wait_parser_stream_buffer(parser, stream);
      else
-@@ -373,13 +386,24 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)
+@@ -431,13 +444,24 @@ static NTSTATUS wg_parser_stream_get_buffer(void *args)
          return S_FALSE;
      }
  
@@ -79,7 +80,7 @@ index a3a71262b68..fd678f111e0 100644
      if ((wg_buffer->has_duration = GST_BUFFER_DURATION_IS_VALID(buffer)))
          wg_buffer->duration = GST_BUFFER_DURATION(buffer) / 100;
      wg_buffer->discontinuity = GST_BUFFER_FLAG_IS_SET(buffer, GST_BUFFER_FLAG_DISCONT);
-@@ -422,16 +446,8 @@ static NTSTATUS wg_parser_stream_release_buffer(void *args)
+@@ -480,16 +504,8 @@ static NTSTATUS wg_parser_stream_release_buffer(void *args)
      struct wg_parser *parser = stream->parser;
  
      pthread_mutex_lock(&parser->mutex);
@@ -97,7 +98,7 @@ index a3a71262b68..fd678f111e0 100644
  
      return S_OK;
  }
-@@ -490,6 +506,8 @@ static NTSTATUS wg_parser_stream_seek(void *args)
+@@ -548,6 +564,8 @@ static NTSTATUS wg_parser_stream_seek(void *args)
              flags, start_type, params->start_pos * 100, stop_type,
              params->stop_pos == stream->duration ? -1 : params->stop_pos * 100)))
          GST_ERROR("Failed to seek.");
@@ -106,7 +107,7 @@ index a3a71262b68..fd678f111e0 100644
  
      return S_OK;
  }
-@@ -700,6 +718,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -796,6 +814,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
          case GST_EVENT_SEGMENT:
          {
              const GstSegment *segment;
@@ -114,7 +115,7 @@ index a3a71262b68..fd678f111e0 100644
  
              gst_event_parse_segment(event, &segment);
              if (segment->format != GST_FORMAT_TIME)
-@@ -708,7 +727,12 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -804,7 +823,12 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
                  break;
              }
              pthread_mutex_lock(&parser->mutex);
@@ -128,5 +129,5 @@ index a3a71262b68..fd678f111e0 100644
              break;
          }
 -- 
-2.46.0
+2.47.0
 
