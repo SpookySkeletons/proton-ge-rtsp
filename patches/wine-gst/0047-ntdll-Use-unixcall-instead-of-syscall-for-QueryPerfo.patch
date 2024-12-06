@@ -1,7 +1,7 @@
-From aaa26551f8fc5804c5c1c0ab63d6f86479352a2e Mon Sep 17 00:00:00 2001
+From 2833f896d0f2dc8efdecabe87852d10ece522370 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 24 Apr 2024 22:00:49 +0200
-Subject: [PATCH 43/49] ntdll: Use unixcall instead of syscall for
+Subject: [PATCH 47/53] ntdll: Use unixcall instead of syscall for
  QueryPerformanceCounter.
 
 ---
@@ -98,5 +98,5 @@ index e0870584a68..030801de407 100644
      unix_is_pc_in_native_so,
      unix_debugstr_pc,
 -- 
-2.47.0
+2.47.1
 

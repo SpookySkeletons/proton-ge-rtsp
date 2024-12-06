@@ -1,7 +1,7 @@
-From 6971d23f7ea7235c9a559acad5803f22d24bf31c Mon Sep 17 00:00:00 2001
+From a0e357899523d68da044bd0e2b27c724e7974b80 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 3 Jun 2024 11:05:38 +0200
-Subject: [PATCH 28/49] winegstreamer: Fix race between
+Subject: [PATCH 29/53] winegstreamer: Fix race between
  wg_parser_stream_disable and GST_EVENT_FLUSH_STOP.
 
 CW-Bug-Id: #21644
@@ -10,10 +10,10 @@ CW-Bug-Id: #21644
  1 file changed, 1 insertion(+), 2 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index d0495936668..a90d350ce55 100644
+index c8dc49cdbd6..bb4dcda0556 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -995,8 +995,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
+@@ -996,8 +996,7 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
              pthread_mutex_lock(&parser->mutex);
  
              stream->eos = false;
@@ -24,5 +24,5 @@ index d0495936668..a90d350ce55 100644
              pthread_mutex_unlock(&parser->mutex);
              break;
 -- 
-2.47.0
+2.47.1
 

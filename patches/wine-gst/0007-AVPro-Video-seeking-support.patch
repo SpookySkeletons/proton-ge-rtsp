@@ -1,7 +1,7 @@
 From eff1d3503cee12c8d58b01d72dc88aa31560de7b Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 10 Apr 2024 18:57:59 +0200
-Subject: [PATCH 07/49] === AVPro Video seeking support ===
+Subject: [PATCH 07/53] === AVPro Video seeking support ===
 
 ---
  MAINTAINERS | 2 ++
@@ -18,5 +18,5 @@ index c4afb5da88c..a414cc846c8 100644
 +
 +seek
 -- 
-2.47.0
+2.47.1
 

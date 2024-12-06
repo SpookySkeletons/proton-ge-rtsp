@@ -1,7 +1,7 @@
 From 490744bd1ac88608d53e562ce953a9c8199879d9 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 22/49] winegstreamer: Do away with the per-stream condvars and
+Subject: [PATCH 22/53] winegstreamer: Do away with the per-stream condvars and
  use one parser-wide condvar instead.
 
 CW-Bug-Id: #21644
@@ -133,5 +133,5 @@ index 3aeafae2175..11bac45a9f9 100644
      parser->output_compressed = params->output_compressed;
      parser->err_on = params->err_on;
 -- 
-2.47.0
+2.47.1
 

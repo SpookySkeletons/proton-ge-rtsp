@@ -1,7 +1,7 @@
 From bd72831d81187c1a476563bd12b0e2c782ead62a Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:09:34 +0200
-Subject: [PATCH 06/49] mfmediaengine: Implement IMFMediaEngine::IsSeeking.
+Subject: [PATCH 06/53] mfmediaengine: Implement IMFMediaEngine::IsSeeking.
 
 ---
  dlls/mfmediaengine/main.c | 11 +++++++++--
@@ -31,5 +31,5 @@ index d6d6b2fd7ab..cd68c122851 100644
  
  static double WINAPI media_engine_GetCurrentTime(IMFMediaEngineEx *iface)
 -- 
-2.47.0
+2.47.1
 

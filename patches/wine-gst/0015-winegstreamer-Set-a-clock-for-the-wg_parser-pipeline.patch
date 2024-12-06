@@ -1,7 +1,7 @@
 From 12f6a6fa7a1b08e41d4d7985c9246677c542c6d1 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 15/49] winegstreamer: Set a clock for the wg_parser pipeline.
+Subject: [PATCH 15/53] winegstreamer: Set a clock for the wg_parser pipeline.
 
 Some elements under uridecodebin (e.g. the RTSP demuxer) require a valid clock to function properly.
 GstPipeline does this so let's do this too.
@@ -25,5 +25,5 @@ index 363eb5db2c0..c9a847038a0 100644
      parser->next_pull_offset = 0;
      parser->error = false;
 -- 
-2.47.0
+2.47.1
 

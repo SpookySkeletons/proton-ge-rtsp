@@ -359,30 +359,33 @@
     patch -Np1 < ../patches/wine-gst/0023-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch
     patch -Np1 < ../patches/wine-gst/0024-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch
     patch -Np1 < ../patches/wine-gst/0025-winegstreamer-Do-not-seek-live-sources.patch
-    patch -Np1 < ../patches/wine-gst/0026-winegstreamer-Implement-buffering-events.patch
-    patch -Np1 < ../patches/wine-gst/0027-mf-samplegrabber-Send-sample-requests-for-unused-spa.patch
-    patch -Np1 < ../patches/wine-gst/0028-winegstreamer-Fix-race-between-wg_parser_stream_disa.patch
-    patch -Np1 < ../patches/wine-gst/0029-winegstreamer-Handle-Gstreamer-pipeline-flushes-grac.patch
-    patch -Np1 < ../patches/wine-gst/0030-winegstreamer-Do-waits-for-samples-on-stream-specifi.patch
-    patch -Np1 < ../patches/wine-gst/0031-mf-session-Ensure-that-the-command-callback-does-not.patch
-    patch -Np1 < ../patches/wine-gst/0032-mf-session-Prevent-media-session-from-running-comman.patch
-    patch -Np1 < ../patches/wine-gst/0033-mf-sar-Allow-starting-audio-renderer-again-after-pau.patch
-    patch -Np1 < ../patches/wine-gst/0034-winegstreamer-Also-flush-token-queue-on-seek.patch
-    patch -Np1 < ../patches/wine-gst/0035-mf-session-Fix-pausing-a-media-session-when-the-medi.patch
-    patch -Np1 < ../patches/wine-gst/0036-winegstreamer-Do-not-force-uridecodebin-to-expose-un.patch
-    patch -Np1 < ../patches/wine-gst/0037-mfmediaengine-Unstub-IMFMediaEngine-SetAutoPlay.patch
-    patch -Np1 < ../patches/wine-gst/0038-mfmediaengine-Allow-video_frame_sink-to-continue-to-.patch
-    patch -Np1 < ../patches/wine-gst/0039-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
-    patch -Np1 < ../patches/wine-gst/0040-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
-    patch -Np1 < ../patches/wine-gst/0041-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
-    patch -Np1 < ../patches/wine-gst/0042-Marker-commit-do-not-put-into-MR.patch
-    patch -Np1 < ../patches/wine-gst/0043-ntdll-Use-unixcall-instead-of-syscall-for-QueryPerfo.patch
-    patch -Np1 < ../patches/wine-gst/0044-mfplat-Allocate-memory-buffers-using-calloc.patch
-    patch -Np1 < ../patches/wine-gst/0045-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch
-    patch -Np1 < ../patches/wine-gst/0046-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch
-    patch -Np1 < ../patches/wine-gst/0047-mf-Schedule-stored-timers-for-the-original-time-inst.patch
-    patch -Np1 < ../patches/wine-gst/0048-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch
-    patch -Np1 < ../patches/wine-gst/0049-HACK-kernelbase-Replace-stderr-of-yt-dlp-process.patch
+    patch -Np1 < ../patches/wine-gst/0026-winegstreamer-Assume-server-does-not-support-ranges-.patch
+    patch -Np1 < ../patches/wine-gst/0027-winegstreamer-Implement-buffering-events.patch
+    patch -Np1 < ../patches/wine-gst/0028-mf-samplegrabber-Send-sample-requests-for-unused-spa.patch
+    patch -Np1 < ../patches/wine-gst/0029-winegstreamer-Fix-race-between-wg_parser_stream_disa.patch
+    patch -Np1 < ../patches/wine-gst/0030-winegstreamer-Handle-Gstreamer-pipeline-flushes-grac.patch
+    patch -Np1 < ../patches/wine-gst/0031-winegstreamer-Do-waits-for-samples-on-stream-specifi.patch
+    patch -Np1 < ../patches/wine-gst/0032-mf-session-Ensure-that-the-command-callback-does-not.patch
+    patch -Np1 < ../patches/wine-gst/0033-mf-session-Prevent-media-session-from-running-comman.patch
+    patch -Np1 < ../patches/wine-gst/0034-mf-sar-Allow-starting-audio-renderer-again-after-pau.patch
+    patch -Np1 < ../patches/wine-gst/0035-winegstreamer-Also-flush-token-queue-on-seek.patch
+    patch -Np1 < ../patches/wine-gst/0036-mf-session-Fix-pausing-a-media-session-when-the-medi.patch
+    patch -Np1 < ../patches/wine-gst/0037-winegstreamer-Do-not-force-uridecodebin-to-expose-un.patch
+    patch -Np1 < ../patches/wine-gst/0038-mfmediaengine-Unstub-IMFMediaEngine-SetAutoPlay.patch
+    patch -Np1 < ../patches/wine-gst/0039-mfmediaengine-Allow-video_frame_sink-to-continue-to-.patch
+    patch -Np1 < ../patches/wine-gst/0040-mfmediaengine-Fix-crash-when-playing-audio-only-sour.patch
+    patch -Np1 < ../patches/wine-gst/0041-winegstreamer-Ignore-closed-caption-streams.patch
+    patch -Np1 < ../patches/wine-gst/0042-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch
+    patch -Np1 < ../patches/wine-gst/0043-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch
+    patch -Np1 < ../patches/wine-gst/0044-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch
+    patch -Np1 < ../patches/wine-gst/0045-TODO-SQUASH-winegstreamer-Fix-hang-during-media-sour.patch
+    patch -Np1 < ../patches/wine-gst/0046-Marker-commit-do-not-put-into-MR.patch
+    patch -Np1 < ../patches/wine-gst/0047-ntdll-Use-unixcall-instead-of-syscall-for-QueryPerfo.patch
+    patch -Np1 < ../patches/wine-gst/0048-mfplat-Allocate-memory-buffers-using-calloc.patch
+    patch -Np1 < ../patches/wine-gst/0049-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch
+    patch -Np1 < ../patches/wine-gst/0051-mf-Schedule-stored-timers-for-the-original-time-inst.patch
+    patch -Np1 < ../patches/wine-gst/0052-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch
+    patch -Np1 < ../patches/wine-gst/0053-HACK-kernelbase-Replace-stderr-of-yt-dlp-process.patch
 
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch

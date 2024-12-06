@@ -1,7 +1,7 @@
-From 4933e5870be0176ed4595a161c33f135d029abdf Mon Sep 17 00:00:00 2001
+From 6666199d3f31a3eeb56a97eb542b40c527f1541b Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 8 Jul 2024 10:30:50 +0200
-Subject: [PATCH 31/49] mf/session: Ensure that the command callback does not
+Subject: [PATCH 32/53] mf/session: Ensure that the command callback does not
  return without clearing SESSION_FLAG_PENDING_COMMAND.
 
 Leaving SESSION_FLAG_PENDING_COMMAND set results in no more work items being queued by session_submit_command, and even
@@ -46,5 +46,5 @@ index a5caad3c97a..752bdcf1c21 100644
  
      IUnknown_Release(&op->IUnknown_iface);
 -- 
-2.47.0
+2.47.1
 

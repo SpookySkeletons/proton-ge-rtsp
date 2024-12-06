@@ -1,7 +1,7 @@
-From bd5deabc2c980da0704bf8741d22b47e210425a0 Mon Sep 17 00:00:00 2001
+From 72239daea739c1f244dacb7fcfedafbd4a4cafde Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:11:44 +0200
-Subject: [PATCH 29/49] winegstreamer: Handle Gstreamer pipeline flushes
+Subject: [PATCH 30/53] winegstreamer: Handle Gstreamer pipeline flushes
  gracefully.
 
 If a GST_EVENT_FLUSH_START event is received between the calls from PE code to wg_parser_stream_get_buffer
@@ -57,5 +57,5 @@ index d6051a7e4db..dc5f67a5686 100644
  }
  
 -- 
-2.47.0
+2.47.1
 

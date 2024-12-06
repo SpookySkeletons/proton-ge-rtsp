@@ -1,7 +1,7 @@
-From 950575219b384d35ff8682c98140ad28448c0f62 Mon Sep 17 00:00:00 2001
+From 23b14a421806304972d901b14ba8b5ac7a7595d7 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:08:48 +0200
-Subject: [PATCH 30/49] winegstreamer: Do waits for samples on stream-specific
+Subject: [PATCH 31/53] winegstreamer: Do waits for samples on stream-specific
  work queues.
 
 CW-Bug-Id: #21644
@@ -643,5 +643,5 @@ index a97d659e58d..06482fd36dc 100644
      }
      free(object->stream_map);
 -- 
-2.47.0
+2.47.1
 

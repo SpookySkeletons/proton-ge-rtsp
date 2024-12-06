@@ -1,7 +1,7 @@
 From 7918790918b7ee249d04f6766ea0d6e304100205 Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Tue, 1 Aug 2023 10:52:21 +0800
-Subject: [PATCH 01/49] mf: Add seeking support for IMFMediaSession::Start().
+Subject: [PATCH 01/53] mf: Add seeking support for IMFMediaSession::Start().
 
 ---
  dlls/mf/session.c | 57 ++++++++++++++++++++++++++++++++++++++++++-----
@@ -124,5 +124,5 @@ index 4f94d3c30a7..a5caad3c97a 100644
          case MESourcePaused:
          case MESourceStopped:
 -- 
-2.47.0
+2.47.1
 

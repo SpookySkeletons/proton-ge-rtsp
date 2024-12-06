@@ -1,7 +1,7 @@
 From 9d46c498e7db6fdd6a820d1309ccbda265a4e62a Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 22 Apr 2024 11:43:45 +0200
-Subject: [PATCH 14/49] winegstreamer: Mark wg_parser container bin as
+Subject: [PATCH 14/53] winegstreamer: Mark wg_parser container bin as
  streams-aware.
 
 Mirroring wg_source.
@@ -24,5 +24,5 @@ index 25d84a430cf..363eb5db2c0 100644
      if (parser->context)
          gst_element_set_context(parser->container, parser->context);
 -- 
-2.47.0
+2.47.1
 

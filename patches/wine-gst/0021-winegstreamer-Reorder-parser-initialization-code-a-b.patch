@@ -1,7 +1,7 @@
 From d094f8e4fab75229510736b73f127401d43579fa Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 21/49] winegstreamer: Reorder parser initialization code a bit
+Subject: [PATCH 21/53] winegstreamer: Reorder parser initialization code a bit
  to prevent race conditions.
 
 CW-Bug-Id: #21644
@@ -81,5 +81,5 @@ index 34188d8b658..3aeafae2175 100644
          return FALSE;
  
 -- 
-2.47.0
+2.47.1
 

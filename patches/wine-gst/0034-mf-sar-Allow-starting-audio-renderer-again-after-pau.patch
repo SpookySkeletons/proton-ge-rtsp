@@ -1,7 +1,7 @@
-From 8efb1727c87c3cfde55efbc9766bbefa032839cd Mon Sep 17 00:00:00 2001
+From 0086cdb8034ca7f3599bdc9e9f2f48262a06e646 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 29 Jul 2024 10:41:23 +0200
-Subject: [PATCH 33/49] mf/sar: Allow starting audio renderer again after
+Subject: [PATCH 34/53] mf/sar: Allow starting audio renderer again after
  pausing it.
 
 CW-Bug-Id: #24115
@@ -23,5 +23,5 @@ index 970063497b1..d588aa68871 100644
              if (FAILED(hr = IAudioClient_Start(renderer->audio_client)))
                  WARN("Failed to start audio client, hr %#lx.\n", hr);
 -- 
-2.47.0
+2.47.1
 

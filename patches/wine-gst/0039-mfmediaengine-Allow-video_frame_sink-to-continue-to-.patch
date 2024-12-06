@@ -1,7 +1,7 @@
-From a5fa8dd85bbcb19d73d1baff0345026fcf1888d7 Mon Sep 17 00:00:00 2001
+From 868fbc638c68707de4cc15da32444602147f8e89 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 2 Sep 2024 09:06:24 +0200
-Subject: [PATCH 38/49] mfmediaengine: Allow video_frame_sink to continue to
+Subject: [PATCH 39/53] mfmediaengine: Allow video_frame_sink to continue to
  work after receiving end-of-stream.
 
 CW-Bug-Id: #21644
@@ -57,5 +57,5 @@ index 57d4172bda8..a26701f4e98 100644
  }
 -
 -- 
-2.47.0
+2.47.1
 

@@ -1,7 +1,7 @@
 From 9ae292993013df74eed2a94ec87eb4c1d2bb1440 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 23 Apr 2024 19:30:17 +0200
-Subject: [PATCH 19/49] winegstreamer: Don't only accept segment events when
+Subject: [PATCH 19/53] winegstreamer: Don't only accept segment events when
  streams are enabled.
 
 I don't know why this was done previously but this just creates a race condition, with no to me apparent benefit.
@@ -51,5 +51,5 @@ index caee2cadfb7..5451523eaf0 100644
          case GST_EVENT_EOS:
              pthread_mutex_lock(&parser->mutex);
 -- 
-2.47.0
+2.47.1
 

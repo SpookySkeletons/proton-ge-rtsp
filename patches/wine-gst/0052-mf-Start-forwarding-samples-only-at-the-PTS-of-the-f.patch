@@ -1,7 +1,7 @@
-From 6ad017721032dd3906e7aca58f6dca6877470bdb Mon Sep 17 00:00:00 2001
+From 3dc0ac5a40fb280afcacd5ce5ee9fdf9e7611536 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:50:22 +0100
-Subject: [PATCH 48/49] mf: Start forwarding samples only at the PTS of the
+Subject: [PATCH 52/53] mf: Start forwarding samples only at the PTS of the
  first sample.
 
 Hides desynchronization in applications that ignore the PTS, e.g. VRChat.
@@ -289,5 +289,5 @@ index eab36a88234..250dd461512 100644
      {
          GUID clsid;
 -- 
-2.47.0
+2.47.1
 

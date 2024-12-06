@@ -1,7 +1,7 @@
 From f40f133d6db8f882641a5375fd2ed112c8361df9 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 25 Mar 2024 09:19:18 +0100
-Subject: [PATCH 11/49] winegstreamer: Do not create a read thread for
+Subject: [PATCH 11/53] winegstreamer: Do not create a read thread for
  uridecodebin-based media sources.
 
 CW-Bug-Id: #21644
@@ -40,5 +40,5 @@ index 119fde3e04f..93ddf6c6051 100644
      object->state = SOURCE_OPENING;
  
 -- 
-2.47.0
+2.47.1
 

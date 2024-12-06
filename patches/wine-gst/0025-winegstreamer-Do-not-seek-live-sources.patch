@@ -1,7 +1,7 @@
-From 274af9b358f011d5b1e7992b2a7209685beabfc6 Mon Sep 17 00:00:00 2001
+From d9e3aa536df9a0ec4b8e474c901d910d871f5100 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 14 Apr 2024 06:12:55 +0200
-Subject: [PATCH 25/49] winegstreamer: Do not seek live sources.
+Subject: [PATCH 25/53] winegstreamer: Do not seek live sources.
 
 Implementing MFMEDIASOURCE_CAN_SEEK makes the higher level components also ignore the seek.
 
@@ -19,8 +19,8 @@ CW-Bug-Id: #21644
  dlls/winegstreamer/main.c         | 13 ++++++++
  dlls/winegstreamer/media_source.c |  6 +++-
  dlls/winegstreamer/unixlib.h      |  8 +++++
- dlls/winegstreamer/wg_parser.c    | 53 ++++++++++++++++++++++++++++++-
- 5 files changed, 80 insertions(+), 2 deletions(-)
+ dlls/winegstreamer/wg_parser.c    | 54 ++++++++++++++++++++++++++++++-
+ 5 files changed, 81 insertions(+), 2 deletions(-)
 
 diff --git a/dlls/winegstreamer/gst_private.h b/dlls/winegstreamer/gst_private.h
 index adefeaba15c..383c479c083 100644
@@ -103,7 +103,7 @@ index f9b87e51b93..88448714bff 100644
      unix_wg_parser_stream_get_current_format,
      unix_wg_parser_stream_get_codec_format,
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 0e3d456c0b1..926523fb45c 100644
+index 0e3d456c0b1..b7dc33c303c 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -110,6 +110,8 @@ struct wg_parser
@@ -161,7 +161,7 @@ index 0e3d456c0b1..926523fb45c 100644
  
      pthread_mutex_lock(&parser->mutex);
  
-@@ -2101,6 +2121,23 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -2101,6 +2121,24 @@ static NTSTATUS wg_parser_connect(void *args)
          goto out;
      }
  
@@ -170,9 +170,10 @@ index 0e3d456c0b1..926523fb45c 100644
 +        GstQuery *query = gst_query_new_seeking(GST_FORMAT_TIME);
 +        gboolean seekable = false;
 +
-+        if (query && gst_pad_peer_query(parser->streams[0]->my_sink, query))
++        if (query)
 +        {
-+            gst_query_parse_seeking(query, NULL, &seekable, NULL, NULL);
++            if (gst_pad_peer_query(parser->streams[0]->my_sink, query))
++                gst_query_parse_seeking(query, NULL, &seekable, NULL, NULL);
 +            gst_query_unref(query);
 +        }
 +        if (!seekable)
@@ -185,7 +186,7 @@ index 0e3d456c0b1..926523fb45c 100644
      for (i = 0; i < parser->stream_count; ++i)
      {
          struct wg_parser_stream *stream = parser->streams[i];
-@@ -2143,7 +2180,17 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -2143,7 +2181,17 @@ static NTSTATUS wg_parser_connect(void *args)
              }
              if (gst_pad_peer_query_duration(stream->my_sink, GST_FORMAT_TIME, &duration))
              {
@@ -204,7 +205,7 @@ index 0e3d456c0b1..926523fb45c 100644
                  break;
              }
  
-@@ -2462,6 +2509,8 @@ const unixlib_entry_t __wine_unix_call_funcs[] =
+@@ -2462,6 +2510,8 @@ const unixlib_entry_t __wine_unix_call_funcs[] =
      X(wg_parser_get_stream_count),
      X(wg_parser_get_stream),
  
@@ -213,7 +214,7 @@ index 0e3d456c0b1..926523fb45c 100644
      X(wg_parser_stream_get_current_format),
      X(wg_parser_stream_get_current_type),
      X(wg_parser_stream_get_codec_format),
-@@ -3028,6 +3077,8 @@ const unixlib_entry_t __wine_unix_call_wow64_funcs[] =
+@@ -3028,6 +3078,8 @@ const unixlib_entry_t __wine_unix_call_wow64_funcs[] =
      X(wg_parser_get_stream_count),
      X(wg_parser_get_stream),
  
@@ -223,5 +224,5 @@ index 0e3d456c0b1..926523fb45c 100644
      X64(wg_parser_stream_get_current_type),
      X64(wg_parser_stream_get_codec_format),
 -- 
-2.47.0
+2.47.1
 

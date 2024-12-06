@@ -1,7 +1,7 @@
 From 6c06159c765dfdf524b3729e3e046954dd4baaa1 Mon Sep 17 00:00:00 2001
 From: Zhiyi Zhang <zzhang@codeweavers.com>
 Date: Tue, 8 Aug 2023 15:24:34 +0800
-Subject: [PATCH 02/49] mf/tests: Add a create_media_session_with_source_sink()
+Subject: [PATCH 02/53] mf/tests: Add a create_media_session_with_source_sink()
  helper.
 
 ---
@@ -139,5 +139,5 @@ index 9382d8cae35..58d8ec73c4f 100644
      propvar.vt = VT_EMPTY;
      hr = IMFMediaSession_Start(session, &GUID_NULL, &propvar);
 -- 
-2.47.0
+2.47.1
 

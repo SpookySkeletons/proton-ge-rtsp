@@ -1,7 +1,7 @@
 From 396294ff6ca75afdb67fd875b5c95a479dae9329 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 26 Aug 2024 16:15:16 +0200
-Subject: [PATCH 08/49] quartz: Fix buffer overflow when passing url as
+Subject: [PATCH 08/53] quartz: Fix buffer overflow when passing url as
  filename to FilterGraph2_AddSourceFilter.
 
 CW-Bug-Id: #21644
@@ -23,5 +23,5 @@ index 7d6292df579..9d823662427 100644
          {
              size = sizeof(guidstr);
 -- 
-2.47.0
+2.47.1
 

@@ -1,7 +1,7 @@
 From cb98d8608de3dcda81ea2b1b86bd8350c650b9a5 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 16/49] winegstreamer: Set base time on wg_parser bin while
+Subject: [PATCH 16/53] winegstreamer: Set base time on wg_parser bin while
  connecting.
 
 CW-Bug-Id: #21644
@@ -40,5 +40,5 @@ index c9a847038a0..320e624ccb1 100644
      ret = gst_element_get_state(parser->container, NULL, NULL, -1);
  
 -- 
-2.47.0
+2.47.1
 
