@@ -1,7 +1,7 @@
-From bb9623eef8959840161e4f27f53fa942e96ce498 Mon Sep 17 00:00:00 2001
+From 55f6c0aa3b3e96797041803a7fb80f3be1ca6354 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:45:44 +0100
-Subject: [PATCH 47/49] mf: Schedule stored timers for the original time
+Subject: [PATCH 51/53] mf: Schedule stored timers for the original time
  instead of calling callbacks immediately when changing presentation clock
  state.
 
@@ -68,5 +68,5 @@ index e6be05d2794..474874330bf 100644
  
      EnterCriticalSection(&clock->cs);
 -- 
-2.47.0
+2.47.1
 

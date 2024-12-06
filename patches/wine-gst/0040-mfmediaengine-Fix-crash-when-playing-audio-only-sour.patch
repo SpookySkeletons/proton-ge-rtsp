@@ -1,0 +1,73 @@
+From 5d9b88d57a02f59e33544d58fafa97577f3639a1 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sat, 23 Nov 2024 20:44:39 +0100
+Subject: [PATCH 40/53] mfmediaengine: Fix crash when playing audio-only
+ sources.
+
+---
+ dlls/mfmediaengine/main.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index cf2944bb8b9..244e83a9f3e 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -821,6 +821,9 @@ static void media_engine_get_frame_size(struct media_engine *engine)
+     engine->video_frame.ratio.cx = 1;
+     engine->video_frame.ratio.cy = 1;
+ 
++    if (!engine->presentation.frame_sink)
++        return;
++
+     video_frame_sink_query_iface(engine->presentation.frame_sink, &IID_IMFMediaTypeHandler, (void**)&handler);
+     if (SUCCEEDED(IMFMediaTypeHandler_GetCurrentMediaType(handler, &media_type)))
+     {
+@@ -978,7 +981,8 @@ static HRESULT WINAPI media_engine_session_events_Invoke(IMFAsyncCallback *iface
+             break;
+         case MEEndOfPresentation:
+             EnterCriticalSection(&engine->cs);
+-            video_frame_sink_notify_end_of_presentation(engine->presentation.frame_sink);
++            if (engine->presentation.frame_sink)
++                video_frame_sink_notify_end_of_presentation(engine->presentation.frame_sink);
+             LeaveCriticalSection(&engine->cs);
+             break;
+     }
+@@ -1175,7 +1179,7 @@ static HRESULT media_engine_create_video_renderer(struct media_engine *engine, I
+     if (FAILED(hr))
+         return hr;
+ 
+-    if (SUCCEEDED(hr = MFCreateTopologyNode(MF_TOPOLOGY_OUTPUT_NODE, node)))
++    if (engine->presentation.frame_sink && SUCCEEDED(hr = MFCreateTopologyNode(MF_TOPOLOGY_OUTPUT_NODE, node)))
+     {
+         IMFStreamSink *sink;
+         video_frame_sink_query_iface(engine->presentation.frame_sink, &IID_IMFStreamSink, (void **)&sink);
+@@ -2365,7 +2369,7 @@ static void media_engine_update_d3d11_frame_surface(ID3D11DeviceContext *context
+     IMFMediaBuffer *media_buffer;
+     IMFSample *sample;
+ 
+-    if (!video_frame_sink_get_sample(engine->presentation.frame_sink, &sample))
++    if (!engine->presentation.frame_sink || !video_frame_sink_get_sample(engine->presentation.frame_sink, &sample))
+         return;
+ 
+     ID3D11Texture2D_GetDesc(engine->video_frame.d3d11.source, &surface_desc);
+@@ -2446,7 +2450,7 @@ static HRESULT media_engine_transfer_d3d11(struct media_engine *engine, ID3D11Te
+     if (!color)
+         color = &color_default;
+ 
+-    if (!video_frame_sink_get_sample(engine->presentation.frame_sink, &sample))
++    if (!engine->presentation.frame_sink || !video_frame_sink_get_sample(engine->presentation.frame_sink, &sample))
+         return MF_E_UNEXPECTED;
+     hr = get_d3d11_resource_from_sample(sample, &src_texture, &subresource);
+     IMFSample_Release(sample);
+@@ -2670,6 +2674,8 @@ static HRESULT WINAPI media_engine_OnVideoStreamTick(IMFMediaEngineEx *iface, LO
+         hr = MF_E_SHUTDOWN;
+     else if (!pts)
+         hr = E_POINTER;
++    else if (!engine->presentation.frame_sink)
++        hr = MF_E_UNEXPECTED;
+     else
+     {
+         MFTIME clocktime;
+-- 
+2.47.1
+

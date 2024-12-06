@@ -1,7 +1,7 @@
 From 1524e48ebff544374216ea134633cc3189468aef Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 20/49] winegstreamer: Convert buffer presentation timestamps
+Subject: [PATCH 20/53] winegstreamer: Convert buffer presentation timestamps
  into stream time.
 
 CW-Bug-Id: #21644
@@ -129,5 +129,5 @@ index 5451523eaf0..34188d8b658 100644
              break;
          }
 -- 
-2.47.0
+2.47.1
 

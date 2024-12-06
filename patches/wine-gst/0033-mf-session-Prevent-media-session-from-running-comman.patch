@@ -1,7 +1,7 @@
-From c0a51e37cb3ce529f693d0732a836d758b71dd60 Mon Sep 17 00:00:00 2001
+From d9dd97499dda2e1c4a22012babfa322838b6620f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 29 Jul 2024 04:21:03 +0200
-Subject: [PATCH 32/49] mf/session: Prevent media session from running commands
+Subject: [PATCH 33/53] mf/session: Prevent media session from running commands
  concurrently.
 
 CW-Bug-Id: #24115
@@ -270,5 +270,5 @@ index 752bdcf1c21..e119755f732 100644
          case SESSION_STATE_STARTING_SINKS:
              if (!session_is_output_nodes_state(session, OBJ_STATE_STARTED))
 -- 
-2.47.0
+2.47.1
 

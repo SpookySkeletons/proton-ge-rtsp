@@ -1,7 +1,7 @@
-From ceec982c7a5cd1232075df00da06cce3ad13b6a4 Mon Sep 17 00:00:00 2001
+From 682b59ed12fe010b2d107711b0595d1158c424e2 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 10 Apr 2024 15:11:02 +0200
-Subject: [PATCH 26/49] winegstreamer: Implement buffering events.
+Subject: [PATCH 27/53] winegstreamer: Implement buffering events.
 
 CW-Bug-Id: #21644
 ---
@@ -189,7 +189,7 @@ index 88448714bff..2924757aa8d 100644
      unix_wg_parser_get_stream,
  
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 926523fb45c..d0495936668 100644
+index 12704169be7..c8dc49cdbd6 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -43,6 +43,12 @@
@@ -205,17 +205,17 @@ index 926523fb45c..d0495936668 100644
  #include "unix_private.h"
  
  extern GstGLDisplay *gl_display;
-@@ -112,6 +118,9 @@ struct wg_parser
-     GstContext *context;
+@@ -113,6 +119,9 @@ struct wg_parser
  
      bool is_seekable;
+     GstObject *force_source_not_seekable;
 +
 +    bool buffering;
 +    bool sent_buffering_event;
  };
  static const unsigned int input_cache_chunk_size = 512 << 10;
  
-@@ -253,6 +262,47 @@ static NTSTATUS wg_parser_push_data(void *args)
+@@ -254,6 +263,47 @@ static NTSTATUS wg_parser_push_data(void *args)
      return S_OK;
  }
  
@@ -263,7 +263,7 @@ index 926523fb45c..d0495936668 100644
  static NTSTATUS wg_parser_stream_get_current_format(void *args)
  {
      const struct wg_parser_stream_get_current_format_params *params = args;
-@@ -1870,6 +1920,19 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1947,6 +1997,19 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
          break;
      }
  
@@ -283,7 +283,7 @@ index 926523fb45c..d0495936668 100644
      default:
          break;
      }
-@@ -2292,6 +2355,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2370,6 +2433,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
      parser->sink_connected = false;
      pthread_mutex_unlock(&parser->mutex);
      pthread_cond_signal(&parser->read_cond);
@@ -291,7 +291,7 @@ index 926523fb45c..d0495936668 100644
  
      for (i = 0; i < parser->stream_count; ++i)
          free_stream(parser->streams[i]);
-@@ -2506,6 +2570,8 @@ const unixlib_entry_t __wine_unix_call_funcs[] =
+@@ -2584,6 +2648,8 @@ const unixlib_entry_t __wine_unix_call_funcs[] =
      X(wg_parser_get_next_read_offset),
      X(wg_parser_push_data),
  
@@ -300,7 +300,7 @@ index 926523fb45c..d0495936668 100644
      X(wg_parser_get_stream_count),
      X(wg_parser_get_stream),
  
-@@ -3074,6 +3140,8 @@ const unixlib_entry_t __wine_unix_call_wow64_funcs[] =
+@@ -3152,6 +3218,8 @@ const unixlib_entry_t __wine_unix_call_wow64_funcs[] =
      X(wg_parser_get_next_read_offset),
      X64(wg_parser_push_data),
  
@@ -310,5 +310,5 @@ index 926523fb45c..d0495936668 100644
      X(wg_parser_get_stream),
  
 -- 
-2.47.0
+2.47.1
 

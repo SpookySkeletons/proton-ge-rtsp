@@ -1,7 +1,7 @@
 From 55d5e5edfcf5218a9f4bac140841871b0463664f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 14 Jun 2024 03:15:57 +0200
-Subject: [PATCH 09/49] winegstreamer: Initialize condition variable of struct
+Subject: [PATCH 09/53] winegstreamer: Initialize condition variable of struct
  media_stream.
 
 CW-Bug-Id: #21644
@@ -22,5 +22,5 @@ index eb6ab3d21cd..119fde3e04f 100644
      TRACE("Created stream object %p.\n", object);
  
 -- 
-2.47.0
+2.47.1
 

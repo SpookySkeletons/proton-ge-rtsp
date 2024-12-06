@@ -1,7 +1,7 @@
-From 5d2b0ed33e7b8091f130dc46157b934b7d323adb Mon Sep 17 00:00:00 2001
+From 652e28fca35e9e51d7e8c63b66342d874aa4a382 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 16 Aug 2024 02:29:05 +0200
-Subject: [PATCH 37/49] mfmediaengine: Unstub IMFMediaEngine::SetAutoPlay.
+Subject: [PATCH 38/53] mfmediaengine: Unstub IMFMediaEngine::SetAutoPlay.
 
 CW-Bug-Id: #21644
 ---
@@ -45,5 +45,5 @@ index cd68c122851..a0d041c35db 100644
  
  static BOOL WINAPI media_engine_GetLoop(IMFMediaEngineEx *iface)
 -- 
-2.47.0
+2.47.1
 

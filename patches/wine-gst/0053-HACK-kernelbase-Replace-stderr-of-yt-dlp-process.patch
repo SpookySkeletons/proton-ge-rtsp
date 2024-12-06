@@ -1,7 +1,7 @@
-From a1975484f860600b5dbdb87daa94e4cdc08e82de Mon Sep 17 00:00:00 2001
+From 1d0a7d6fbfb321703684816780232f4ab244c2fd Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Thu, 25 Jul 2024 00:17:20 +0200
-Subject: [PATCH 49/49] [HACK] kernelbase: Replace stderr of yt-dlp process.
+Subject: [PATCH 53/53] [HACK] kernelbase: Replace stderr of yt-dlp process.
 
 ---
  dlls/kernelbase/process.c | 22 ++++++++++++++++++++++
@@ -34,9 +34,9 @@ index 163e15d920a..dc03d6d121c 100644
 +    return TRUE;
 +}
 +
- static int ytdlp_hack( const WCHAR *app_name, WCHAR *new_name, DWORD new_name_len, WCHAR **cmdline )
+ static int battleye_launcher_redirect_hack( const WCHAR *app_name, WCHAR *new_name, DWORD new_name_len,
+                                             WCHAR **orig_app_name )
  {
-     static const WCHAR ytdlp_exeW[] = L"yt-dlp.exe";
 @@ -762,6 +781,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
      if (battleye_launcher_redirect_hack( app_name, name, ARRAY_SIZE(name), &orig_app_name ))
          app_name = name;
@@ -44,9 +44,9 @@ index 163e15d920a..dc03d6d121c 100644
 +    if (is_ytdlp( app_name ))
 +        startup_info->hStdError = INVALID_HANDLE_VALUE;
 +
-     if (ytdlp_hack( app_name, name, ARRAY_SIZE(name), &tidy_cmdline ))
-         app_name = name;
+     /* Warn if unsupported features are used */
  
+     if (flags & (IDLE_PRIORITY_CLASS | HIGH_PRIORITY_CLASS | REALTIME_PRIORITY_CLASS |
 -- 
-2.47.0
+2.47.1
 

@@ -1,7 +1,7 @@
 From a3303110d4691ceb99d44c9e4e0a3fee848614aa Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sat, 10 Aug 2024 01:43:37 +0200
-Subject: [PATCH 18/49] winegstreamer: Handle a duration of -1 correctly.
+Subject: [PATCH 18/53] winegstreamer: Handle a duration of -1 correctly.
 
 Live sources will return a duration of -1 to signify that the duration is unknown.
 By dividing this by 100 this value gets wrongfully changed to 0.
@@ -46,5 +46,5 @@ index 47922146d9a..caee2cadfb7 100644
              }
  
 -- 
-2.47.0
+2.47.1
 

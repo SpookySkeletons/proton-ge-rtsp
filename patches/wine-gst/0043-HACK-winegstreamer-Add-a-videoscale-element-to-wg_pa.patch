@@ -1,7 +1,7 @@
-From 0743bab5b25d98ae3064ef57e1fcf935dd7bc046 Mon Sep 17 00:00:00 2001
+From 41166eb74d3bf379bddd62684dd0741349c4be78 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 40/49] [HACK] winegstreamer: Add a videoscale element to
+Subject: [PATCH 43/53] [HACK] winegstreamer: Add a videoscale element to
  wg_parser for raw video.
 
 CW-Bug-Id: #21644
@@ -10,10 +10,10 @@ CW-Bug-Id: #21644
  1 file changed, 9 insertions(+)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 4f18a3aced0..4aa06a44348 100644
+index 42435d12cbd..a959174c790 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1286,6 +1286,10 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+@@ -1287,6 +1287,10 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
          if (!(element = create_element("gldownload", "base"))
                  || !append_element(parser->container, element, &first, &last))
              return false;
@@ -24,7 +24,7 @@ index 4f18a3aced0..4aa06a44348 100644
  
          if (!link_src_to_element(pad, first) || !link_element_to_sink(last, stream->my_sink))
              return false;
-@@ -1366,6 +1370,11 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+@@ -1367,6 +1371,11 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
          /* Let GStreamer choose a default number of threads. */
          gst_util_set_object_arg(G_OBJECT(element), "n-threads", "0");
  
@@ -37,5 +37,5 @@ index 4f18a3aced0..4aa06a44348 100644
              return false;
      }
 -- 
-2.47.0
+2.47.1
 

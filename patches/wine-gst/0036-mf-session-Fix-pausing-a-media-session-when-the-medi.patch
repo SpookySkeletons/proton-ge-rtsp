@@ -1,7 +1,7 @@
-From 9fec3ce721e930a22400f34063ce5c11b30d61eb Mon Sep 17 00:00:00 2001
+From 77582de95b73f8a660d46c844a44559b58f07504 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 7 Aug 2024 02:09:31 +0200
-Subject: [PATCH 35/49] mf/session: Fix pausing a media session when the media
+Subject: [PATCH 36/53] mf/session: Fix pausing a media session when the media
  source sends buffering events.
 
 CW-Bug-Id: #24115
@@ -221,5 +221,5 @@ index e119755f732..eab36a88234 100644
                  IMFMediaEventQueue_QueueEvent(session->event_queue, event);
              }
 -- 
-2.47.0
+2.47.1
 
