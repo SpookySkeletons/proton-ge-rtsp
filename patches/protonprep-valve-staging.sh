@@ -386,6 +386,7 @@
     patch -Np1 < ../patches/wine-gst/0051-mf-Schedule-stored-timers-for-the-original-time-inst.patch
     patch -Np1 < ../patches/wine-gst/0052-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch
     patch -Np1 < ../patches/wine-gst/0053-HACK-kernelbase-Replace-stderr-of-yt-dlp-process.patch
+    patch -Np1 < ../patches/wine-gst/0054-stutter-fix.diff
 
     #echo "WINE: -Nvidia Reflex- Support VK_NV_low_latency2"
     #patch -Np1 < ../patches/proton/83-nv_low_latency_wine.patch

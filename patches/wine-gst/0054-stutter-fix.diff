@@ -1,0 +1,68 @@
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 250dd461512..97bfcf27f26 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -274,6 +274,7 @@ struct media_session
+     enum session_state state;
+     DWORD caps;
+     BOOL buffering;
++    BOOL clock_started;
+     CRITICAL_SECTION cs;
+ };
+ 
+@@ -1363,7 +1364,10 @@ static void session_stop(struct media_session *session)
+                 session_stop_sources(session);
+             }
+             else if (SUCCEEDED(hr = IMFPresentationClock_Stop(session->clock)))
++            {
++                session->clock_started = FALSE;
+                 session_set_state(session, SESSION_STATE_STOPPING_SINKS);
++            }
+             else
+                 session_set_stopped(session, hr);
+ 
+@@ -1426,7 +1430,10 @@ static void session_close(struct media_session *session)
+                 session_stop_sources(session);
+             }
+             else if (SUCCEEDED(hr = IMFPresentationClock_Stop(session->clock)))
++            {
++                session->clock_started = FALSE;
+                 session_set_state(session, SESSION_STATE_STOPPING_SINKS);
++            }
+             break;
+         default:
+             hr = MF_E_INVALIDREQUEST;
+@@ -3173,6 +3180,7 @@ static enum object_state session_get_object_state_for_event(MediaEventType event
+ static HRESULT session_start_clock(struct media_session *session)
+ {
+     LONGLONG start_offset = 0;
++    MFCLOCK_STATE state;
+     HRESULT hr;
+ 
+     if (IsEqualGUID(&session->presentation.time_format, &GUID_NULL))
+@@ -3187,10 +3195,23 @@ static HRESULT session_start_clock(struct media_session *session)
+     else
+         FIXME("Unhandled time format %s.\n", debugstr_guid(&session->presentation.time_format));
+ 
++    if (start_offset == PRESENTATION_CURRENT_POSITION && !session->clock_started)
++    {
++        if (SUCCEEDED(IMFPresentationClock_GetState(session->clock, 0, &state)) &&
++                state != MFCLOCK_STATE_INVALID && state != MFCLOCK_STATE_STOPPED &&
++                SUCCEEDED(IMFPresentationClock_Stop(session->clock)))
++            session->clock_started = FALSE;
++        start_offset = 0;
++    }
++
+     if (FAILED(hr = IMFPresentationClock_Start(session->clock, start_offset)))
+         WARN("Failed to start session clock, hr %#lx.\n", hr);
+-    else if (session->buffering)
+-        IMFPresentationClock_Pause(session->clock);
++    else
++    {
++        session->clock_started = TRUE;
++        if (session->buffering)
++            IMFPresentationClock_Pause(session->clock);
++    }
+ 
+     return hr;
+ }
