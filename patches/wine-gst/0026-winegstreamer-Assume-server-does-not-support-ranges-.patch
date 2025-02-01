@@ -95,7 +95,7 @@ index b7dc33c303c..12704169be7 100644
 +                for (i = 0; i < gst_structure_n_fields(response_headers); i++)
 +                {
 +                    const gchar *name = gst_structure_nth_field_name(response_headers, i);
-+                    if (!strcasecmp(name, "Accept-Ranges"))
++                    if (!strcasecmp(name, "Accept-Ranges") || !strcasecmp(name, "Content-Range"))
 +                    {
 +                        found = true;
 +                        break;
