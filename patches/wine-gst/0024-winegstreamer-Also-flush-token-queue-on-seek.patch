@@ -1,0 +1,29 @@
+From 341a26e2212ad7a4d6529aaf92aae210192b991d Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 6 Aug 2024 23:53:39 +0200
+Subject: [PATCH 24/49] winegstreamer: Also flush token queue on seek.
+
+This is needed by video_frame_sink in mfmediaengine to properly restart playback after pausing if the unpausing
+operation is a seek.
+
+CW-Bug-Id: #24115
+---
+ dlls/winegstreamer/media_source.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 1e22808c214..9a56fd0c10e 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -734,7 +734,7 @@ static HRESULT media_source_start(struct media_source *source, IMFPresentationDe
+                 AM_SEEKING_AbsolutePositioning, AM_SEEKING_NoPositioning);
+ 
+     for (i = 0; i < source->stream_count; i++)
+-        flush_token_queue(source->streams[i], position->vt == VT_EMPTY);
++        flush_token_queue(source->streams[i], TRUE);
+ 
+     return IMFMediaEventQueue_QueueEventParamVar(source->event_queue,
+             seek_message ? MESourceSeeked : MESourceStarted, &GUID_NULL, S_OK, position);
+-- 
+2.51.0
+

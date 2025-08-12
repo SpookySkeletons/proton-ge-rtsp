@@ -1,0 +1,25 @@
+From 2251815eddacac8550193f2add97c342a32d961a Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 9 Sep 2025 14:46:00 +0200
+Subject: [PATCH 49/49] work around freeze on video unload
+
+---
+ dlls/winegstreamer/media_source.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index edeef96f762..14eb5655424 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -1844,7 +1844,7 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+         struct media_stream *stream = source->streams[source->stream_count];
+         IMFStreamDescriptor_Release(source->descriptors[source->stream_count]);
+         IMFMediaEventQueue_Shutdown(stream->event_queue);
+-        MFUnlockWorkQueue(stream->async_commands_queue);
++        //MFUnlockWorkQueue(stream->async_commands_queue);
+         IMFMediaStream_Release(&stream->IMFMediaStream_iface);
+     }
+     free(source->descriptors);
+-- 
+2.51.0
+

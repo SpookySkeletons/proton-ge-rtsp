@@ -1,0 +1,43 @@
+From 9fb81b8f1a6b260272d38b50da14f8a4c8b5c7f0 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 2 Sep 2024 09:06:24 +0200
+Subject: [PATCH 28/49] mfmediaengine: Allow video_frame_sink to continue to
+ work after receiving end-of-stream.
+
+CW-Bug-Id: #21644
+---
+ dlls/mfmediaengine/main.c             | 2 ++
+ dlls/mfmediaengine/video_frame_sink.c | 3 +++
+ 2 files changed, 5 insertions(+)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index cdf2dc4dca6..b35fdac3b80 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -986,7 +986,9 @@ static HRESULT WINAPI media_engine_session_events_Invoke(IMFAsyncCallback *iface
+             break;
+ 
+         case MEEndOfPresentationSegment:
++            EnterCriticalSection(&engine->cs);
+             video_frame_sink_notify_end_of_presentation_segment(engine->presentation.frame_sink);
++            LeaveCriticalSection(&engine->cs);
+             break;
+     }
+ 
+diff --git a/dlls/mfmediaengine/video_frame_sink.c b/dlls/mfmediaengine/video_frame_sink.c
+index a79cd5f8644..5cc1691e762 100644
+--- a/dlls/mfmediaengine/video_frame_sink.c
++++ b/dlls/mfmediaengine/video_frame_sink.c
+@@ -1304,6 +1304,9 @@ HRESULT video_frame_sink_get_pts(struct video_frame_sink *sink, MFTIME clocktime
+ void video_frame_sink_notify_end_of_presentation_segment(struct video_frame_sink *sink)
+ {
+     sink->eos = TRUE;
++    /* At the end of presentation, the media source sends MEEndOfPresentation _instead of_
++       MEMediaSample, so reset sample_request_pending here. */
++    sink->sample_request_pending = FALSE;
+ }
+ 
+ ULONG video_frame_sink_release(struct video_frame_sink *sink)
+-- 
+2.51.0
+

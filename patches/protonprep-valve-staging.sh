@@ -296,6 +296,159 @@ apply_all_in_dir() {
 
 ### END WINE PENDING UPSTREAM SECTION ###
 
+### (2-5.1) WINE-GST PROTON RTSP SECTION ###
+
+    echo "WINE: -WINE-GST- applying RTSP and GStreamer related patches"
+
+    echo "WINE: -WINE-GST- 0001-mfmediaengine-Implement-IMFMediaEngine-IsSeeking.patch"
+    apply_patch "../patches/wine-gst/0001-mfmediaengine-Implement-IMFMediaEngine-IsSeeking.patch"
+
+    echo "WINE: -WINE-GST- 0002-AVPro-Video-seeking-support.patch"
+    apply_patch "../patches/wine-gst/0002-AVPro-Video-seeking-support.patch"
+
+    echo "WINE: -WINE-GST- 0003-quartz-Fix-buffer-overflow-when-passing-url-as-filen.patch"
+    apply_patch "../patches/wine-gst/0003-quartz-Fix-buffer-overflow-when-passing-url-as-filen.patch"
+
+    echo "WINE: -WINE-GST- 0004-winegstreamer-Initialize-condition-variable-of-struc.patch"
+    apply_patch "../patches/wine-gst/0004-winegstreamer-Initialize-condition-variable-of-struc.patch"
+
+    echo "WINE: -WINE-GST- 0005-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch"
+    apply_patch "../patches/wine-gst/0005-winegstreamer-Do-not-create-a-read-thread-for-uridec.patch"
+
+    echo "WINE: -WINE-GST- 0006-winegstreamer-Add-more-RTSP-based-URI-schemes-to-GSt.patch"
+    apply_patch "../patches/wine-gst/0006-winegstreamer-Add-more-RTSP-based-URI-schemes-to-GSt.patch"
+
+    echo "WINE: -WINE-GST- 0007-winegstreamer-Mark-wg_parser-container-bin-as-stream.patch"
+    apply_patch "../patches/wine-gst/0007-winegstreamer-Mark-wg_parser-container-bin-as-stream.patch"
+
+    echo "WINE: -WINE-GST- 0008-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch"
+    apply_patch "../patches/wine-gst/0008-winegstreamer-Set-a-clock-for-the-wg_parser-pipeline.patch"
+
+    echo "WINE: -WINE-GST- 0009-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch"
+    apply_patch "../patches/wine-gst/0009-winegstreamer-Set-base-time-on-wg_parser-bin-while-c.patch"
+
+    echo "WINE: -WINE-GST- 0010-winegstreamer-Put-pipeline-into-PLAYING-state-before.patch"
+    apply_patch "../patches/wine-gst/0010-winegstreamer-Put-pipeline-into-PLAYING-state-before.patch"
+
+    echo "WINE: -WINE-GST- 0011-winegstreamer-Handle-a-duration-of-1-correctly.patch"
+    apply_patch "../patches/wine-gst/0011-winegstreamer-Handle-a-duration-of-1-correctly.patch"
+
+    echo "WINE: -WINE-GST- 0012-winegstreamer-Convert-buffer-presentation-timestamps.patch"
+    apply_patch "../patches/wine-gst/0012-winegstreamer-Convert-buffer-presentation-timestamps.patch"
+
+    echo "WINE: -WINE-GST- 0013-winegstreamer-Reorder-parser-initialization-code-a-b.patch"
+    apply_patch "../patches/wine-gst/0013-winegstreamer-Reorder-parser-initialization-code-a-b.patch"
+
+    echo "WINE: -WINE-GST- 0014-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch"
+    apply_patch "../patches/wine-gst/0014-winegstreamer-Do-away-with-the-per-stream-condvars-a.patch"
+
+    echo "WINE: -WINE-GST- 0015-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch"
+    apply_patch "../patches/wine-gst/0015-winegstreamer-Use-pthread_cond_broadcast-instead-of-.patch"
+
+    echo "WINE: -WINE-GST- 0016-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch"
+    apply_patch "../patches/wine-gst/0016-winegstreamer-Do-not-fail-caps-negotiation-when-ther.patch"
+
+    echo "WINE: -WINE-GST- 0017-winegstreamer-Do-not-seek-live-sources.patch"
+    apply_patch "../patches/wine-gst/0017-winegstreamer-Do-not-seek-live-sources.patch"
+
+    echo "WINE: -WINE-GST- 0018-winegstreamer-Assume-server-does-not-support-ranges-.patch"
+    apply_patch "../patches/wine-gst/0018-winegstreamer-Assume-server-does-not-support-ranges-.patch"
+
+    echo "WINE: -WINE-GST- 0019-winegstreamer-Implement-buffering-events.patch"
+    apply_patch "../patches/wine-gst/0019-winegstreamer-Implement-buffering-events.patch"
+
+    echo "WINE: -WINE-GST- 0020-mf-samplegrabber-Send-sample-requests-for-unused-spa.patch"
+    apply_patch "../patches/wine-gst/0020-mf-samplegrabber-Send-sample-requests-for-unused-spa.patch"
+
+    echo "WINE: -WINE-GST- 0021-winegstreamer-Do-waits-for-samples-on-stream-specifi.patch"
+    apply_patch "../patches/wine-gst/0021-winegstreamer-Do-waits-for-samples-on-stream-specifi.patch"
+
+    echo "WINE: -WINE-GST- 0022-mf-session-Ensure-that-the-command-callback-does-not.patch"
+    apply_patch "../patches/wine-gst/0022-mf-session-Ensure-that-the-command-callback-does-not.patch"
+
+    echo "WINE: -WINE-GST- 0023-mf-session-Prevent-media-session-from-running-comman.patch"
+    apply_patch "../patches/wine-gst/0023-mf-session-Prevent-media-session-from-running-comman.patch"
+
+    echo "WINE: -WINE-GST- 0024-winegstreamer-Also-flush-token-queue-on-seek.patch"
+    apply_patch "../patches/wine-gst/0024-winegstreamer-Also-flush-token-queue-on-seek.patch"
+
+    echo "WINE: -WINE-GST- 0025-mf-session-Fix-pausing-a-media-session-when-the-medi.patch"
+    apply_patch "../patches/wine-gst/0025-mf-session-Fix-pausing-a-media-session-when-the-medi.patch"
+
+    echo "WINE: -WINE-GST- 0026-winegstreamer-Do-not-force-uridecodebin-to-expose-un.patch"
+    apply_patch "../patches/wine-gst/0026-winegstreamer-Do-not-force-uridecodebin-to-expose-un.patch"
+
+    echo "WINE: -WINE-GST- 0027-mfmediaengine-Unstub-IMFMediaEngine-SetAutoPlay.patch"
+    apply_patch "../patches/wine-gst/0027-mfmediaengine-Unstub-IMFMediaEngine-SetAutoPlay.patch"
+
+    echo "WINE: -WINE-GST- 0028-mfmediaengine-Allow-video_frame_sink-to-continue-to-.patch"
+    apply_patch "../patches/wine-gst/0028-mfmediaengine-Allow-video_frame_sink-to-continue-to-.patch"
+
+    echo "WINE: -WINE-GST- 0029-mfmediaengine-Fix-crash-when-playing-audio-only-sour.patch"
+    apply_patch "../patches/wine-gst/0029-mfmediaengine-Fix-crash-when-playing-audio-only-sour.patch"
+
+    echo "WINE: -WINE-GST- 0030-winegstreamer-Ignore-closed-caption-streams.patch"
+    apply_patch "../patches/wine-gst/0030-winegstreamer-Ignore-closed-caption-streams.patch"
+
+    echo "WINE: -WINE-GST- 0031-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch"
+    apply_patch "../patches/wine-gst/0031-HACK-winegstreamer-Add-a-resampler-to-wg_parser-for-.patch"
+
+    echo "WINE: -WINE-GST- 0032-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch"
+    apply_patch "../patches/wine-gst/0032-HACK-winegstreamer-Add-a-videoscale-element-to-wg_pa.patch"
+
+    echo "WINE: -WINE-GST- 0033-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch"
+    apply_patch "../patches/wine-gst/0033-HACK-mfmediaengine-Do-not-send-MF_MEDIA_ENGINE_EVENT.patch"
+
+    echo "WINE: -WINE-GST- 0034-TODO-SQUASH-winegstreamer-Fix-hang-during-media-sour.patch"
+    apply_patch "../patches/wine-gst/0034-TODO-SQUASH-winegstreamer-Fix-hang-during-media-sour.patch"
+
+    echo "WINE: -WINE-GST- 0035-TODO-SQUASH-mf-Fix-presentation-clock-starting-at-wr.patch"
+    apply_patch "../patches/wine-gst/0035-TODO-SQUASH-mf-Fix-presentation-clock-starting-at-wr.patch"
+
+    echo "WINE: -WINE-GST- 0036-Marker-commit-do-not-put-into-MR.patch"
+    apply_patch "../patches/wine-gst/0036-Marker-commit-do-not-put-into-MR.patch"
+
+    echo "WINE: -WINE-GST- 0037-ntdll-Use-unixcall-instead-of-syscall-for-QueryPerfo.patch"
+    apply_patch "../patches/wine-gst/0037-ntdll-Use-unixcall-instead-of-syscall-for-QueryPerfo.patch"
+
+    echo "WINE: -WINE-GST- 0038-mfplat-Allocate-memory-buffers-using-calloc.patch"
+    apply_patch "../patches/wine-gst/0038-mfplat-Allocate-memory-buffers-using-calloc.patch"
+
+    echo "WINE: -WINE-GST- 0039-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch"
+    apply_patch "../patches/wine-gst/0039-DEBUG-winegstreamer-GST_LOG-GST_DEBUG.patch"
+
+    echo "WINE: -WINE-GST- 0040-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch"
+    apply_patch "../patches/wine-gst/0040-HACK-kernelbase-yt-dlp.exe-redirection-and-cmdline-m.patch"
+
+    echo "WINE: -WINE-GST- 0041-mf-Schedule-stored-timers-for-the-original-time-inst.patch"
+    apply_patch "../patches/wine-gst/0041-mf-Schedule-stored-timers-for-the-original-time-inst.patch"
+
+    echo "WINE: -WINE-GST- 0042-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch"
+    apply_patch "../patches/wine-gst/0042-mf-Start-forwarding-samples-only-at-the-PTS-of-the-f.patch"
+
+    echo "WINE: -WINE-GST- 0043-HACK-kernelbase-Replace-stderr-of-yt-dlp-process.patch"
+    apply_patch "../patches/wine-gst/0043-HACK-kernelbase-Replace-stderr-of-yt-dlp-process.patch"
+
+    echo "WINE: -WINE-GST- 0044-TODO-SQUASH-kernelbase-Remove-PROTON_YTDLP_BROWSER-h.patch"
+    apply_patch "../patches/wine-gst/0044-TODO-SQUASH-kernelbase-Remove-PROTON_YTDLP_BROWSER-h.patch"
+
+    echo "WINE: -WINE-GST- 0045-wip.patch"
+    apply_patch "../patches/wine-gst/0045-wip.patch"
+
+    echo "WINE: -WINE-GST- 0046-wip2.patch"
+    apply_patch "../patches/wine-gst/0046-wip2.patch"
+
+    echo "WINE: -WINE-GST- 0047-wip3.patch"
+    apply_patch "../patches/wine-gst/0047-wip3.patch"
+
+    echo "WINE: -WINE-GST- 0048-revert-disable-some-stuff.patch"
+    apply_patch "../patches/wine-gst/0048-revert-disable-some-stuff.patch"
+
+    echo "WINE: -WINE-GST- 0049-work-around-freeze-on-video-unload.patch"
+    apply_patch "../patches/wine-gst/0049-work-around-freeze-on-video-unload.patch"
+
+### END WINE-GST PROTON RTSP SECTION ###
+
 
 ### (2-7) PROTON-GE ADDITIONAL CUSTOM PATCHES ###
 

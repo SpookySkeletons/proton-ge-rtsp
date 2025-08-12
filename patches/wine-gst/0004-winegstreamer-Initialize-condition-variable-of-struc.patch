@@ -1,0 +1,26 @@
+From 0138227bc4eafcf98bf4564ba04886abca179f9d Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 14 Jun 2024 03:15:57 +0200
+Subject: [PATCH 04/49] winegstreamer: Initialize condition variable of struct
+ media_stream.
+
+CW-Bug-Id: #21644
+---
+ dlls/winegstreamer/media_source.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 8289d81e8a5..b1688b25209 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -1156,6 +1156,7 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
+     object->active = TRUE;
+     object->eos = FALSE;
+     object->wg_stream = wg_stream;
++    InitializeConditionVariable(&object->cond);
+ 
+     TRACE("Created stream object %p.\n", object);
+ 
+-- 
+2.51.0
+
