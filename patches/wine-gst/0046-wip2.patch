@@ -1,0 +1,46 @@
+From 03a1cbd6bcb57ac03d26888b8bdbcdeff0d3b77b Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sat, 6 Sep 2025 00:56:39 +0200
+Subject: [PATCH 46/49] wip2
+
+---
+ dlls/mf/session.c                     | 2 +-
+ dlls/mfmediaengine/video_frame_sink.c | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 8c7bca437e5..1708e868c36 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -1208,6 +1208,7 @@ static void session_set_state(struct media_session *session, enum session_state
+ 
+ static void session_start(struct media_session *session, const GUID *time_format, const PROPVARIANT *start_position)
+ {
++    enum session_state new_state = SESSION_STATE_STARTED;
+     struct media_source *source;
+     MFTIME duration;
+     HRESULT hr;
+@@ -1216,7 +1217,6 @@ static void session_start(struct media_session *session, const GUID *time_format
+     {
+         case SESSION_STATE_PAUSED:
+         case SESSION_STATE_STARTED:
+-            enum session_state new_state = SESSION_STATE_STARTED;
+ 
+             if (!IsEqualGUID(time_format, &GUID_NULL) || start_position->vt != VT_EMPTY)
+             {
+diff --git a/dlls/mfmediaengine/video_frame_sink.c b/dlls/mfmediaengine/video_frame_sink.c
+index a30f24b7661..dabc27c9557 100644
+--- a/dlls/mfmediaengine/video_frame_sink.c
++++ b/dlls/mfmediaengine/video_frame_sink.c
+@@ -105,6 +105,8 @@ struct video_frame_sink
+     CRITICAL_SECTION cs;
+ };
+ 
++static void video_frame_sink_stream_request_sample(struct video_frame_sink *sink);
++
+ static void video_frame_sink_sample_queue_set_presentation(struct video_frame_sink *sink, IMFSample *sample)
+ {
+     struct sample_queue *queue = &sink->queue;
+-- 
+2.51.0
+

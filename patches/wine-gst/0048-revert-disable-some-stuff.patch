@@ -1,0 +1,64 @@
+From de6d5422a2c8240b5114488879b48dd917bca951 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 9 Sep 2025 14:45:31 +0200
+Subject: [PATCH 48/49] revert/disable some stuff
+
+---
+ dlls/mfmediaengine/main.c      | 5 ++---
+ dlls/winegstreamer/wg_parser.c | 4 ++--
+ 2 files changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index 21ba4279bc2..58ac7fd9691 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -1453,14 +1453,14 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+     }
+     else
+     {
+-        static unsigned int once;
++        /*static unsigned int once;
+         char sgi[64];
+ 
+         if (GetEnvironmentVariableA("SteamGameId", sgi, sizeof(sgi)) && !strcmp(sgi, "438100"))
+         {
+             if (!once++) FIXME("HACK: not sending MF_MEDIA_ENGINE_EVENT_ERROR event.\n");
+         }
+-        else
++        else*/
+         {
+             engine->network_state = MF_MEDIA_ENGINE_NETWORK_NO_SOURCE;
+             engine->error_code = MF_MEDIA_ENGINE_ERR_SRC_NOT_SUPPORTED;
+@@ -2777,7 +2777,6 @@ static HRESULT WINAPI media_engine_OnVideoStreamTick(IMFMediaEngineEx *iface, LO
+         MFTIME clocktime;
+         IMFPresentationClock_GetTime(engine->clock, &clocktime);
+         hr = video_frame_sink_get_pts(engine->presentation.frame_sink, clocktime, pts);
+-        TRACE("%#lx\n", hr);
+     }
+ 
+     LeaveCriticalSection(&engine->cs);
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index cce2efa72b8..a2d2535828f 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1807,7 +1807,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+ 
+         /* HACK: Some decoding elements (e.g. qtdemux) send seek events
+            to the source is they believe it to be seekable. */
+-        if (parser->force_source_not_seekable == GST_MESSAGE_SRC(msg))
++        if (0 && parser->force_source_not_seekable == GST_MESSAGE_SRC(msg))
+         {
+             struct _GstSoupHTTPSrc_initial *p = (void *)GST_MESSAGE_SRC(msg);
+             p->seekable = false;
+@@ -1834,7 +1834,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+             }
+             pthread_mutex_unlock(&parser->mutex);
+         }
+-        else if (gst_structure_has_name(structure, "http-headers"))
++        else if (0 && gst_structure_has_name(structure, "http-headers"))
+         {
+             GstStructure *response_headers = NULL;
+ 
+-- 
+2.51.0
+

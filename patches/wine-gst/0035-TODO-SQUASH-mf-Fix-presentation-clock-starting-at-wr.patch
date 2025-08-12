@@ -1,0 +1,83 @@
+From 691a6569871a0f7d7396f918391b1d33834ceb35 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 17 Jan 2025 13:11:49 +0100
+Subject: [PATCH 35/49] [TODO SQUASH] mf: Fix presentation clock starting at
+ wrong offset.
+
+If the presentation clock is first started using ::Pause and then unpaused at offset PRESENTATION_CURRENT_POSITION, the
+presentation clock will start with the current system time as offset.
+---
+ dlls/mf/session.c | 25 +++++++++++++++++++++++--
+ 1 file changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 1853729883a..5887558ad27 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -269,6 +269,7 @@ struct media_session
+     enum session_state state;
+     DWORD caps;
+     BOOL buffering;
++    BOOL clock_started;
+     CRITICAL_SECTION cs;
+ };
+ 
+@@ -1454,7 +1455,10 @@ static void session_stop(struct media_session *session)
+                 session_stop_sources(session);
+             }
+             else if (SUCCEEDED(hr = IMFPresentationClock_Stop(session->clock)))
++            {
++                session->clock_started = FALSE;
+                 session_set_state(session, SESSION_STATE_STOPPING_SINKS);
++            }
+             else
+                 session_set_stopped(session, hr);
+ 
+@@ -1518,7 +1522,10 @@ static void session_close(struct media_session *session)
+                 session_stop_sources(session);
+             }
+             else if (SUCCEEDED(hr = IMFPresentationClock_Stop(session->clock)))
++            {
++                session->clock_started = FALSE;
+                 session_set_state(session, SESSION_STATE_STOPPING_SINKS);
++            }
+             break;
+         default:
+             hr = MF_E_INVALIDREQUEST;
+@@ -3323,6 +3330,7 @@ static enum object_state session_get_object_state_for_event(MediaEventType event
+ static HRESULT session_start_clock(struct media_session *session)
+ {
+     LONGLONG start_offset = 0;
++    MFCLOCK_STATE state;
+     HRESULT hr;
+ 
+     if (IsEqualGUID(&session->presentation.time_format, &GUID_NULL))
+@@ -3337,10 +3345,23 @@ static HRESULT session_start_clock(struct media_session *session)
+     else
+         FIXME("Unhandled time format %s.\n", debugstr_guid(&session->presentation.time_format));
+ 
++    if (start_offset == PRESENTATION_CURRENT_POSITION && !session->clock_started)
++    {
++        if (SUCCEEDED(IMFPresentationClock_GetState(session->clock, 0, &state)) &&
++                state != MFCLOCK_STATE_INVALID && state != MFCLOCK_STATE_STOPPED &&
++                SUCCEEDED(IMFPresentationClock_Stop(session->clock)))
++            session->clock_started = FALSE;
++        start_offset = 0;
++    }
++
+     if (FAILED(hr = IMFPresentationClock_Start(session->clock, start_offset)))
+         WARN("Failed to start session clock, hr %#lx.\n", hr);
+-    else if (session->buffering)
+-        IMFPresentationClock_Pause(session->clock);
++    else
++    {
++        session->clock_started = TRUE;
++        if (session->buffering)
++            IMFPresentationClock_Pause(session->clock);
++    }
+ 
+     return hr;
+ }
+-- 
+2.51.0
+
