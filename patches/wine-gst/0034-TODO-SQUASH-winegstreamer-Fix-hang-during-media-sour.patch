@@ -1,0 +1,96 @@
+From 899e16e018e3b8a4167adb7840d330128484f666 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Thu, 5 Dec 2024 16:32:22 +0100
+Subject: [PATCH 34/49] [TODO SQUASH] winegstreamer: Fix hang during media
+ source destruction when loading the media failed.
+
+---
+ dlls/winegstreamer/media_source.c |  6 +++---
+ dlls/winegstreamer/wg_parser.c    | 25 +++++++++++++++++--------
+ 2 files changed, 20 insertions(+), 11 deletions(-)
+
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 9a56fd0c10e..8ba349e9ade 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -2020,17 +2020,17 @@ fail:
+     free(object->descriptors);
+     free(object->streams);
+ 
+-    if (stream_count != UINT_MAX)
++    object->event_thread_shutdown = true;
++    object->read_thread_shutdown = true;
++    if (object->wg_parser)
+         wg_parser_disconnect(object->wg_parser);
+     if (object->event_thread)
+     {
+-        object->event_thread_shutdown = true;
+         WaitForSingleObject(object->event_thread, INFINITE);
+         CloseHandle(object->event_thread);
+     }
+     if (object->read_thread)
+     {
+-        object->read_thread_shutdown = true;
+         WaitForSingleObject(object->read_thread, INFINITE);
+         CloseHandle(object->read_thread);
+     }
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index e3451460f58..c7e6c32ef0b 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -2319,9 +2319,13 @@ static NTSTATUS wg_parser_disconnect(void *args)
+     pthread_cond_broadcast(&parser->stream_event_cond);
+     pthread_mutex_unlock(&parser->mutex);
+ 
+-    gst_element_set_state(parser->container, GST_STATE_NULL);
+-    gst_object_unref(parser->my_src);
+-    parser->my_src = NULL;
++    if (parser->container)
++        gst_element_set_state(parser->container, GST_STATE_NULL);
++    if (parser->my_src)
++    {
++        gst_object_unref(parser->my_src);
++        parser->my_src = NULL;
++    }
+ 
+     pthread_mutex_lock(&parser->mutex);
+     parser->sink_connected = false;
+@@ -2336,9 +2340,12 @@ static NTSTATUS wg_parser_disconnect(void *args)
+     free(parser->streams);
+     parser->streams = NULL;
+ 
+-    gst_element_set_bus(parser->container, NULL);
+-    gst_object_unref(parser->container);
+-    parser->container = NULL;
++    if (parser->container)
++    {
++        gst_element_set_bus(parser->container, NULL);
++        gst_object_unref(parser->container);
++        parser->container = NULL;
++    }
+ 
+     g_free(parser->sink_caps);
+     parser->sink_caps = NULL;
+@@ -2349,7 +2356,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
+         parser->input_cache_chunks[i].data = NULL;
+     }
+ 
+-    gst_task_pool_cleanup(parser->task_pool);
++    if (parser->task_pool)
++        gst_task_pool_cleanup(parser->task_pool);
+     return S_OK;
+ }
+ 
+@@ -2438,7 +2446,8 @@ static NTSTATUS wg_parser_destroy(void *args)
+         gst_bus_set_sync_handler(parser->bus, NULL, NULL, NULL);
+         gst_object_unref(parser->bus);
+     }
+-    gst_object_unref(parser->task_pool);
++    if (parser->task_pool)
++        gst_object_unref(parser->task_pool);
+ 
+     if (parser->context)
+         gst_context_unref(parser->context);
+-- 
+2.51.0
+
