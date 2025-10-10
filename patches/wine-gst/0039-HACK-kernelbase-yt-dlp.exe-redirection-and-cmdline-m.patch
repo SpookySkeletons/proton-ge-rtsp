@@ -1,7 +1,7 @@
-From 007c277fd4eba2ded6ab240d1af165356abdc06c Mon Sep 17 00:00:00 2001
+From ec0ef439e3e4c598d2e795b14326a0f4027ce211 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Thu, 28 Mar 2024 16:43:07 +0100
-Subject: [PATCH 40/49] [HACK] kernelbase: yt-dlp.exe redirection and cmdline
+Subject: [PATCH 39/48] [HACK] kernelbase: yt-dlp.exe redirection and cmdline
  modification to read cookies from browser.
 
 ---
@@ -9,10 +9,10 @@ Subject: [PATCH 40/49] [HACK] kernelbase: yt-dlp.exe redirection and cmdline
  1 file changed, 51 insertions(+)
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
-index 09e373f45f9..64c4f920973 100644
+index 62737ae32ba..9532d21f5bf 100644
 --- a/dlls/kernelbase/process.c
 +++ b/dlls/kernelbase/process.c
-@@ -588,6 +588,54 @@ static int battleye_launcher_redirect_hack( const WCHAR *app_name, WCHAR *new_na
+@@ -584,6 +584,54 @@ static int battleye_launcher_redirect_hack( const WCHAR *app_name, WCHAR *new_na
      return 1;
  }
  
@@ -67,8 +67,8 @@ index 09e373f45f9..64c4f920973 100644
  static const WCHAR *hack_append_command_line( const WCHAR *cmd )
  {
      static const struct
-@@ -717,6 +765,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
-     if (battleye_launcher_redirect_hack( app_name, name, ARRAY_SIZE(name), &orig_app_name ))
+@@ -746,6 +794,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+     if (battleye_launcher_redirect_hack( app_name, name, ARRAY_SIZE(name), &orig_app_name, product_name ))
          app_name = name;
  
 +    if (ytdlp_hack( app_name, name, ARRAY_SIZE(name), &tidy_cmdline ))

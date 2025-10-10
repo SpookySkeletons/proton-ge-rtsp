@@ -1,7 +1,7 @@
-From bb0f16694830b304ae3e210a95c3262edb30c5ae Mon Sep 17 00:00:00 2001
+From ba8011233eff064e6124898f1013f05aff48ae10 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 10 Apr 2024 15:11:02 +0200
-Subject: [PATCH 19/49] winegstreamer: Implement buffering events.
+Subject: [PATCH 19/48] winegstreamer: Implement buffering events.
 
 CW-Bug-Id: #21644
 ---
@@ -27,7 +27,7 @@ index e86311d4f41..6e332a75a2e 100644
  wg_parser_stream_t wg_parser_get_stream(wg_parser_t parser, uint32_t index);
  
 diff --git a/dlls/winegstreamer/main.c b/dlls/winegstreamer/main.c
-index fc3e009fc9a..19a52cf5a15 100644
+index 2556da1bf5f..265ec1d3740 100644
 --- a/dlls/winegstreamer/main.c
 +++ b/dlls/winegstreamer/main.c
 @@ -227,6 +227,27 @@ bool wg_parser_get_next_read_offset(wg_parser_t parser, uint64_t *offset, uint32
@@ -195,7 +195,7 @@ index 63ed45f294f..e82151e55cc 100644
      unix_wg_parser_get_stream,
  
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 5aa2f2a6621..32841503206 100644
+index 7c7963de239..6be82ee2b52 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -43,6 +43,12 @@
@@ -269,7 +269,7 @@ index 5aa2f2a6621..32841503206 100644
  static NTSTATUS wg_parser_stream_get_current_format(void *args)
  {
      const struct wg_parser_stream_get_current_format_params *params = args;
-@@ -1812,6 +1862,19 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1881,6 +1931,19 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
          break;
      }
  
@@ -289,7 +289,7 @@ index 5aa2f2a6621..32841503206 100644
      default:
          break;
      }
-@@ -2235,6 +2298,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2304,6 +2367,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
      parser->sink_connected = false;
      pthread_mutex_unlock(&parser->mutex);
      pthread_cond_signal(&parser->read_cond);
@@ -297,7 +297,7 @@ index 5aa2f2a6621..32841503206 100644
  
      for (i = 0; i < parser->stream_count; ++i)
          free_stream(parser->streams[i]);
-@@ -2375,6 +2439,8 @@ const unixlib_entry_t __wine_unix_call_funcs[] =
+@@ -2444,6 +2508,8 @@ const unixlib_entry_t __wine_unix_call_funcs[] =
      X(wg_parser_get_next_read_offset),
      X(wg_parser_push_data),
  
@@ -306,7 +306,7 @@ index 5aa2f2a6621..32841503206 100644
      X(wg_parser_get_stream_count),
      X(wg_parser_get_stream),
  
-@@ -2774,6 +2840,8 @@ const unixlib_entry_t __wine_unix_call_wow64_funcs[] =
+@@ -2843,6 +2909,8 @@ const unixlib_entry_t __wine_unix_call_wow64_funcs[] =
      X(wg_parser_get_next_read_offset),
      X64(wg_parser_push_data),
  

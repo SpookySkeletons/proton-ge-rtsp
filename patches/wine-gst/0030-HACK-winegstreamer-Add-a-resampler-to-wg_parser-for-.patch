@@ -1,7 +1,7 @@
-From 8b0feb7006f51cce9e30132684a1cbafcfe687fa Mon Sep 17 00:00:00 2001
+From 7e5a5b40eeae2a88b6580070ba1eb14f7b29ff0e Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 31/49] [HACK] winegstreamer: Add a resampler to wg_parser for
+Subject: [PATCH 30/48] [HACK] winegstreamer: Add a resampler to wg_parser for
  raw audio.
 
 CW-Bug-Id: #21644
@@ -10,10 +10,10 @@ CW-Bug-Id: #21644
  1 file changed, 4 insertions(+)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 95c524abc64..7896c91d89b 100644
+index e0ad112d819..b53b9e07ac3 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1244,6 +1244,10 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
+@@ -1313,6 +1313,10 @@ static bool stream_create_post_processing_elements(GstPad *pad, struct wg_parser
          if (!(element = create_element("audioconvert", "base"))
                  || !append_element(parser->container, element, &first, &last))
              return false;

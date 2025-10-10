@@ -1,7 +1,7 @@
-From 05c80f6e4a4750ddd48fc6d55e4d98ff6a97004f Mon Sep 17 00:00:00 2001
+From e8b6de83b20a66f3c7bf61c709f8da5bf3fb77c8 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 06/49] winegstreamer: Add more RTSP-based URI schemes to
+Subject: [PATCH 06/48] winegstreamer: Add more RTSP-based URI schemes to
  GStreamer scheme handler.
 
 CW-Bug-Id: #21644

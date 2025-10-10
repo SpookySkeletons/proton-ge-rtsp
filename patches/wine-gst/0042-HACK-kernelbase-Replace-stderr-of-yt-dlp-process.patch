@@ -1,17 +1,17 @@
-From bd24e8f8f1229219b6b683c209caa4add21f5f9b Mon Sep 17 00:00:00 2001
+From 43433d8b19674b843f90e757055febe607da86f2 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Thu, 25 Jul 2024 00:17:20 +0200
-Subject: [PATCH 43/49] [HACK] kernelbase: Replace stderr of yt-dlp process.
+Subject: [PATCH 42/48] [HACK] kernelbase: Replace stderr of yt-dlp process.
 
 ---
  dlls/kernelbase/process.c | 22 ++++++++++++++++++++++
  1 file changed, 22 insertions(+)
 
 diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
-index 64c4f920973..080ebcef4b0 100644
+index 9532d21f5bf..6a540948398 100644
 --- a/dlls/kernelbase/process.c
 +++ b/dlls/kernelbase/process.c
-@@ -588,6 +588,25 @@ static int battleye_launcher_redirect_hack( const WCHAR *app_name, WCHAR *new_na
+@@ -584,6 +584,25 @@ static int battleye_launcher_redirect_hack( const WCHAR *app_name, WCHAR *new_na
      return 1;
  }
  
@@ -37,8 +37,8 @@ index 64c4f920973..080ebcef4b0 100644
  static int ytdlp_hack( const WCHAR *app_name, WCHAR *new_name, DWORD new_name_len, WCHAR **cmdline )
  {
      static const WCHAR ytdlp_exeW[] = L"yt-dlp.exe";
-@@ -765,6 +784,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
-     if (battleye_launcher_redirect_hack( app_name, name, ARRAY_SIZE(name), &orig_app_name ))
+@@ -794,6 +813,9 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+     if (battleye_launcher_redirect_hack( app_name, name, ARRAY_SIZE(name), &orig_app_name, product_name ))
          app_name = name;
  
 +    if (is_ytdlp( app_name ))

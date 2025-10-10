@@ -1,7 +1,7 @@
-From bf62bd341a5a2928f57ca18e93f43f7ca5a5b53d Mon Sep 17 00:00:00 2001
+From 5157d77ce655e0fdc2e9635900560a1e0414a123 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 8 Jul 2024 10:30:50 +0200
-Subject: [PATCH 22/49] mf/session: Ensure that the command callback does not
+Subject: [PATCH 22/48] mf/session: Ensure that the command callback does not
  return without clearing SESSION_FLAG_PENDING_COMMAND.
 
 Leaving SESSION_FLAG_PENDING_COMMAND set results in no more work items being queued by session_submit_command, and even
@@ -18,18 +18,18 @@ CW-Bug-Id: #24115
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/dlls/mf/session.c b/dlls/mf/session.c
-index ead2456898d..de427dc4483 100644
+index fb65382b109..d5471a23fdf 100644
 --- a/dlls/mf/session.c
 +++ b/dlls/mf/session.c
-@@ -2887,7 +2887,6 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
-             break;
+@@ -2836,7 +2836,6 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
          case SESSION_CMD_SET_TOPOLOGY:
+             session->presentation.flags &= ~SESSION_FLAG_SOURCE_SHUTDOWN;
              session_set_topology(session, op->set_topology.flags, op->set_topology.topology);
 -            session_command_complete(session);
              break;
          case SESSION_CMD_START:
-             session_start(session, &op->start.time_format, &op->start.start_position);
-@@ -2910,12 +2909,14 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+             if (session->presentation.flags & SESSION_FLAG_SOURCE_SHUTDOWN)
+@@ -2870,12 +2869,14 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
              break;
          case SESSION_CMD_SHUTDOWN:
              session_clear_command_list(session);
@@ -39,7 +39,7 @@ index ead2456898d..de427dc4483 100644
              ;
      }
  
-+    if (session->presentation.flags & SESSION_FLAG_PENDING_COMMAND)
++    if (session->command_state == COMMAND_STATE_SUBMITTED)
 +        session_command_complete(session);
 +
      LeaveCriticalSection(&session->cs);

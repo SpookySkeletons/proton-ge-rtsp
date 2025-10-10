@@ -1,7 +1,7 @@
-From 0de7fe7c4a61dcabbfec9f7eb61d924cd9600c96 Mon Sep 17 00:00:00 2001
+From e9c938036bb7f43800f7a85c4e21a20eb0588143 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:45:44 +0100
-Subject: [PATCH 41/49] mf: Schedule stored timers for the original time
+Subject: [PATCH 40/48] mf: Schedule stored timers for the original time
  instead of calling callbacks immediately when changing presentation clock
  state.
 

@@ -1,7 +1,7 @@
-From ba04f9c81bb1d8428f9e15086fc08acc7110c3fc Mon Sep 17 00:00:00 2001
+From eeafb9f5e2e9a5caebd042898a1ac1ab4e3eb84f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 10 Jul 2024 22:50:17 +0200
-Subject: [PATCH 26/49] winegstreamer: Do not force uridecodebin to expose
+Subject: [PATCH 25/48] winegstreamer: Do not force uridecodebin to expose
  uncompressed streams by failing autoplug-continue callbacks.
 
 Doing so makes uridecodebin expose pads that do not respond to CAPS queries correctly for HLS sources.
@@ -12,10 +12,10 @@ CW-Bug-Id: #21644
  1 file changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 32841503206..034ad7e3b85 100644
+index 6be82ee2b52..25ff1f80e70 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1312,15 +1312,26 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
+@@ -1381,15 +1381,26 @@ static void pad_added_cb(GstElement *element, GstPad *pad, gpointer user)
  {
      struct wg_parser_stream *stream;
      struct wg_parser *parser = user;
@@ -43,7 +43,7 @@ index 32841503206..034ad7e3b85 100644
  
      /* For compressed stream, create an extra decodebin to decode it. */
      if (!parser->output_compressed && caps_is_compressed(stream->codec_caps))
-@@ -2362,7 +2373,6 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+@@ -2431,7 +2442,6 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
      return TRUE;
  }
  

@@ -1,7 +1,7 @@
-From b244855c92b14f92a33edac4ac54ac17d9b959c5 Mon Sep 17 00:00:00 2001
+From 125c8f2d0e8459b5fede909058a642b89352d5fa Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 9 Sep 2025 14:45:08 +0200
-Subject: [PATCH 47/49] wip3
+Subject: [PATCH 46/48] wip3
 
 ---
  dlls/mfmediaengine/video_frame_sink.c | 17 -----------------

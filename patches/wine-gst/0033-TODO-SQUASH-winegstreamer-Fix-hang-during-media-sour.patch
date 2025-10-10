@@ -1,7 +1,7 @@
-From 899e16e018e3b8a4167adb7840d330128484f666 Mon Sep 17 00:00:00 2001
+From 289b1d531fcffce76cd89aa91cd2482372c24530 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Thu, 5 Dec 2024 16:32:22 +0100
-Subject: [PATCH 34/49] [TODO SQUASH] winegstreamer: Fix hang during media
+Subject: [PATCH 33/48] [TODO SQUASH] winegstreamer: Fix hang during media
  source destruction when loading the media failed.
 
 ---
@@ -35,10 +35,10 @@ index 9a56fd0c10e..8ba349e9ade 100644
          CloseHandle(object->read_thread);
      }
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index e3451460f58..c7e6c32ef0b 100644
+index e8283c09a84..ca227a7d485 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -2319,9 +2319,13 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2388,9 +2388,13 @@ static NTSTATUS wg_parser_disconnect(void *args)
      pthread_cond_broadcast(&parser->stream_event_cond);
      pthread_mutex_unlock(&parser->mutex);
  
@@ -55,7 +55,7 @@ index e3451460f58..c7e6c32ef0b 100644
  
      pthread_mutex_lock(&parser->mutex);
      parser->sink_connected = false;
-@@ -2336,9 +2340,12 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2405,9 +2409,12 @@ static NTSTATUS wg_parser_disconnect(void *args)
      free(parser->streams);
      parser->streams = NULL;
  
@@ -71,7 +71,7 @@ index e3451460f58..c7e6c32ef0b 100644
  
      g_free(parser->sink_caps);
      parser->sink_caps = NULL;
-@@ -2349,7 +2356,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2418,7 +2425,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
          parser->input_cache_chunks[i].data = NULL;
      }
  
@@ -81,7 +81,7 @@ index e3451460f58..c7e6c32ef0b 100644
      return S_OK;
  }
  
-@@ -2438,7 +2446,8 @@ static NTSTATUS wg_parser_destroy(void *args)
+@@ -2507,7 +2515,8 @@ static NTSTATUS wg_parser_destroy(void *args)
          gst_bus_set_sync_handler(parser->bus, NULL, NULL, NULL);
          gst_object_unref(parser->bus);
      }

@@ -1,7 +1,7 @@
-From f2f696a370e8f80e9d985a36a3c7a5e85aab15ab Mon Sep 17 00:00:00 2001
+From 5f3718bb26110f062bb6c384ebafbb1b646a60c4 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 19 Mar 2024 10:09:59 +0100
-Subject: [PATCH 16/49] winegstreamer: Do not fail caps negotiation when
+Subject: [PATCH 16/48] winegstreamer: Do not fail caps negotiation when
  there's a concurrent reconfigure.
 
 If wg_parser_stream_enable is called between the time our sink's GST_QUERY_CAPS returns and the time our sink gets the
@@ -18,7 +18,7 @@ Also try to omit the reconfigure event in some cases.
  1 file changed, 88 insertions(+), 5 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index dbd36f0d272..65a14a2ef59 100644
+index f74fe8d84b5..b989d0d617f 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -122,6 +122,7 @@ struct wg_parser_stream
@@ -117,10 +117,10 @@ index dbd36f0d272..65a14a2ef59 100644
      pthread_mutex_unlock(&parser->mutex);
      pthread_cond_broadcast(&parser->stream_event_cond);
      return S_OK;
-@@ -765,6 +815,16 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
-             gst_event_parse_caps(event, &caps);
+@@ -783,6 +833,16 @@ static gboolean sink_event_cb(GstPad *pad, GstObject *parent, GstEvent *event)
              pthread_mutex_lock(&parser->mutex);
              stream->current_caps = gst_caps_ref(caps);
+             stream->fix_nv12 = fix_nv12;
 +            if (stream->next_desired_caps)
 +            {
 +                if (!gst_caps_can_intersect(stream->current_caps, stream->next_desired_caps))
@@ -134,7 +134,7 @@ index dbd36f0d272..65a14a2ef59 100644
              pthread_mutex_unlock(&parser->mutex);
              pthread_cond_signal(&parser->init_cond);
              break;
-@@ -793,6 +853,14 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -859,6 +919,14 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
  
      pthread_mutex_lock(&parser->mutex);
  
@@ -149,7 +149,7 @@ index dbd36f0d272..65a14a2ef59 100644
      if (!stream->has_buffer)
      {
          stream->has_buffer = true;
-@@ -859,7 +927,15 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -928,7 +996,15 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
              gst_query_parse_caps(query, &filter);
  
              pthread_mutex_lock(&parser->mutex);
@@ -166,7 +166,7 @@ index dbd36f0d272..65a14a2ef59 100644
              {
                  pthread_mutex_unlock(&parser->mutex);
                  return FALSE;
-@@ -893,7 +969,7 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -962,7 +1038,7 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
  
              pthread_mutex_lock(&parser->mutex);
  
@@ -175,7 +175,7 @@ index dbd36f0d272..65a14a2ef59 100644
              {
                  pthread_mutex_unlock(&parser->mutex);
                  gst_query_set_accept_caps_result(query, TRUE);
-@@ -904,6 +980,11 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
+@@ -973,6 +1049,11 @@ static gboolean sink_query_cb(GstPad *pad, GstObject *parent, GstQuery *query)
              wg_format_from_caps(&format, caps);
              wg_format_from_caps(&current_format, stream->desired_caps);
              ret = wg_format_compare(&format, &current_format);
@@ -187,7 +187,7 @@ index dbd36f0d272..65a14a2ef59 100644
  
              pthread_mutex_unlock(&parser->mutex);
  
-@@ -1582,6 +1663,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1651,6 +1732,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
          parser->error = true;
          pthread_mutex_unlock(&parser->mutex);
          pthread_cond_signal(&parser->init_cond);
@@ -195,7 +195,7 @@ index dbd36f0d272..65a14a2ef59 100644
          break;
  
      case GST_MESSAGE_WARNING:
-@@ -1615,6 +1697,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1684,6 +1766,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
                      GST_WARNING("Autoplugged element failed to initialise. Giving up as we're using a web scheme.");
                  else
                      GST_WARNING("Autoplugged element failed to initialise, trying again with protonvideoconvert.");

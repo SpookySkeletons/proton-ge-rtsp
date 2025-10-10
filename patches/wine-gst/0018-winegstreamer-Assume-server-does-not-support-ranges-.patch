@@ -1,7 +1,7 @@
-From cb2e53db550e71c367cc3f58345f300745fa223a Mon Sep 17 00:00:00 2001
+From 26e32e8ae354d6e54b2597924b9db554c841f123 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sun, 24 Nov 2024 04:01:16 +0100
-Subject: [PATCH 18/49] winegstreamer: Assume server does not support ranges if
+Subject: [PATCH 18/48] winegstreamer: Assume server does not support ranges if
  response is missing Accept-Ranges header.
 
 ---
@@ -9,7 +9,7 @@ Subject: [PATCH 18/49] winegstreamer: Assume server does not support ranges if
  1 file changed, 77 insertions(+)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 872898d3bcf..5aa2f2a6621 100644
+index b2f0d66067d..7c7963de239 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -110,6 +110,7 @@ struct wg_parser
@@ -20,7 +20,7 @@ index 872898d3bcf..5aa2f2a6621 100644
  };
  static const unsigned int input_cache_chunk_size = 512 << 10;
  
-@@ -1653,6 +1654,35 @@ static gboolean src_activate_mode_cb(GstPad *pad, GstObject *parent, GstPadMode
+@@ -1722,6 +1723,35 @@ static gboolean src_activate_mode_cb(GstPad *pad, GstObject *parent, GstPadMode
      return FALSE;
  }
  
@@ -56,7 +56,7 @@ index 872898d3bcf..5aa2f2a6621 100644
  static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer user)
  {
      struct wg_parser *parser = user;
-@@ -1694,6 +1724,15 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1763,6 +1793,15 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
      case GST_MESSAGE_DURATION_CHANGED:
          pthread_mutex_lock(&parser->mutex);
          parser->has_duration = true;
@@ -72,7 +72,7 @@ index 872898d3bcf..5aa2f2a6621 100644
          pthread_mutex_unlock(&parser->mutex);
          pthread_cond_signal(&parser->init_cond);
          break;
-@@ -1715,6 +1754,44 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1784,6 +1823,44 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
              }
              pthread_mutex_unlock(&parser->mutex);
          }

@@ -1,7 +1,7 @@
-From debbb3d12674b54e86e3bf7e70c7e8c02b2361a3 Mon Sep 17 00:00:00 2001
+From e2d9b98cdfc49928ce958b470a1cedda92d2e891 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 26 Aug 2024 19:12:39 +0200
-Subject: [PATCH 38/49] mfplat: Allocate memory buffers using calloc.
+Subject: [PATCH 37/48] mfplat: Allocate memory buffers using calloc.
 
 Skips the need to memset the allocated memory.
 ---

@@ -1,7 +1,7 @@
-From cfbea344cbdd86389c1216a0c8910d96332c4867 Mon Sep 17 00:00:00 2001
+From f449eaac93966f01ba2f9be1cd9fa4e79922fd07 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 21 May 2024 08:25:47 +0200
-Subject: [PATCH 20/49] mf/samplegrabber: Send sample requests for unused space
+Subject: [PATCH 20/48] mf/samplegrabber: Send sample requests for unused space
  of sample queue on pause => restart.
 
 CW-Bug-Id: #24115
