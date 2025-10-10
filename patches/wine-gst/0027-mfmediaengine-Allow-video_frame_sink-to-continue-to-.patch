@@ -1,7 +1,7 @@
-From 9fb81b8f1a6b260272d38b50da14f8a4c8b5c7f0 Mon Sep 17 00:00:00 2001
+From 899e7c15bc45fd8216625563d2b9f34e1d68a1d5 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 2 Sep 2024 09:06:24 +0200
-Subject: [PATCH 28/49] mfmediaengine: Allow video_frame_sink to continue to
+Subject: [PATCH 27/48] mfmediaengine: Allow video_frame_sink to continue to
  work after receiving end-of-stream.
 
 CW-Bug-Id: #21644
@@ -11,10 +11,10 @@ CW-Bug-Id: #21644
  2 files changed, 5 insertions(+)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index cdf2dc4dca6..b35fdac3b80 100644
+index c15dde29256..f8917da15e3 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -986,7 +986,9 @@ static HRESULT WINAPI media_engine_session_events_Invoke(IMFAsyncCallback *iface
+@@ -987,7 +987,9 @@ static HRESULT WINAPI media_engine_session_events_Invoke(IMFAsyncCallback *iface
              break;
  
          case MEEndOfPresentationSegment:

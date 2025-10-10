@@ -1,7 +1,7 @@
-From fdef9c44e8941febb934fbeb3e306f38856ef374 Mon Sep 17 00:00:00 2001
+From 7366b576b2c4c4c0bfa3e05b610c957939365a35 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:54 +0100
-Subject: [PATCH 14/49] winegstreamer: Do away with the per-stream condvars and
+Subject: [PATCH 14/48] winegstreamer: Do away with the per-stream condvars and
  use one parser-wide condvar instead.
 
 CW-Bug-Id: #21644
@@ -10,7 +10,7 @@ CW-Bug-Id: #21644
  1 file changed, 10 insertions(+), 19 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index e58e07710c3..6de6af5d17b 100644
+index 8eaede3a588..0e7b0acacbb 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -89,6 +89,7 @@ struct wg_parser
@@ -75,7 +75,7 @@ index e58e07710c3..6de6af5d17b 100644
  
              if (stream->buffer)
              {
-@@ -804,7 +803,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -870,7 +869,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
       * implementing a queue object here. */
  
      while (stream->enabled && !stream->flushing && stream->buffer)
@@ -84,7 +84,7 @@ index e58e07710c3..6de6af5d17b 100644
  
      if (!stream->enabled)
      {
-@@ -833,7 +832,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -902,7 +901,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
      stream->buffer = buffer;
  
      pthread_mutex_unlock(&parser->mutex);
@@ -93,7 +93,7 @@ index e58e07710c3..6de6af5d17b 100644
  
      /* The chain callback is given a reference to the buffer. Transfer that
       * reference to the stream object, which will release it in
-@@ -936,8 +935,6 @@ static struct wg_parser_stream *create_stream(struct wg_parser *parser)
+@@ -1005,8 +1004,6 @@ static struct wg_parser_stream *create_stream(struct wg_parser *parser)
      stream->parser = parser;
      stream->number = parser->stream_count;
      stream->no_more_pads = true;
@@ -102,7 +102,7 @@ index e58e07710c3..6de6af5d17b 100644
  
      sprintf(pad_name, "qz_sink_%u", parser->stream_count);
      stream->my_sink = gst_pad_new(pad_name, GST_PAD_SINK);
-@@ -969,9 +966,6 @@ static void free_stream(struct wg_parser_stream *stream)
+@@ -1038,9 +1035,6 @@ static void free_stream(struct wg_parser_stream *stream)
          stream->buffer = NULL;
      }
  
@@ -112,7 +112,7 @@ index e58e07710c3..6de6af5d17b 100644
      for (i = 0; i < ARRAY_SIZE(stream->tags); ++i)
      {
          if (stream->tags[i])
-@@ -2021,12 +2015,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2090,12 +2084,8 @@ static NTSTATUS wg_parser_disconnect(void *args)
      /* Unblock all of our streams. */
      pthread_mutex_lock(&parser->mutex);
      for (i = 0; i < parser->stream_count; ++i)
@@ -126,7 +126,7 @@ index e58e07710c3..6de6af5d17b 100644
      pthread_mutex_unlock(&parser->mutex);
  
      gst_element_set_state(parser->container, GST_STATE_NULL);
-@@ -2130,6 +2120,7 @@ static NTSTATUS wg_parser_create(void *args)
+@@ -2199,6 +2189,7 @@ static NTSTATUS wg_parser_create(void *args)
      pthread_cond_init(&parser->init_cond, NULL);
      pthread_cond_init(&parser->read_cond, NULL);
      pthread_cond_init(&parser->read_done_cond, NULL);

@@ -1,7 +1,7 @@
-From 08f42c0b2d0dbf1bf425ded2723fc0e1d120bb57 Mon Sep 17 00:00:00 2001
+From 6822483ec0ee6be17e0fa7c298336d003c8d8355 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Sat, 2 Mar 2024 21:19:25 +0100
-Subject: [PATCH 33/49] [HACK] mfmediaengine: Do not send
+Subject: [PATCH 32/48] [HACK] mfmediaengine: Do not send
  MF_MEDIA_ENGINE_EVENT_ERROR for VRChat.
 
 Breaks AVPro Video (used by VRChat) when a IMFMediaEngine::GetError call inside the event handler doesn't return an
@@ -17,10 +17,10 @@ CW-Bug-Id: #21644
  1 file changed, 15 insertions(+), 5 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index ec7598e7b6b..7bd11d4720b 100644
+index 3ba34ea903e..75ce4b745ff 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -1453,11 +1453,21 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+@@ -1471,11 +1471,21 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
      }
      else
      {

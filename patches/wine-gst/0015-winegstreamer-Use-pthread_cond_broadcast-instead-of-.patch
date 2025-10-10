@@ -1,7 +1,7 @@
-From 0b82d270c72021b504d21e125edd03f7ff5f201a Mon Sep 17 00:00:00 2001
+From e548388569e8091c4d748bec12028eff74a4e46d Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Mon, 18 Mar 2024 10:18:07 +0100
-Subject: [PATCH 15/49] winegstreamer: Use pthread_cond_broadcast instead of
+Subject: [PATCH 15/48] winegstreamer: Use pthread_cond_broadcast instead of
  pthread_cond_signal for stream_event_cond.
 
 CW-Bug-Id: #21644
@@ -10,7 +10,7 @@ CW-Bug-Id: #21644
  1 file changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 6de6af5d17b..dbd36f0d272 100644
+index 0e7b0acacbb..f74fe8d84b5 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -303,7 +303,7 @@ static NTSTATUS wg_parser_stream_disable(void *args)
@@ -49,7 +49,7 @@ index 6de6af5d17b..dbd36f0d272 100644
  
              if (stream->buffer)
              {
-@@ -832,7 +832,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
+@@ -901,7 +901,7 @@ static GstFlowReturn sink_chain_cb(GstPad *pad, GstObject *parent, GstBuffer *bu
      stream->buffer = buffer;
  
      pthread_mutex_unlock(&parser->mutex);
@@ -58,7 +58,7 @@ index 6de6af5d17b..dbd36f0d272 100644
  
      /* The chain callback is given a reference to the buffer. Transfer that
       * reference to the stream object, which will release it in
-@@ -2016,7 +2016,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
+@@ -2085,7 +2085,7 @@ static NTSTATUS wg_parser_disconnect(void *args)
      pthread_mutex_lock(&parser->mutex);
      for (i = 0; i < parser->stream_count; ++i)
          parser->streams[i]->flushing = true;

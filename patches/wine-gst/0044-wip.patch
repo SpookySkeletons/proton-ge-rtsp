@@ -1,10 +1,9 @@
-From 721a9a6868f399e2d66bbc9ef147d3892666766e Mon Sep 17 00:00:00 2001
+From 5b11e6fe36ab9cdb7a4db1bdc5467f3a4e90395c Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 2 Sep 2025 18:27:27 +0200
-Subject: [PATCH 45/49] wip
+Subject: [PATCH 44/48] wip
 
 ---
- dlls/mf/session.c                     |  8 +-----
  dlls/mf/topology_loader.c             |  3 ++
  dlls/mfmediaengine/main.c             |  1 +
  dlls/mfmediaengine/video_frame_sink.c | 20 +++++++++++++
@@ -15,34 +14,8 @@ Subject: [PATCH 45/49] wip
  dlls/winegstreamer/unixlib.h          |  1 +
  dlls/winegstreamer/wg_parser.c        |  9 ++++--
  dlls/winegstreamer/wm_reader.c        |  4 +--
- 11 files changed, 58 insertions(+), 36 deletions(-)
+ 10 files changed, 57 insertions(+), 29 deletions(-)
 
-diff --git a/dlls/mf/session.c b/dlls/mf/session.c
-index e9ab3ac463e..8c7bca437e5 100644
---- a/dlls/mf/session.c
-+++ b/dlls/mf/session.c
-@@ -1190,10 +1190,7 @@ static void session_reset_transforms(struct media_session *session, BOOL drop)
-         if (!drop)
-             continue;
- 
--        if (topo_node->type == MF_TOPOLOGY_SOURCESTREAM_NODE || topo_node->type == MF_TOPOLOGY_OUTPUT_NODE)
--            topo_node->state = OBJ_STATE_SEEKING;
--
--            for (i = 0; i < topo_node->u.transform.output_count; ++i)
-+        for (i = 0; i < topo_node->u.transform.output_count; ++i)
-         {
-             struct transform_stream *stream = &topo_node->u.transform.outputs[i];
-             transform_stream_drop_events(stream);
-@@ -1287,9 +1284,6 @@ static void session_start(struct media_session *session, const GUID *time_format
-                     return;
-                 }
- 
--                if (unpause_seek)
--                    source->state = OBJ_STATE_SEEKING;
--
-                 if (source->state != OBJ_STATE_STARTED)
-                     new_state = SESSION_STATE_STARTING_SOURCES;
-             }
 diff --git a/dlls/mf/topology_loader.c b/dlls/mf/topology_loader.c
 index a1b201fd4d2..fbfb86bd4fe 100644
 --- a/dlls/mf/topology_loader.c
@@ -58,10 +31,10 @@ index a1b201fd4d2..fbfb86bd4fe 100644
          return hr;
  
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index 7bd11d4720b..21ba4279bc2 100644
+index 75ce4b745ff..968a855e90d 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -2777,6 +2777,7 @@ static HRESULT WINAPI media_engine_OnVideoStreamTick(IMFMediaEngineEx *iface, LO
+@@ -2797,6 +2797,7 @@ static HRESULT WINAPI media_engine_OnVideoStreamTick(IMFMediaEngineEx *iface, LO
          MFTIME clocktime;
          IMFPresentationClock_GetTime(engine->clock, &clocktime);
          hr = video_frame_sink_get_pts(engine->presentation.frame_sink, clocktime, pts);
@@ -203,7 +176,7 @@ index 6e332a75a2e..08fd5152d51 100644
  
  bool wg_parser_get_next_read_offset(wg_parser_t parser, uint64_t *offset, uint32_t *size);
 diff --git a/dlls/winegstreamer/main.c b/dlls/winegstreamer/main.c
-index 19a52cf5a15..f809005a1b2 100644
+index 265ec1d3740..028308f0ddc 100644
 --- a/dlls/winegstreamer/main.c
 +++ b/dlls/winegstreamer/main.c
 @@ -190,13 +190,14 @@ void wg_parser_destroy(wg_parser_t parser)
@@ -373,7 +346,7 @@ index e82151e55cc..fdf7b465a38 100644
  
  struct wg_parser_get_next_read_offset_params
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 18c4044caee..cce2efa72b8 100644
+index 690d3560d1b..ec8ae8933fa 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -84,6 +84,7 @@ struct wg_parser
@@ -384,7 +357,7 @@ index 18c4044caee..cce2efa72b8 100644
  
      pthread_t push_thread;
  
-@@ -1700,7 +1701,7 @@ static gboolean activate_push(GstPad *pad, gboolean activate)
+@@ -1769,7 +1770,7 @@ static gboolean activate_push(GstPad *pad, gboolean activate)
              parser->push_thread = 0;
          }
      }
@@ -393,7 +366,7 @@ index 18c4044caee..cce2efa72b8 100644
      {
          int ret;
  
-@@ -2083,6 +2084,7 @@ static NTSTATUS wg_parser_connect(void *args)
+@@ -2152,6 +2153,7 @@ static NTSTATUS wg_parser_connect(void *args)
      {
          parser->uri = NULL;
      }
@@ -401,7 +374,7 @@ index 18c4044caee..cce2efa72b8 100644
  
      if (!parser->bus)
      {
-@@ -2366,8 +2368,7 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+@@ -2435,8 +2437,7 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
      GstElement *element;
      const char *type;
  
@@ -411,7 +384,7 @@ index 18c4044caee..cce2efa72b8 100644
      type = parser->is_web_scheme ? "uridecodebin" : "decodebin";
      if (!(element = create_element(type, "base")))
          return FALSE;
-@@ -2538,12 +2539,14 @@ static NTSTATUS wow64_wg_parser_connect(void *args)
+@@ -2607,12 +2608,14 @@ static NTSTATUS wow64_wg_parser_connect(void *args)
          wg_parser_t parser;
          PTR32 uri;
          UINT64 file_size;
@@ -427,7 +400,7 @@ index 18c4044caee..cce2efa72b8 100644
  
      return wg_parser_connect(&params);
 diff --git a/dlls/winegstreamer/wm_reader.c b/dlls/winegstreamer/wm_reader.c
-index 9145f59f474..38c80c6f30d 100644
+index df7c20e8749..3682708ae11 100644
 --- a/dlls/winegstreamer/wm_reader.c
 +++ b/dlls/winegstreamer/wm_reader.c
 @@ -1541,7 +1541,7 @@ static HRESULT init_stream(struct wm_reader *reader)
@@ -439,7 +412,7 @@ index 9145f59f474..38c80c6f30d 100644
      {
          ERR("Failed to connect parser, hr %#lx.\n", hr);
          goto out_shutdown_thread;
-@@ -1677,7 +1677,7 @@ static HRESULT reinit_stream(struct wm_reader *reader, bool read_compressed)
+@@ -1678,7 +1678,7 @@ static HRESULT reinit_stream(struct wm_reader *reader, bool read_compressed)
          goto out_destroy_parser;
      }
  

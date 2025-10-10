@@ -1,7 +1,7 @@
-From 5ae598dec8e4b0b1f19b3bd70d23b7e4346c9213 Mon Sep 17 00:00:00 2001
+From becf2e5c6bc715dc7c0135318e5d7f6da09eeb2f Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 24 Apr 2024 22:00:49 +0200
-Subject: [PATCH 37/49] ntdll: Use unixcall instead of syscall for
+Subject: [PATCH 36/48] ntdll: Use unixcall instead of syscall for
  QueryPerformanceCounter.
 
 ---
@@ -27,21 +27,21 @@ index 105a6cf5bc8..9bd182e4cb2 100644
  
  /******************************************************************************
 diff --git a/dlls/ntdll/unix/loader.c b/dlls/ntdll/unix/loader.c
-index 8b661c8ea06..15da36616e6 100644
+index 0e70aa13f78..e64268010c8 100644
 --- a/dlls/ntdll/unix/loader.c
 +++ b/dlls/ntdll/unix/loader.c
-@@ -1262,6 +1262,7 @@ static const unixlib_entry_t unix_call_funcs[] =
-     unixcall_wine_server_handle_to_fd,
-     unixcall_wine_spawnvp,
-     system_time_precise,
+@@ -1307,6 +1307,7 @@ static const unixlib_entry_t unix_call_funcs[] =
+     wine_get_unix_env,
+     wine_set_unix_env,
+     unix__wine_dbg_ftrace,
 +    query_performance_counter,
      steamclient_setup_trampolines,
      is_pc_in_native_so,
      debugstr_pc,
-@@ -1308,6 +1309,7 @@ const unixlib_entry_t unix_call_wow64_funcs[] =
-     wow64_wine_server_handle_to_fd,
-     wow64_wine_spawnvp,
-     system_time_precise,
+@@ -1399,6 +1400,7 @@ const unixlib_entry_t unix_call_wow64_funcs[] =
+     wow64___wine_get_unix_env,
+     wow64___wine_set_unix_env,
+     wow64___wine_dbg_ftrace,
 +    query_performance_counter,
      wow64_steamclient_setup_trampolines,
      is_pc_in_native_so,
@@ -73,10 +73,10 @@ index 47fd5b24c46..09e4f2a67cb 100644
      return STATUS_SUCCESS;
  }
 diff --git a/dlls/ntdll/unix/unix_private.h b/dlls/ntdll/unix/unix_private.h
-index a2163d4e19f..ea5d196b18b 100644
+index 9f61a2a20c6..1b2bb3b331f 100644
 --- a/dlls/ntdll/unix/unix_private.h
 +++ b/dlls/ntdll/unix/unix_private.h
-@@ -281,6 +281,8 @@ extern unsigned int alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, stru
+@@ -282,6 +282,8 @@ extern unsigned int alloc_object_attributes( const OBJECT_ATTRIBUTES *attr, stru
                                               data_size_t *ret_len );
  extern NTSTATUS system_time_precise( void *args );
  
@@ -86,13 +86,13 @@ index a2163d4e19f..ea5d196b18b 100644
  extern void *anon_mmap_fixed( void *start, size_t size, int prot, int flags );
  extern void *anon_mmap_alloc( size_t size, int prot );
 diff --git a/dlls/ntdll/unixlib.h b/dlls/ntdll/unixlib.h
-index e0870584a68..030801de407 100644
+index 1a05a0ede15..8ee50d8e4ca 100644
 --- a/dlls/ntdll/unixlib.h
 +++ b/dlls/ntdll/unixlib.h
-@@ -89,6 +89,7 @@ enum ntdll_unix_funcs
-     unix_wine_server_handle_to_fd,
-     unix_wine_spawnvp,
-     unix_system_time_precise,
+@@ -113,6 +113,7 @@ enum ntdll_unix_funcs
+     unix___wine_get_unix_env,
+     unix___wine_set_unix_env,
+     unix_wine_dbg_ftrace,
 +    unix_query_performance_counter,
      unix_steamclient_setup_trampolines,
      unix_is_pc_in_native_so,

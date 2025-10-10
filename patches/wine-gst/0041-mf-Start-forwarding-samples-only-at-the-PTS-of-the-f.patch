@@ -1,7 +1,7 @@
-From 30d1c4de19710a783ce0db3b5ff5ad6b849555a6 Mon Sep 17 00:00:00 2001
+From 53f07bf0920d483e55f8ab96225d089c7c45aed0 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 23 Feb 2024 21:50:22 +0100
-Subject: [PATCH 42/49] mf: Start forwarding samples only at the PTS of the
+Subject: [PATCH 41/48] mf: Start forwarding samples only at the PTS of the
  first sample.
 
 Hides desynchronization in applications that ignore the PTS, e.g. VRChat.
@@ -10,10 +10,10 @@ Hides desynchronization in applications that ignore the PTS, e.g. VRChat.
  1 file changed, 177 insertions(+), 5 deletions(-)
 
 diff --git a/dlls/mf/session.c b/dlls/mf/session.c
-index 5887558ad27..e9ab3ac463e 100644
+index 632a2578720..41535a7b3a1 100644
 --- a/dlls/mf/session.c
 +++ b/dlls/mf/session.c
-@@ -167,6 +167,13 @@ enum topo_node_flags
+@@ -184,6 +184,13 @@ enum topo_node_flags
  {
      TOPO_NODE_END_OF_STREAM = 0x1,
      TOPO_NODE_SCRUB_SAMPLE_COMPLETE = 0x2,
@@ -27,7 +27,7 @@ index 5887558ad27..e9ab3ac463e 100644
  };
  
  struct topo_node
-@@ -192,6 +199,9 @@ struct topo_node
+@@ -209,6 +216,9 @@ struct topo_node
          {
              IMFMediaSource *source;
              DWORD stream_id;
@@ -37,7 +37,7 @@ index 5887558ad27..e9ab3ac463e 100644
          } source;
          struct
          {
-@@ -245,6 +255,7 @@ struct media_session
+@@ -258,6 +268,7 @@ struct media_session
      IMFPresentationClock *clock;
      IMFPresentationTimeSource *system_time_source;
      IMFRateControl *clock_rate_control;
@@ -45,7 +45,7 @@ index 5887558ad27..e9ab3ac463e 100644
      IMFTopoLoader *topo_loader;
      IMFQualityManager *quality_manager;
      struct
-@@ -328,6 +339,11 @@ static struct session_op *impl_op_from_IUnknown(IUnknown *iface)
+@@ -342,6 +353,11 @@ static struct session_op *impl_op_from_IUnknown(IUnknown *iface)
      return CONTAINING_RECORD(iface, struct session_op, IUnknown_iface);
  }
  
@@ -57,7 +57,7 @@ index 5887558ad27..e9ab3ac463e 100644
  static struct topo_node *impl_node_from_IMFVideoSampleAllocatorNotify(IMFVideoSampleAllocatorNotify *iface)
  {
      return CONTAINING_RECORD(iface, struct topo_node, u.sink.notify_cb);
-@@ -803,6 +819,29 @@ static void transform_stream_drop_events(struct transform_stream *stream)
+@@ -793,6 +809,29 @@ static void transform_stream_drop_events(struct transform_stream *stream)
          IMFMediaEvent_Release(event);
  }
  
@@ -87,7 +87,7 @@ index 5887558ad27..e9ab3ac463e 100644
  static void release_topo_node(struct topo_node *node)
  {
      unsigned int i;
-@@ -812,6 +851,12 @@ static void release_topo_node(struct topo_node *node)
+@@ -802,6 +841,12 @@ static void release_topo_node(struct topo_node *node)
          case MF_TOPOLOGY_SOURCESTREAM_NODE:
              if (node->u.source.source)
                  IMFMediaSource_Release(node->u.source.source);
@@ -100,7 +100,7 @@ index 5887558ad27..e9ab3ac463e 100644
              break;
          case MF_TOPOLOGY_TRANSFORM_NODE:
              for (i = 0; i < node->u.transform.input_count; ++i)
-@@ -1983,6 +2028,68 @@ static HRESULT session_get_stream_sink_type(IMFStreamSink *sink, IMFMediaType **
+@@ -1909,6 +1954,68 @@ static HRESULT session_get_stream_sink_type(IMFStreamSink *sink, IMFMediaType **
      return hr;
  }
  
@@ -169,7 +169,7 @@ index 5887558ad27..e9ab3ac463e 100644
  static HRESULT WINAPI node_sample_allocator_cb_QueryInterface(IMFVideoSampleAllocatorNotify *iface,
          REFIID riid, void **obj)
  {
-@@ -2097,6 +2204,9 @@ static HRESULT session_append_node(struct media_session *session, IMFTopologyNod
+@@ -2023,6 +2130,9 @@ static HRESULT session_append_node(struct media_session *session, IMFTopologyNod
  
              break;
          case MF_TOPOLOGY_SOURCESTREAM_NODE:
@@ -179,7 +179,7 @@ index 5887558ad27..e9ab3ac463e 100644
              if (FAILED(IMFTopologyNode_GetUnknown(node, &MF_TOPONODE_SOURCE, &IID_IMFMediaSource,
                      (void **)&topo_node->u.source.source)))
              {
-@@ -2402,6 +2512,8 @@ static ULONG WINAPI mfsession_Release(IMFMediaSession *iface)
+@@ -2326,6 +2436,8 @@ static ULONG WINAPI mfsession_Release(IMFMediaSession *iface)
              IMFPresentationTimeSource_Release(session->system_time_source);
          if (session->clock_rate_control)
              IMFRateControl_Release(session->clock_rate_control);
@@ -188,7 +188,7 @@ index 5887558ad27..e9ab3ac463e 100644
          if (session->topo_loader)
              IMFTopoLoader_Release(session->topo_loader);
          if (session->quality_manager)
-@@ -4229,10 +4341,40 @@ static void session_request_sample(struct media_session *session, IMFStreamSink
+@@ -4202,10 +4314,40 @@ static void session_request_sample(struct media_session *session, IMFStreamSink
          sink_node->u.sink.requests--;
  }
  
@@ -230,7 +230,7 @@ index 5887558ad27..e9ab3ac463e 100644
  
      if (value && (value->vt != VT_UNKNOWN || !value->punkVal))
      {
-@@ -4252,16 +4394,42 @@ static void session_deliver_sample(struct media_session *session, IMFMediaStream
+@@ -4225,16 +4367,42 @@ static void session_deliver_sample(struct media_session *session, IMFMediaStream
      if (!source_node)
          return;
  
@@ -277,7 +277,7 @@ index 5887558ad27..e9ab3ac463e 100644
  }
  
  static void session_sink_invalidated(struct media_session *session, IMFMediaEvent *event, IMFStreamSink *sink)
-@@ -5073,6 +5241,10 @@ HRESULT WINAPI MFCreateMediaSession(IMFAttributes *config, IMFMediaSession **ses
+@@ -5052,6 +5220,10 @@ HRESULT WINAPI MFCreateMediaSession(IMFAttributes *config, IMFMediaSession **ses
          goto failed;
      }
  

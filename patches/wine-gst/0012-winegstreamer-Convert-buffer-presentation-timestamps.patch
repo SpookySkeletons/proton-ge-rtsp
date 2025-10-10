@@ -1,7 +1,7 @@
-From bda4ad53aad2322058d9a3f721669753d1cb82c9 Mon Sep 17 00:00:00 2001
+From d5defb09b511e2cfdf1cd46772a2d97b7c426d75 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Wed, 31 Jan 2024 17:42:55 +0100
-Subject: [PATCH 12/49] winegstreamer: Convert buffer presentation timestamps
+Subject: [PATCH 12/48] winegstreamer: Convert buffer presentation timestamps
  into stream time.
 
 CW-Bug-Id: #21644
@@ -10,7 +10,7 @@ CW-Bug-Id: #21644
  1 file changed, 40 insertions(+), 16 deletions(-)
 
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index 44c014066ee..6afda78ad35 100644
+index c911b3ee40f..36f64db90d6 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
 @@ -85,7 +85,7 @@ struct wg_parser

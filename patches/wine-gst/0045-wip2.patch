@@ -1,0 +1,25 @@
+From 305079261b1a0cfacfa5e25e92157c83d0d7a27c Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sat, 6 Sep 2025 00:56:39 +0200
+Subject: [PATCH 45/48] wip2
+
+---
+ dlls/mfmediaengine/video_frame_sink.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/dlls/mfmediaengine/video_frame_sink.c b/dlls/mfmediaengine/video_frame_sink.c
+index a30f24b7661..dabc27c9557 100644
+--- a/dlls/mfmediaengine/video_frame_sink.c
++++ b/dlls/mfmediaengine/video_frame_sink.c
+@@ -105,6 +105,8 @@ struct video_frame_sink
+     CRITICAL_SECTION cs;
+ };
+ 
++static void video_frame_sink_stream_request_sample(struct video_frame_sink *sink);
++
+ static void video_frame_sink_sample_queue_set_presentation(struct video_frame_sink *sink, IMFSample *sample)
+ {
+     struct sample_queue *queue = &sink->queue;
+-- 
+2.51.0
+

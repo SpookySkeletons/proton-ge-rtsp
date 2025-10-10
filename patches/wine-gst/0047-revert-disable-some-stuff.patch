@@ -1,7 +1,7 @@
-From de6d5422a2c8240b5114488879b48dd917bca951 Mon Sep 17 00:00:00 2001
+From 931efa65976bf7960ef4ad5e15e787ea130912f2 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 9 Sep 2025 14:45:31 +0200
-Subject: [PATCH 48/49] revert/disable some stuff
+Subject: [PATCH 47/48] revert/disable some stuff
 
 ---
  dlls/mfmediaengine/main.c      | 5 ++---
@@ -9,10 +9,10 @@ Subject: [PATCH 48/49] revert/disable some stuff
  2 files changed, 4 insertions(+), 5 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index 21ba4279bc2..58ac7fd9691 100644
+index 968a855e90d..10709fd3bcc 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -1453,14 +1453,14 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+@@ -1471,14 +1471,14 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
      }
      else
      {
@@ -29,7 +29,7 @@ index 21ba4279bc2..58ac7fd9691 100644
          {
              engine->network_state = MF_MEDIA_ENGINE_NETWORK_NO_SOURCE;
              engine->error_code = MF_MEDIA_ENGINE_ERR_SRC_NOT_SUPPORTED;
-@@ -2777,7 +2777,6 @@ static HRESULT WINAPI media_engine_OnVideoStreamTick(IMFMediaEngineEx *iface, LO
+@@ -2797,7 +2797,6 @@ static HRESULT WINAPI media_engine_OnVideoStreamTick(IMFMediaEngineEx *iface, LO
          MFTIME clocktime;
          IMFPresentationClock_GetTime(engine->clock, &clocktime);
          hr = video_frame_sink_get_pts(engine->presentation.frame_sink, clocktime, pts);
@@ -38,10 +38,10 @@ index 21ba4279bc2..58ac7fd9691 100644
  
      LeaveCriticalSection(&engine->cs);
 diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
-index cce2efa72b8..a2d2535828f 100644
+index ec8ae8933fa..6d8e7215031 100644
 --- a/dlls/winegstreamer/wg_parser.c
 +++ b/dlls/winegstreamer/wg_parser.c
-@@ -1807,7 +1807,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1876,7 +1876,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
  
          /* HACK: Some decoding elements (e.g. qtdemux) send seek events
             to the source is they believe it to be seekable. */
@@ -50,7 +50,7 @@ index cce2efa72b8..a2d2535828f 100644
          {
              struct _GstSoupHTTPSrc_initial *p = (void *)GST_MESSAGE_SRC(msg);
              p->seekable = false;
-@@ -1834,7 +1834,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
+@@ -1903,7 +1903,7 @@ static GstBusSyncReply bus_handler_cb(GstBus *bus, GstMessage *msg, gpointer use
              }
              pthread_mutex_unlock(&parser->mutex);
          }

@@ -1,7 +1,7 @@
-From 341a26e2212ad7a4d6529aaf92aae210192b991d Mon Sep 17 00:00:00 2001
+From 9f791ac0a18351bc190224704a307d7c87e96772 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Tue, 6 Aug 2024 23:53:39 +0200
-Subject: [PATCH 24/49] winegstreamer: Also flush token queue on seek.
+Subject: [PATCH 23/48] winegstreamer: Also flush token queue on seek.
 
 This is needed by video_frame_sink in mfmediaengine to properly restart playback after pausing if the unpausing
 operation is a seek.

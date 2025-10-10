@@ -1,7 +1,7 @@
-From fdfb850bfba287369754dc97253a79cb3cad8a44 Mon Sep 17 00:00:00 2001
+From 76e2c5b71df30eb6325206bd1fb8edf7a5312c15 Mon Sep 17 00:00:00 2001
 From: Torge Matthies <openglfreak@googlemail.com>
 Date: Fri, 16 Aug 2024 02:29:05 +0200
-Subject: [PATCH 27/49] mfmediaengine: Unstub IMFMediaEngine::SetAutoPlay.
+Subject: [PATCH 26/48] mfmediaengine: Unstub IMFMediaEngine::SetAutoPlay.
 
 CW-Bug-Id: #21644
 ---
@@ -9,10 +9,10 @@ CW-Bug-Id: #21644
  1 file changed, 9 insertions(+), 4 deletions(-)
 
 diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
-index 47e5f3337a1..cdf2dc4dca6 100644
+index 200a3e1f387..c15dde29256 100644
 --- a/dlls/mfmediaengine/main.c
 +++ b/dlls/mfmediaengine/main.c
-@@ -1418,7 +1418,7 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+@@ -1436,7 +1436,7 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
      engine->network_state = MF_MEDIA_ENGINE_NETWORK_LOADING;
      IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_LOADSTART, 0, 0);
  
@@ -21,7 +21,7 @@ index 47e5f3337a1..cdf2dc4dca6 100644
      media_engine_set_flag(engine, FLAGS_ENGINE_SOURCE_PENDING | FLAGS_ENGINE_PLAY_PENDING, FALSE);
  
      if (SUCCEEDED(IMFAsyncResult_GetState(result, &state)))
-@@ -2087,14 +2087,19 @@ static BOOL WINAPI media_engine_GetAutoPlay(IMFMediaEngineEx *iface)
+@@ -2105,14 +2105,19 @@ static BOOL WINAPI media_engine_GetAutoPlay(IMFMediaEngineEx *iface)
  static HRESULT WINAPI media_engine_SetAutoPlay(IMFMediaEngineEx *iface, BOOL autoplay)
  {
      struct media_engine *engine = impl_from_IMFMediaEngineEx(iface);
