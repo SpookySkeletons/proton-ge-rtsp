@@ -444,6 +444,9 @@ apply_all_in_dir() {
     echo "WINE: -WINE-GST- 0048-ntdll-unix-Reset-MXCSR-to-the-default-value-on-exit-.patch"
     apply_patch "../patches/wine-gst/0048-ntdll-unix-Reset-MXCSR-to-the-default-value-on-exit-.patch"
 
+    echo "WINE: -WINE-GST- 0049-fix-mf-session-crash.patch"
+    apply_patch "../patches/wine-gst/0049-fix-mf-session-crash.patch"
+
 ### END WINE-GST PROTON RTSP SECTION ###
 
 
@@ -470,8 +473,9 @@ apply_all_in_dir() {
     echo "WINE: -CUSTOM- Fix a crash in ID2D1DeviceContext if no target is set"
     apply_patch "../patches/proton/fix-a-crash-in-ID2D1DeviceContext-if-no-target-is-set.patch"
 
-    echo "WINE: -CUSTOM- Add envvar to allow method=automatic to be set for video orientation in gstreamer"
-    apply_patch "../patches/proton/proton-use_winegstreamer_and_set_orientation-PROTON_MEDIA_USE_GST-PROTON_GST_VIDEO_ORIENTATION.patch"
+    # We disable this as it paves patch 16
+    #echo "WINE: -CUSTOM- Add envvar to allow method=automatic to be set for video orientation in gstreamer"
+    #apply_patch "../patches/proton/proton-use_winegstreamer_and_set_orientation-PROTON_MEDIA_USE_GST-PROTON_GST_VIDEO_ORIENTATION.patch"
 
     echo "WINE: RUN AUTOCONF TOOLS/MAKE_REQUESTS"
     autoreconf -f

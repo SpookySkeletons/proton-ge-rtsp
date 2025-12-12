@@ -1,0 +1,63 @@
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 93a882040b7..a18e355fed0 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -104,6 +104,8 @@ enum command_state
+     /* Command submitted but hasn't started execution.
+      * invariant: the submitted command is always the head of session->commands. */
+     COMMAND_STATE_SUBMITTED,
++    /* Command is executing */
++    COMMAND_STATE_RUNNING,
+     /* STOPPED | PAUSED | STARTED -> STARTED transition */
+     COMMAND_STATE_RESTARTING_SOURCES, /* -> COMMAND_STATE_STARTING_SOURCES */
+     COMMAND_STATE_STARTING_SOURCES,   /* -> COMMAND_STATE_PREROLLING_SINKS | COMMAND_STATE_STARTING_SINKS */
+@@ -2999,6 +3001,7 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+ 
+     assert( session->command_state == COMMAND_STATE_SUBMITTED );
+     list_remove(&op->entry);
++    session->command_state = COMMAND_STATE_RUNNING;
+ 
+     switch (op->command)
+     {
+@@ -3047,7 +3050,7 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+             ;
+     }
+ 
+-    if (session->command_state == COMMAND_STATE_SUBMITTED)
++    if (session->command_state == COMMAND_STATE_RUNNING)
+         session_command_complete(session);
+ 
+     LeaveCriticalSection(&session->cs);
+@@ -3169,6 +3172,7 @@ static void session_handle_source_shutdown(struct media_session *session)
+                 session_set_stopped(session, MESessionStopped, MF_E_SHUTDOWN);
+             break;
+         case COMMAND_STATE_SUBMITTED:
++        case COMMAND_STATE_RUNNING:
+             break;
+     }
+ 
+@@ -3527,6 +3531,7 @@ static void session_set_source_object_state(struct media_session *session, IUnkn
+             session_finalize_sinks(session);
+             break;
+         case COMMAND_STATE_SUBMITTED:
++        case COMMAND_STATE_RUNNING:
+         case COMMAND_STATE_COMPLETE:
+         case COMMAND_STATE_PREROLLING_SINKS:
+         case COMMAND_STATE_STARTING_SINKS:
+@@ -3602,6 +3607,7 @@ static void session_set_sink_stream_state(struct media_session *session, IMFStre
+                 session_set_closed(session, hr);
+             break;
+         case COMMAND_STATE_SUBMITTED:
++        case COMMAND_STATE_RUNNING:
+         case COMMAND_STATE_COMPLETE:
+         case COMMAND_STATE_RESTARTING_SOURCES:
+         case COMMAND_STATE_STARTING_SOURCES:
+@@ -4606,7 +4612,7 @@ static HRESULT WINAPI session_events_callback_Invoke(IMFAsyncCallback *iface, IM
+             {
+                 if (event_type == MEBufferingStarted)
+                     IMFPresentationClock_Pause(session->clock);
+-                else if (session->state == SESSION_STATE_STARTED)
++                else if (session->clock_started)
+                     IMFPresentationClock_Start(session->clock, PRESENTATION_CURRENT_POSITION);
+                 session->buffering = (event_type == MEBufferingStarted);
+ 
