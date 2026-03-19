@@ -1,0 +1,122 @@
+From 1954920b177cb63472433644a1635e0322c9fbf9 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 9 Sep 2025 14:45:08 +0200
+Subject: [PATCH 46/62] wip3
+
+---
+ dlls/mfmediaengine/video_frame_sink.c | 17 -----------------
+ 1 file changed, 17 deletions(-)
+
+diff --git a/dlls/mfmediaengine/video_frame_sink.c b/dlls/mfmediaengine/video_frame_sink.c
+index dabc27c9557..8766bc72258 100644
+--- a/dlls/mfmediaengine/video_frame_sink.c
++++ b/dlls/mfmediaengine/video_frame_sink.c
+@@ -122,18 +122,15 @@ static BOOL video_frame_sink_sample_queue_pop(struct video_frame_sink *sink, IMF
+ {
+     struct sample_queue *queue = &sink->queue;
+ 
+-    TRACE("%p, %u\n", sink, queue->used);
+     if (queue->used)
+     {
+         *sample = queue->samples[queue->front];
+-        TRACE("%p\n", *sample);
+         queue->front = (queue->front + 1) % ARRAY_SIZE(queue->samples);
+         queue->used--;
+     }
+     else
+         *sample = NULL;
+ 
+-    TRACE("%p, %u, %p\n", sink, queue->used, *sample);
+     return *sample != NULL;
+ }
+ 
+@@ -145,7 +142,6 @@ static void video_frame_sink_sample_queue_push(struct video_frame_sink *sink, IM
+     unsigned int idx;
+ 
+     /* if queue is full, we drop the oldest sample to make room for the new one */
+-    TRACE("%p, %u, %p\n", sink, queue->used, sample);
+     if (queue->used == ARRAY_SIZE(queue->samples))
+     {
+         video_frame_sink_sample_queue_pop(sink, &old_sample);
+@@ -158,7 +154,6 @@ static void video_frame_sink_sample_queue_push(struct video_frame_sink *sink, IM
+         idx = queue->back = (queue->back + 1) % ARRAY_SIZE(queue->samples);
+     queue->samples[idx] = sample;
+     queue->used++;
+-    TRACE("ret %p, %u, %p\n", sink, queue->used, sample);
+ }
+ 
+ static void video_frame_sink_sample_queue_flush(struct video_frame_sink *sink)
+@@ -415,13 +410,11 @@ static HRESULT WINAPI video_frame_sink_stream_ProcessSample(IMFStreamSink *iface
+ 
+     if (sink->is_shut_down)
+     {
+-        TRACE("1\n");
+         hr = MF_E_STREAMSINK_REMOVED;
+     }
+     else if (sink->state == SINK_STATE_RUNNING || sink->state == SINK_STATE_PAUSED)
+     {
+         hr = IMFSample_GetSampleTime(sample, &sampletime);
+-        TRACE("2 %#lx\n", hr);
+ 
+         if (SUCCEEDED(hr))
+         {
+@@ -432,7 +425,6 @@ static HRESULT WINAPI video_frame_sink_stream_ProcessSample(IMFStreamSink *iface
+             }
+             /* else TODO: send MEQualityNotify event */
+ 
+-            TRACE("3\n");
+             IMFSample_AddRef(sample);
+             video_frame_sink_sample_queue_push(sink, sample, FALSE);
+ 
+@@ -1257,13 +1249,10 @@ static HRESULT sample_get_pts(IMFSample *sample, MFTIME clocktime, LONGLONG *pts
+     HRESULT hr = S_FALSE;
+     LONGLONG sample_pts;
+ 
+-    TRACE("%p %I64u\n", sample, clocktime);
+-
+     if (sample)
+     {
+         if (SUCCEEDED(hr = IMFSample_GetSampleTime(sample, &sample_pts)))
+         {
+-            TRACE("%I64u %I64d\n", clocktime, sample_pts);
+             hr = (clocktime >= sample_pts) ? S_OK : S_FALSE;
+             if (hr == S_OK)
+                 *pts = sample_pts;
+@@ -1271,7 +1260,6 @@ static HRESULT sample_get_pts(IMFSample *sample, MFTIME clocktime, LONGLONG *pts
+         else
+             WARN("Failed to get sample time, hr %#lx.\n", hr);
+     }
+-    TRACE("hr %#lx\n", hr);
+     return hr;
+ }
+ 
+@@ -1292,26 +1280,21 @@ HRESULT video_frame_sink_get_pts(struct video_frame_sink *sink, MFTIME clocktime
+         IMFSample *sample;
+         bool transfer_sample = FALSE;
+         EnterCriticalSection(&sink->cs);
+-        TRACE("1\n");
+         while (video_frame_sink_sample_queue_pop(sink, &sample))
+         {
+-            TRACE("2\n");
+             if (sample_get_pts(sample, clocktime, pts) == S_OK)
+             {
+-                TRACE("3\n");
+                 video_frame_sink_sample_queue_set_presentation(sink, sample);
+                 transfer_sample = TRUE;
+                 hr = S_OK;
+             }
+             else
+             {
+-                TRACE("4\n");
+                 video_frame_sink_sample_queue_push(sink, sample, TRUE);
+                 break;
+             }
+         }
+ 
+-        TRACE("5 %d %d\n", transfer_sample, !sink->queue.sample_presented);
+         if (transfer_sample)
+             video_frame_sink_stream_request_sample(sink);
+         else if (!sink->queue.sample_presented)
+-- 
+2.53.0
+

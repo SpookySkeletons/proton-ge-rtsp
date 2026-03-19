@@ -1,0 +1,106 @@
+From 5fae68beb84a133f24effc9734bf13cc97f3b898 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 19 Dec 2025 01:03:45 +0100
+Subject: [PATCH 58/62] mfsrcsnk: Use private work queue in media source.
+
+---
+ dlls/mfsrcsnk/media_source.c | 24 ++++++++++++++++--------
+ 1 file changed, 16 insertions(+), 8 deletions(-)
+
+diff --git a/dlls/mfsrcsnk/media_source.c b/dlls/mfsrcsnk/media_source.c
+index 7c9df15f3dd..24da8d0710a 100644
+--- a/dlls/mfsrcsnk/media_source.c
++++ b/dlls/mfsrcsnk/media_source.c
+@@ -265,6 +265,7 @@ struct media_source
+     LONG refcount;
+ 
+     CRITICAL_SECTION cs;
++    DWORD wqueue;
+     IMFAsyncResult *shutdown_result;
+     IMFMediaEventQueue *queue;
+     IMFByteStream *stream;
+@@ -393,7 +394,7 @@ static void queue_media_source_read(struct media_source *source)
+ {
+     HRESULT hr;
+ 
+-    if (FAILED(hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &source->async_read_iface, NULL)))
++    if (FAILED(hr = MFPutWorkItem(source->wqueue, &source->async_read_iface, NULL)))
+         ERR("Failed to queue async read for source %p, hr %#lx\n", source, hr);
+     source->pending_reads++;
+ }
+@@ -947,9 +948,9 @@ static HRESULT WINAPI media_stream_RequestSample(IMFMediaStream *iface, IUnknown
+     else if (stream->eos)
+         hr = MF_E_END_OF_STREAM;
+     else if (source->thin)
+-        hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &stream->async_request_thin_iface, token);
++        hr = MFPutWorkItem(source->wqueue, &stream->async_request_thin_iface, token);
+     else
+-        hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &stream->async_request_iface, token);
++        hr = MFPutWorkItem(source->wqueue, &stream->async_request_iface, token);
+ 
+     LeaveCriticalSection(&source->cs);
+ 
+@@ -1181,7 +1182,7 @@ static HRESULT WINAPI media_source_IMFRateControl_SetRate(IMFRateControl *iface,
+     if (FAILED(hr = async_set_rate_params_create(rate, thin, &params)))
+         return hr;
+ 
+-    hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &source->async_set_rate_iface, params);
++    hr = MFPutWorkItem(source->wqueue, &source->async_set_rate_iface, params);
+     IUnknown_Release(params);
+ 
+     return hr;
+@@ -1397,7 +1398,7 @@ static HRESULT WINAPI media_source_Start(IMFMediaSource *iface, IMFPresentationD
+         hr = MF_E_UNSUPPORTED_TIME_FORMAT;
+     else if (SUCCEEDED(hr = async_start_params_create(descriptor, format, position, &op)))
+     {
+-        hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &source->async_start_iface, op);
++        hr = MFPutWorkItem(source->wqueue, &source->async_start_iface, op);
+         IUnknown_Release(op);
+     }
+ 
+@@ -1418,7 +1419,7 @@ static HRESULT WINAPI media_source_Stop(IMFMediaSource *iface)
+     if (source->state == SOURCE_SHUTDOWN)
+         hr = MF_E_SHUTDOWN;
+     else
+-        hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &source->async_stop_iface, NULL);
++        hr = MFPutWorkItem(source->wqueue, &source->async_stop_iface, NULL);
+ 
+     LeaveCriticalSection(&source->cs);
+ 
+@@ -1439,7 +1440,7 @@ static HRESULT WINAPI media_source_Pause(IMFMediaSource *iface)
+     else if (source->state != SOURCE_RUNNING)
+         hr = MF_E_INVALID_STATE_TRANSITION;
+     else
+-        hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &source->async_pause_iface, NULL);
++        hr = MFPutWorkItem(source->wqueue, &source->async_pause_iface, NULL);
+ 
+     LeaveCriticalSection(&source->cs);
+ 
+@@ -1478,7 +1479,7 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+ 
+     if (source->shutdown_result)
+     {
+-        MFPutWorkItemEx(MFASYNC_CALLBACK_QUEUE_STANDARD, source->shutdown_result);
++        MFPutWorkItemEx(source->wqueue, source->shutdown_result);
+         IMFAsyncResult_Release(source->shutdown_result);
+         source->shutdown_result = NULL;
+     }
+@@ -1909,8 +1910,15 @@ static HRESULT media_source_create(const WCHAR *url, IMFByteStream *stream, IMFM
+     source->async_set_rate_iface.lpVtbl = &media_source_async_set_rate_vtbl;
+     source->refcount = 1;
+ 
++    if (FAILED(hr = MFAllocateSerialWorkQueue(MFASYNC_CALLBACK_QUEUE_MULTITHREADED, &source->wqueue)))
++    {
++        free(source);
++        return hr;
++    }
++
+     if (FAILED(hr = MFCreateEventQueue(&source->queue)))
+     {
++        MFUnlockWorkQueue(source->wqueue);
+         free(source);
+         return hr;
+     }
+-- 
+2.53.0
+
