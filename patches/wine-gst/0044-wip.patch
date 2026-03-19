@@ -1,0 +1,426 @@
+From b8613184822a1dcbf508375b534c93c0f4cff37e Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Tue, 2 Sep 2025 18:27:27 +0200
+Subject: [PATCH 44/62] wip
+
+---
+ dlls/mf/topology_loader.c             |  3 ++
+ dlls/mfmediaengine/main.c             |  1 +
+ dlls/mfmediaengine/video_frame_sink.c | 20 +++++++++++++
+ dlls/winegstreamer/gst_private.h      |  2 +-
+ dlls/winegstreamer/main.c             |  3 +-
+ dlls/winegstreamer/media_source.c     | 41 +++++++++++++--------------
+ dlls/winegstreamer/quartz_parser.c    |  2 +-
+ dlls/winegstreamer/unixlib.h          |  1 +
+ dlls/winegstreamer/wg_parser.c        |  9 ++++--
+ dlls/winegstreamer/wm_reader.c        |  4 +--
+ 10 files changed, 57 insertions(+), 29 deletions(-)
+
+diff --git a/dlls/mf/topology_loader.c b/dlls/mf/topology_loader.c
+index a1b201fd4d2..fbfb86bd4fe 100644
+--- a/dlls/mf/topology_loader.c
++++ b/dlls/mf/topology_loader.c
+@@ -714,6 +714,9 @@ static HRESULT topology_loader_connect_d3d_aware_sink(struct topoloader_context
+     DWORD upstream_output;
+     HRESULT hr;
+ 
++    if (dxva_mode == MFTOPOLOGY_DXVA_NONE)
++        return S_OK;
++
+     if (FAILED(hr = topology_node_get_object(node, &IID_IMFStreamSink, (void **)&stream_sink)))
+         return hr;
+ 
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index b52171723b3..241a74dca33 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -2937,6 +2937,7 @@ static HRESULT WINAPI media_engine_OnVideoStreamTick(IMFMediaEngineEx *iface, LO
+         MFTIME clocktime;
+         IMFPresentationClock_GetTime(engine->clock, &clocktime);
+         hr = video_frame_sink_get_pts(engine->presentation.frame_sink, clocktime, pts);
++        TRACE("%#lx\n", hr);
+     }
+ 
+     LeaveCriticalSection(&engine->cs);
+diff --git a/dlls/mfmediaengine/video_frame_sink.c b/dlls/mfmediaengine/video_frame_sink.c
+index 5cc1691e762..a30f24b7661 100644
+--- a/dlls/mfmediaengine/video_frame_sink.c
++++ b/dlls/mfmediaengine/video_frame_sink.c
+@@ -120,15 +120,18 @@ static BOOL video_frame_sink_sample_queue_pop(struct video_frame_sink *sink, IMF
+ {
+     struct sample_queue *queue = &sink->queue;
+ 
++    TRACE("%p, %u\n", sink, queue->used);
+     if (queue->used)
+     {
+         *sample = queue->samples[queue->front];
++        TRACE("%p\n", *sample);
+         queue->front = (queue->front + 1) % ARRAY_SIZE(queue->samples);
+         queue->used--;
+     }
+     else
+         *sample = NULL;
+ 
++    TRACE("%p, %u, %p\n", sink, queue->used, *sample);
+     return *sample != NULL;
+ }
+ 
+@@ -140,6 +143,7 @@ static void video_frame_sink_sample_queue_push(struct video_frame_sink *sink, IM
+     unsigned int idx;
+ 
+     /* if queue is full, we drop the oldest sample to make room for the new one */
++    TRACE("%p, %u, %p\n", sink, queue->used, sample);
+     if (queue->used == ARRAY_SIZE(queue->samples))
+     {
+         video_frame_sink_sample_queue_pop(sink, &old_sample);
+@@ -152,6 +156,7 @@ static void video_frame_sink_sample_queue_push(struct video_frame_sink *sink, IM
+         idx = queue->back = (queue->back + 1) % ARRAY_SIZE(queue->samples);
+     queue->samples[idx] = sample;
+     queue->used++;
++    TRACE("ret %p, %u, %p\n", sink, queue->used, sample);
+ }
+ 
+ static void video_frame_sink_sample_queue_flush(struct video_frame_sink *sink)
+@@ -172,6 +177,9 @@ static void video_frame_sink_sample_queue_flush(struct video_frame_sink *sink)
+         queue->presentation_sample = NULL;
+         queue->sample_presented = FALSE;
+     }
++
++    if (sink->state == SINK_STATE_RUNNING)
++        video_frame_sink_stream_request_sample(sink);
+ }
+ 
+ static void video_frame_sink_sample_queue_free(struct video_frame_sink *sink)
+@@ -405,11 +413,13 @@ static HRESULT WINAPI video_frame_sink_stream_ProcessSample(IMFStreamSink *iface
+ 
+     if (sink->is_shut_down)
+     {
++        TRACE("1\n");
+         hr = MF_E_STREAMSINK_REMOVED;
+     }
+     else if (sink->state == SINK_STATE_RUNNING || sink->state == SINK_STATE_PAUSED)
+     {
+         hr = IMFSample_GetSampleTime(sample, &sampletime);
++        TRACE("2 %#lx\n", hr);
+ 
+         if (SUCCEEDED(hr))
+         {
+@@ -420,6 +430,7 @@ static HRESULT WINAPI video_frame_sink_stream_ProcessSample(IMFStreamSink *iface
+             }
+             /* else TODO: send MEQualityNotify event */
+ 
++            TRACE("3\n");
+             IMFSample_AddRef(sample);
+             video_frame_sink_sample_queue_push(sink, sample, FALSE);
+ 
+@@ -1244,10 +1255,13 @@ static HRESULT sample_get_pts(IMFSample *sample, MFTIME clocktime, LONGLONG *pts
+     HRESULT hr = S_FALSE;
+     LONGLONG sample_pts;
+ 
++    TRACE("%p %I64u\n", sample, clocktime);
++
+     if (sample)
+     {
+         if (SUCCEEDED(hr = IMFSample_GetSampleTime(sample, &sample_pts)))
+         {
++            TRACE("%I64u %I64d\n", clocktime, sample_pts);
+             hr = (clocktime >= sample_pts) ? S_OK : S_FALSE;
+             if (hr == S_OK)
+                 *pts = sample_pts;
+@@ -1255,6 +1269,7 @@ static HRESULT sample_get_pts(IMFSample *sample, MFTIME clocktime, LONGLONG *pts
+         else
+             WARN("Failed to get sample time, hr %#lx.\n", hr);
+     }
++    TRACE("hr %#lx\n", hr);
+     return hr;
+ }
+ 
+@@ -1275,21 +1290,26 @@ HRESULT video_frame_sink_get_pts(struct video_frame_sink *sink, MFTIME clocktime
+         IMFSample *sample;
+         bool transfer_sample = FALSE;
+         EnterCriticalSection(&sink->cs);
++        TRACE("1\n");
+         while (video_frame_sink_sample_queue_pop(sink, &sample))
+         {
++            TRACE("2\n");
+             if (sample_get_pts(sample, clocktime, pts) == S_OK)
+             {
++                TRACE("3\n");
+                 video_frame_sink_sample_queue_set_presentation(sink, sample);
+                 transfer_sample = TRUE;
+                 hr = S_OK;
+             }
+             else
+             {
++                TRACE("4\n");
+                 video_frame_sink_sample_queue_push(sink, sample, TRUE);
+                 break;
+             }
+         }
+ 
++        TRACE("5 %d %d\n", transfer_sample, !sink->queue.sample_presented);
+         if (transfer_sample)
+             video_frame_sink_stream_request_sample(sink);
+         else if (!sink->queue.sample_presented)
+diff --git a/dlls/winegstreamer/gst_private.h b/dlls/winegstreamer/gst_private.h
+index a257666e3ae..72f0ac95a73 100644
+--- a/dlls/winegstreamer/gst_private.h
++++ b/dlls/winegstreamer/gst_private.h
+@@ -75,7 +75,7 @@ void wg_sample_queue_flush(struct wg_sample_queue *queue, bool all);
+ wg_parser_t wg_parser_create(bool output_compressed, bool use_opengl);
+ void wg_parser_destroy(wg_parser_t parser);
+ 
+-HRESULT wg_parser_connect(wg_parser_t parser, uint64_t file_size, const WCHAR *uri);
++HRESULT wg_parser_connect(wg_parser_t parser, uint64_t file_size, const WCHAR *uri, BOOL has_bytestream);
+ void wg_parser_disconnect(wg_parser_t parser);
+ 
+ bool wg_parser_get_next_read_offset(wg_parser_t parser, uint64_t *offset, uint32_t *size);
+diff --git a/dlls/winegstreamer/main.c b/dlls/winegstreamer/main.c
+index 265ec1d3740..028308f0ddc 100644
+--- a/dlls/winegstreamer/main.c
++++ b/dlls/winegstreamer/main.c
+@@ -190,13 +190,14 @@ void wg_parser_destroy(wg_parser_t parser)
+     WINE_UNIX_CALL(unix_wg_parser_destroy, &parser);
+ }
+ 
+-HRESULT wg_parser_connect(wg_parser_t parser, uint64_t file_size, const WCHAR *uri)
++HRESULT wg_parser_connect(wg_parser_t parser, uint64_t file_size, const WCHAR *uri, BOOL has_bytestream)
+ {
+     struct wg_parser_connect_params params =
+     {
+         .parser = parser,
+         .file_size = file_size,
+         .uri = uri,
++        .has_bytestream = has_bytestream,
+     };
+ 
+     TRACE("parser %#I64x, file_size %I64u.\n", parser, file_size);
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 62c163162da..2f73496c114 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -79,7 +79,8 @@ static ULONG WINAPI object_context_Release(IUnknown *iface)
+     if (!refcount)
+     {
+         IMFAsyncResult_Release(context->result);
+-        IMFByteStream_Release(context->stream);
++        if (context->stream)
++            IMFByteStream_Release(context->stream);
+         free(context->url);
+         free(context);
+     }
+@@ -109,7 +110,8 @@ static HRESULT object_context_create(DWORD flags, IMFByteStream *stream, const W
+     context->IUnknown_iface.lpVtbl = &object_context_vtbl;
+     context->refcount = 1;
+     context->stream = stream;
+-    IMFByteStream_AddRef(context->stream);
++    if (context->stream)
++        IMFByteStream_AddRef(context->stream);
+     context->file_size = file_size;
+     context->url = tmp_url;
+     context->result = result;
+@@ -1300,7 +1302,6 @@ static HRESULT media_stream_create(IMFMediaSource *source, IMFStreamDescriptor *
+     object->active = TRUE;
+     object->eos = FALSE;
+     object->wg_stream = wg_stream;
+-    InitializeConditionVariable(&object->cond);
+ 
+     TRACE("Created stream object %p.\n", object);
+ 
+@@ -1533,7 +1534,8 @@ static ULONG WINAPI media_source_Release(IMFMediaSource *iface)
+     {
+         IMFMediaSource_Shutdown(iface);
+         IMFMediaEventQueue_Release(source->event_queue);
+-        IMFByteStream_Release(source->byte_stream);
++        if (source->byte_stream)
++            IMFByteStream_Release(source->byte_stream);
+         wg_parser_destroy(source->wg_parser);
+         source->cs.DebugInfo->Spare[0] = 0;
+         DeleteCriticalSection(&source->cs);
+@@ -1751,7 +1753,8 @@ static HRESULT WINAPI media_source_Shutdown(IMFMediaSource *iface)
+ 
+     IMFMediaEventQueue_QueueEventParamVar(source->event_queue, MEError, &GUID_NULL, MF_E_SHUTDOWN, NULL);
+     IMFMediaEventQueue_Shutdown(source->event_queue);
+-    IMFByteStream_Close(source->byte_stream);
++    if (source->byte_stream)
++        IMFByteStream_Close(source->byte_stream);
+ 
+     while (source->stream_count--)
+     {
+@@ -1826,8 +1829,13 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+     object->async_commands_callback.lpVtbl = &source_async_commands_callback_vtbl;
+     object->ref = 1;
+     object->byte_stream = context->stream;
+-    IMFByteStream_AddRef(context->stream);
+-    object->file_size = context->file_size;
++    if (!object->byte_stream)
++        object->file_size = ~(QWORD)0;
++    else
++    {
++        IMFByteStream_AddRef(object->byte_stream);
++        object->file_size = context->file_size;
++    }
+     object->rate = 1.0f;
+     InitializeCriticalSectionEx(&object->cs, 0, RTL_CRITICAL_SECTION_FLAG_FORCE_DEBUG_INFO);
+     object->cs.DebugInfo->Spare[0] = (DWORD_PTR)(__FILE__ ": cs");
+@@ -1845,14 +1853,14 @@ static HRESULT media_source_create(struct object_context *context, IMFMediaSourc
+     }
+     object->wg_parser = parser;
+ 
+-    if (context->type != WG_PARSER_URIDECODEBIN)
++    if (object->byte_stream)
+         object->read_thread = CreateThread(NULL, 0, read_thread, object, 0, NULL);
+ 
+     object->event_thread = CreateThread(NULL, 0, event_thread, object, 0, NULL);
+ 
+     object->state = SOURCE_OPENING;
+ 
+-    if (FAILED(hr = wg_parser_connect(parser, object->file_size, context->url)))
++    if (FAILED(hr = wg_parser_connect(parser, object->file_size, context->url, object->byte_stream != NULL)))
+         goto fail;
+ 
+     stream_count = wg_parser_get_stream_count(parser);
+@@ -1950,7 +1958,8 @@ fail:
+         MFUnlockWorkQueue(object->async_commands_queue);
+     if (object->event_queue)
+         IMFMediaEventQueue_Release(object->event_queue);
+-    IMFByteStream_Release(object->byte_stream);
++    if (object->byte_stream)
++        IMFByteStream_Release(object->byte_stream);
+     free(object);
+     return hr;
+ }
+@@ -2369,10 +2378,8 @@ static HRESULT WINAPI scheme_handler_BeginCreateObject(IMFSchemeHandler *iface,
+         IPropertyStore *props, IUnknown **cancel_cookie, IMFAsyncCallback *callback, IUnknown *state)
+ {
+     struct scheme_handler *handler = impl_from_IMFSchemeHandler(iface);
+-    IMFByteStream *bytestream;
+     IMFAsyncResult *result;
+     IUnknown *context;
+-    IStream *stream;
+     HRESULT hr;
+ 
+     TRACE("%p, %s, %#lx, %p, %p, %p, %p.\n", iface, debugstr_w(url), flags, props, cancel_cookie, callback, state);
+@@ -2380,17 +2387,9 @@ static HRESULT WINAPI scheme_handler_BeginCreateObject(IMFSchemeHandler *iface,
+     if (cancel_cookie)
+         *cancel_cookie = NULL;
+ 
+-    if (FAILED(hr = CreateStreamOnHGlobal(0, TRUE, &stream)))
+-        return hr;
+-
+-    hr = MFCreateMFByteStreamOnStream(stream, &bytestream);
+-    IStream_Release(stream);
+-    if (FAILED(hr))
+-        return hr;
+-
+     if (FAILED(hr = MFCreateAsyncResult(NULL, callback, state, &result)))
+         return hr;
+-    if (FAILED(hr = object_context_create(flags, bytestream, url, -1, result, &context)))
++    if (FAILED(hr = object_context_create(flags, NULL, url, -1, result, &context)))
+     {
+         IMFAsyncResult_Release(result);
+         return hr;
+diff --git a/dlls/winegstreamer/quartz_parser.c b/dlls/winegstreamer/quartz_parser.c
+index d6705256da6..c5f643da2f1 100644
+--- a/dlls/winegstreamer/quartz_parser.c
++++ b/dlls/winegstreamer/quartz_parser.c
+@@ -1588,7 +1588,7 @@ static HRESULT parser_sink_connect(struct strmbase_sink *iface, IPin *peer, cons
+     filter->sink_connected = true;
+     filter->read_thread = CreateThread(NULL, 0, read_thread, filter, 0, NULL);
+ 
+-    if (FAILED(hr = wg_parser_connect(filter->wg_parser, file_size, NULL)))
++    if (FAILED(hr = wg_parser_connect(filter->wg_parser, file_size, NULL, TRUE)))
+         goto err;
+ 
+     if (!filter->init_gst(filter))
+diff --git a/dlls/winegstreamer/unixlib.h b/dlls/winegstreamer/unixlib.h
+index f865cb22386..c2a1fdf88fa 100644
+--- a/dlls/winegstreamer/unixlib.h
++++ b/dlls/winegstreamer/unixlib.h
+@@ -233,6 +233,7 @@ struct wg_parser_connect_params
+     wg_parser_t parser;
+     const WCHAR *uri;
+     UINT64 file_size;
++    BOOL has_bytestream;
+ };
+ 
+ struct wg_parser_get_next_read_offset_params
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 690d3560d1b..ec8ae8933fa 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -84,6 +84,7 @@ struct wg_parser
+     guint64 next_pull_offset;
+     gchar *uri;
+     gboolean is_web_scheme;
++    BOOL has_bytestream;
+ 
+     pthread_t push_thread;
+ 
+@@ -1769,7 +1770,7 @@ static gboolean activate_push(GstPad *pad, gboolean activate)
+             parser->push_thread = 0;
+         }
+     }
+-    else if (!parser->push_thread)
++    else if (!parser->push_thread && parser->has_bytestream)
+     {
+         int ret;
+ 
+@@ -2152,6 +2153,7 @@ static NTSTATUS wg_parser_connect(void *args)
+     {
+         parser->uri = NULL;
+     }
++    parser->has_bytestream = params->has_bytestream;
+ 
+     if (!parser->bus)
+     {
+@@ -2435,8 +2437,7 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+     GstElement *element;
+     const char *type;
+ 
+-    parser->is_web_scheme = parser->uri && (!strncmp(parser->uri, "http://", 7) || !strncmp(parser->uri, "https://", 8) ||
+-                            !strncmp(parser->uri, "rtsp://", 7));
++    parser->is_web_scheme = parser->uri && !!memmem(parser->uri, min(strlen(parser->uri), 8), "://", 3);
+     type = parser->is_web_scheme ? "uridecodebin" : "decodebin";
+     if (!(element = create_element(type, "base")))
+         return FALSE;
+@@ -2607,12 +2608,14 @@ static NTSTATUS wow64_wg_parser_connect(void *args)
+         wg_parser_t parser;
+         PTR32 uri;
+         UINT64 file_size;
++        BOOL has_bytestream;
+     } *params32 = args;
+     struct wg_parser_connect_params params =
+     {
+         .parser = params32->parser,
+         .uri = ULongToPtr(params32->uri),
+         .file_size = params32->file_size,
++        .has_bytestream = params32->has_bytestream,
+     };
+ 
+     return wg_parser_connect(&params);
+diff --git a/dlls/winegstreamer/wm_reader.c b/dlls/winegstreamer/wm_reader.c
+index 0b5651fc7f7..7900f7e0347 100644
+--- a/dlls/winegstreamer/wm_reader.c
++++ b/dlls/winegstreamer/wm_reader.c
+@@ -1574,7 +1574,7 @@ static HRESULT init_stream(struct wm_reader *reader)
+         goto out_destroy_parser;
+     }
+ 
+-    if (FAILED(hr = wg_parser_connect(reader->wg_parser, reader->file_size, reader->filename)))
++    if (FAILED(hr = wg_parser_connect(reader->wg_parser, reader->file_size, reader->filename, TRUE)))
+     {
+         ERR("Failed to connect parser, hr %#lx.\n", hr);
+         goto out_shutdown_thread;
+@@ -1730,7 +1730,7 @@ static HRESULT reinit_stream(struct wm_reader *reader, bool read_compressed)
+         goto out_destroy_parser;
+     }
+ 
+-    if (FAILED(hr = wg_parser_connect(reader->wg_parser, reader->file_size, reader->filename)))
++    if (FAILED(hr = wg_parser_connect(reader->wg_parser, reader->file_size, reader->filename, TRUE)))
+     {
+         ERR("Failed to connect parser, hr %#lx.\n", hr);
+         goto out_shutdown_thread;
+-- 
+2.53.0
+

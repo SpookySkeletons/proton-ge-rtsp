@@ -1,0 +1,42 @@
+From 16c908cf80a29e4abf8875e33f6c7ac1b573df7e Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sun, 4 Jan 2026 00:00:02 +0100
+Subject: [PATCH 60/62] server: Support realtime priority.
+
+---
+ server/thread.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/server/thread.c b/server/thread.c
+index cdb0549f873..c00bdb2c75c 100644
+--- a/server/thread.c
++++ b/server/thread.c
+@@ -257,7 +257,24 @@ static void apply_thread_priority( struct thread *thread, int base_priority )
+ 
+     if (nice_limit >= 0) return;
+ 
+-    /* FIXME: handle realtime priorities using SCHED_RR if possible */
++    if (base_priority >= THREAD_BASE_PRIORITY_LOWRT)
++    {
++        struct sched_param param;
++        int policy = SCHED_RR;
++        int prio = 1;
++
++        if (base_priority > THREAD_BASE_PRIORITY_LOWRT + 8)
++        {
++            policy = SCHED_FIFO;
++            prio = 2;
++        }
++
++        memset( &param, 0, sizeof(param) );
++        param.sched_priority = prio;
++        if (!sched_setscheduler( thread->unix_tid, policy | SCHED_RESET_ON_FORK, &param ))
++            return;
++    }
++
+     if (base_priority > THREAD_BASE_PRIORITY_LOWRT) base_priority = THREAD_BASE_PRIORITY_LOWRT;
+     /* map an NT application band [1,15] base priority to [-nice_limit, nice_limit] */
+     niceness = (min + (base_priority - 1) * range / 14);
+-- 
+2.53.0
+

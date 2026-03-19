@@ -1,0 +1,25 @@
+From b1ec33c42aa36624df39f033d05b02610db07158 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 19 Dec 2025 00:32:39 +0100
+Subject: [PATCH 56/62] [TODO SQUASH] mf: Fix buffering in session.
+
+---
+ dlls/mf/session.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 7bda30427b5..142162004e4 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -4615,7 +4615,7 @@ static HRESULT WINAPI session_events_callback_Invoke(IMFAsyncCallback *iface, IM
+             {
+                 if (event_type == MEBufferingStarted)
+                     IMFPresentationClock_Pause(session->clock);
+-                else if (session->state == SESSION_STATE_STARTED)
++                else if (session->clock_started)
+                     IMFPresentationClock_Start(session->clock, PRESENTATION_CURRENT_POSITION);
+                 session->buffering = (event_type == MEBufferingStarted);
+ 
+-- 
+2.53.0
+

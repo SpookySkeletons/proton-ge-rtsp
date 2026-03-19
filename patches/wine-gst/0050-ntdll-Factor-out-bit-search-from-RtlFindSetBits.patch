@@ -1,0 +1,102 @@
+From f5cc20f4cd8704d2e7070e275be2bd605c52a382 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Thu, 18 Dec 2025 22:46:04 +0100
+Subject: [PATCH 50/62] ntdll: Factor out bit search from RtlFindSetBits.
+
+---
+ dlls/ntdll/rtlbitmap.c | 55 +++++++++++++++++-------------------------
+ 1 file changed, 22 insertions(+), 33 deletions(-)
+
+diff --git a/dlls/ntdll/rtlbitmap.c b/dlls/ntdll/rtlbitmap.c
+index 801c2720adc..80c941861cd 100644
+--- a/dlls/ntdll/rtlbitmap.c
++++ b/dlls/ntdll/rtlbitmap.c
+@@ -209,6 +209,19 @@ BOOLEAN WINAPI RtlAreBitsClear( const RTL_BITMAP *bitmap, ULONG start, ULONG cou
+     return !(bitmap->Buffer[pos] & ~maskbits( end ));
+ }
+ 
++static inline ULONG find_set_bits( const RTL_BITMAP *bitmap, ULONG end, ULONG count, ULONG start )
++{
++static inline ULONG find_set_bits( const RTL_BITMAP *bitmap, ULONG end, ULONG count, ULONG start )
++{
++  for (; start < end; start++)
++  {
++    /* FIXME: This could be made a _lot_ more efficient */
++    if (RtlAreBitsSet(bitmap, start, count))
++      return start;
++  }
++  return ~0U;
++}
++
+ /*************************************************************************
+  * RtlFindSetBits	[NTDLL.@]
+  *
+@@ -224,56 +237,32 @@ BOOLEAN WINAPI RtlAreBitsClear( const RTL_BITMAP *bitmap, ULONG start, ULONG cou
+  */
+ ULONG WINAPI RtlFindSetBits(PCRTL_BITMAP lpBits, ULONG ulCount, ULONG ulHint)
+ {
+-  ULONG ulPos, ulEnd;
++  ULONG ulRet;
+ 
+   TRACE("(%p,%lu,%lu)\n", lpBits, ulCount, ulHint);
+ 
+   if (!lpBits || !ulCount || ulCount > lpBits->SizeOfBitMap)
+     return ~0U;
+ 
+-  ulEnd = lpBits->SizeOfBitMap;
+-
+   if (ulHint + ulCount > lpBits->SizeOfBitMap)
+     ulHint = 0;
+ 
+-  ulPos = ulHint;
+-
+-  while (ulPos < ulEnd)
+-  {
+-    /* FIXME: This could be made a _lot_ more efficient */
+-    if (RtlAreBitsSet(lpBits, ulPos, ulCount))
+-      return ulPos;
+-
+-    /* Start from the beginning if we hit the end and had a hint */
+-    if (ulPos == ulEnd - 1 && ulHint)
+-    {
+-      ulEnd = ulHint;
+-      ulPos = ulHint = 0;
+-    }
+-    else
+-      ulPos++;
+-  }
+-  return ~0U;
++  ulRet = find_set_bits(lpBits, lpBits->SizeOfBitMap, ulCount, ulHint);
++  /* Start from the beginning if we hit the end */
++  if (ulRet == ~0U && ulRet == lpBits->SizeOfBitMap - 1 && ulHint)
++    ulRet = find_set_bits(lpBits, ulHint, ulCount, 0);
++  return ulRet;
+ }
+ 
+ static inline ULONG find_clear_bits( const RTL_BITMAP *bitmap, ULONG end, ULONG count, ULONG start )
+ {
+-  ULONG end = bitmap->SizeOfBitMap;
+-
+-  while (start < end)
++static inline ULONG find_clear_bits( const RTL_BITMAP *bitmap, ULONG end, ULONG count, ULONG start )
++{
++  for (; start < end; start++)
+   {
+     /* FIXME: This could be made a _lot_ more efficient */
+     if (RtlAreBitsClear(bitmap, start, count))
+       return start;
+-
+-    /* Start from the beginning if we hit the end and started from ulHint */
+-    if (start == end - 1 && ulHint)
+-    {
+-      end = ulHint;
+-      start = ulHint = 0;
+-    }
+-    else
+-      start++;
+   }
+   return ~0U;
+ }
+-- 
+2.53.0
+
