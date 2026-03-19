@@ -1,0 +1,47 @@
+From 77b677af4c2df3e7c4b6ada8c73f2ba219657bd7 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 19 Dec 2025 00:24:07 +0100
+Subject: [PATCH 53/62] ntdll: Disable functionality of RtlWalkFrameChain.
+
+---
+ dlls/ntdll/signal_x86_64.c | 24 +-----------------------
+ 1 file changed, 1 insertion(+), 23 deletions(-)
+
+diff --git a/dlls/ntdll/signal_x86_64.c b/dlls/ntdll/signal_x86_64.c
+index bab9bf2edae..e945306112a 100644
+--- a/dlls/ntdll/signal_x86_64.c
++++ b/dlls/ntdll/signal_x86_64.c
+@@ -913,29 +913,7 @@ NTSTATUS WINAPI RtlWow64SuspendThread( HANDLE thread, ULONG *count )
+  */
+ ULONG WINAPI RtlWalkFrameChain( void **buffer, ULONG count, ULONG flags )
+ {
+-    UNWIND_HISTORY_TABLE table;
+-    RUNTIME_FUNCTION *func;
+-    PEXCEPTION_ROUTINE handler;
+-    ULONG_PTR frame, base;
+-    CONTEXT context;
+-    void *data;
+-    ULONG i, skip = flags >> 8, num_entries = 0;
+-
+-    RtlCaptureContext( &context );
+-
+-    for (i = 0; i < count; i++)
+-    {
+-        func = RtlLookupFunctionEntry( context.Rip, &base, &table );
+-        if (!func) break;
+-        if (RtlVirtualUnwind2( UNW_FLAG_NHANDLER, base, context.Rip, func, &context, NULL,
+-                               &data, &frame, NULL, NULL, NULL, &handler, 0 ))
+-            break;
+-        if (!context.Rip) break;
+-        if (!frame || !is_valid_frame( frame )) break;
+-        if (context.Rsp == (ULONG_PTR)NtCurrentTeb()->Tib.StackBase) break;
+-        if (i >= skip) buffer[num_entries++] = (void *)context.Rip;
+-    }
+-    return num_entries;
++    return 0;
+ }
+ 
+ 
+-- 
+2.53.0
+

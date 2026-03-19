@@ -1,0 +1,87 @@
+From 1314aba4e31498d9504db2c28172eb136fcac9c6 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 20 Jan 2025 23:20:33 +0100
+Subject: [PATCH 43/62] [TODO SQUASH] kernelbase: Remove PROTON_YTDLP_BROWSER
+ handling.
+
+This can be done more cleanly with a yt-dlp config.
+---
+ dlls/kernelbase/process.c | 35 +++++++++--------------------------
+ 1 file changed, 9 insertions(+), 26 deletions(-)
+
+diff --git a/dlls/kernelbase/process.c b/dlls/kernelbase/process.c
+index 1c15aa058fa..52683e73f81 100644
+--- a/dlls/kernelbase/process.c
++++ b/dlls/kernelbase/process.c
+@@ -603,18 +603,15 @@ static BOOL is_ytdlp( const WCHAR *app_name )
+     return TRUE;
+ }
+ 
+-static int ytdlp_hack( const WCHAR *app_name, WCHAR *new_name, DWORD new_name_len, WCHAR **cmdline )
++static int ytdlp_hack( const WCHAR *app_name, WCHAR *new_name, DWORD new_name_len )
+ {
+     static const WCHAR ytdlp_exeW[] = L"yt-dlp.exe";
+     static const size_t ytdlp_exeW_len = ARRAY_SIZE(ytdlp_exeW) - 1;
+-    static const WCHAR cookiesfrombrowserW[] = L" --cookies-from-browser ";
+-    static const size_t cookiesfrombrowserW_len = ARRAY_SIZE(cookiesfrombrowserW) - 1;
+ 
+-    WCHAR ytdlp_path[MAX_PATH], browser[32 + MAX_PATH];
+-    WCHAR *new_cmdline = NULL;
++    WCHAR ytdlp_path[MAX_PATH];
+     size_t len;
+ 
+-    if (!app_name || !*cmdline)
++    if (!app_name)
+         return 0;
+ 
+     len = wcslen( app_name );
+@@ -622,32 +619,18 @@ static int ytdlp_hack( const WCHAR *app_name, WCHAR *new_name, DWORD new_name_le
+         return 0;
+     if (app_name[len - ytdlp_exeW_len - 1] != '\\' && app_name[len - ytdlp_exeW_len - 1] != '/')
+         return 0;
+-    if (wcscmp( app_name + (len - ytdlp_exeW_len), ytdlp_exeW ))
++    if (wcsicmp( app_name + (len - ytdlp_exeW_len), ytdlp_exeW ))
+         return 0;
+ 
+     ytdlp_path[0] = 0;
+-    GetEnvironmentVariableW(L"PROTON_YTDLP_PATH", ytdlp_path, ARRAY_SIZE(ytdlp_path));
+-    if (wcslen( ytdlp_path ) >= new_name_len)
++    len = GetEnvironmentVariableW(L"PROTON_YTDLP_PATH", ytdlp_path, ARRAY_SIZE(ytdlp_path));
++    if (!len || len > ARRAY_SIZE(ytdlp_path))
++        return 0;
++    if (wcslen( ytdlp_path ) + 1 > new_name_len)
+         return 0;
+-
+-    browser[0] = 0;
+-    GetEnvironmentVariableW(L"PROTON_YTDLP_BROWSER", browser, ARRAY_SIZE(browser));
+-    if (browser[0])
+-    {
+-        if (!(new_cmdline = RtlAllocateHeap( GetProcessHeap(), 0, (wcslen( *cmdline ) + cookiesfrombrowserW_len + wcslen( browser ) + 1) * sizeof(WCHAR) )))
+-            return 0;
+-    }
+ 
+     if (ytdlp_path[0])
+         wcscpy( new_name, ytdlp_path );
+-    if (browser[0] && new_cmdline)
+-    {
+-        wcscpy( new_cmdline, *cmdline );
+-        wcscat( new_cmdline, cookiesfrombrowserW );
+-        wcscat( new_cmdline, browser );
+-        HeapFree( GetProcessHeap(), 0, *cmdline );
+-        *cmdline = new_cmdline;
+-    }
+     return ytdlp_path[0];
+ }
+ 
+@@ -815,7 +798,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH CreateProcessInternalW( HANDLE token, const WCHAR
+     if (is_ytdlp( app_name ))
+         startup_info->hStdError = INVALID_HANDLE_VALUE;
+ 
+-    if (ytdlp_hack( app_name, name, ARRAY_SIZE(name), &tidy_cmdline ))
++    if (ytdlp_hack( app_name, name, ARRAY_SIZE(name) ))
+         app_name = name;
+ 
+     /* Warn if unsupported features are used */
+-- 
+2.53.0
+
