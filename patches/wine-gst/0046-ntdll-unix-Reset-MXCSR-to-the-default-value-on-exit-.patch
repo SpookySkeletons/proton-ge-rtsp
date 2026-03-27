@@ -1,0 +1,36 @@
+From 6ed0cd486ef79d22407f3e3c61dfdf8ac8e7a9af Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sat, 4 Oct 2025 20:59:37 +0200
+Subject: [PATCH 46/60] ntdll/unix: Reset MXCSR to the default value on exit
+ from __wine_unix_call_dispatcher.
+
+---
+ dlls/ntdll/unix/signal_x86_64.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/dlls/ntdll/unix/signal_x86_64.c b/dlls/ntdll/unix/signal_x86_64.c
+index 09685c4b71d..dbe84b30393 100644
+--- a/dlls/ntdll/unix/signal_x86_64.c
++++ b/dlls/ntdll/unix/signal_x86_64.c
+@@ -3602,6 +3602,7 @@ __ASM_GLOBAL_FUNC( __wine_unix_call_dispatcher,
+ #endif
+                    "movq %r8,%rdi\n\t"             /* args */
+                    "callq *(%r10,%rdx,8)\n\t"
++                   "ldmxcsr " __ASM_NAME("__wine_default_mxcsr") "(%rip)\n\t"
+                    "movq %rsp,%rcx\n\t"
+                    "movdqa 0x1c0(%rcx),%xmm6\n\t"
+                    "movdqa 0x1d0(%rcx),%xmm7\n\t"
+@@ -3635,4 +3636,10 @@ __ASM_GLOBAL_POINTER( __ASM_NAME("__wine_syscall_dispatcher_prolog_end_ptr"),
+ __ASM_GLOBAL_POINTER( __ASM_NAME("__wine_unix_call_dispatcher_prolog_end_ptr"),
+                       __ASM_LOCAL_LABEL("__wine_unix_call_dispatcher_prolog_end") )
+ 
++asm( ".section .rodata\n\t"
++     ".globl " __ASM_NAME("__wine_default_mxcsr") "\n"
++     __ASM_NAME("__wine_default_mxcsr") ":\n\t"
++     ".quad 0x1f80\n\t"
++     ".text\n\t" );
++
+ #endif  /* __x86_64__ */
+-- 
+2.53.0
+

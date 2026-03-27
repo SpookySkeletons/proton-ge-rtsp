@@ -1,0 +1,45 @@
+From f4bc7b7f5b46867a73e6d7f7cf3cc54d1264dd68 Mon Sep 17 00:00:00 2001
+From: Reyka Matthies <openglfreak@googlemail.com>
+Date: Fri, 27 Mar 2026 20:22:06 +0100
+Subject: [PATCH 35/60] Revert "mfmediaengine: Do not send
+ MF_MEDIA_ENGINE_EVENT_ERROR for VRChat."
+
+This reverts commit 5c955d07e880eb8bfebb53d5f6405fe52f66d061.
+---
+ dlls/mfmediaengine/main.c | 20 +++++---------------
+ 1 file changed, 5 insertions(+), 15 deletions(-)
+
+diff --git a/dlls/mfmediaengine/main.c b/dlls/mfmediaengine/main.c
+index 26aeacb9e35..4e41f77f067 100644
+--- a/dlls/mfmediaengine/main.c
++++ b/dlls/mfmediaengine/main.c
+@@ -1481,21 +1481,11 @@ static HRESULT WINAPI media_engine_load_handler_Invoke(IMFAsyncCallback *iface,
+     }
+     else
+     {
+-        static unsigned int once;
+-        char sgi[64];
+-
+-        if (GetEnvironmentVariableA("SteamGameId", sgi, sizeof(sgi)) && !strcmp(sgi, "438100"))
+-        {
+-            if (!once++) FIXME("HACK: not sending MF_MEDIA_ENGINE_EVENT_ERROR event.\n");
+-        }
+-        else
+-        {
+-            engine->network_state = MF_MEDIA_ENGINE_NETWORK_NO_SOURCE;
+-            engine->error_code = MF_MEDIA_ENGINE_ERR_SRC_NOT_SUPPORTED;
+-            engine->extended_code = hr;
+-            IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_ERROR, engine->error_code,
+-                    engine->extended_code);
+-        }
++        engine->network_state = MF_MEDIA_ENGINE_NETWORK_NO_SOURCE;
++        engine->error_code = MF_MEDIA_ENGINE_ERR_SRC_NOT_SUPPORTED;
++        engine->extended_code = hr;
++        IMFMediaEngineNotify_EventNotify(engine->callback, MF_MEDIA_ENGINE_EVENT_ERROR, engine->error_code,
++                engine->extended_code);
+     }
+ 
+     LeaveCriticalSection(&engine->cs);
+-- 
+2.53.0
+

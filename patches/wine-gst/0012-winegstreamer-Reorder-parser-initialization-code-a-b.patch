@@ -1,0 +1,40 @@
+From 7a7ecae52c2656464ad9711d0275a7a1ee56c522 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Wed, 31 Jan 2024 17:42:55 +0100
+Subject: [PATCH 12/60] winegstreamer: Reorder parser initialization code a bit
+ to prevent race conditions.
+
+CW-Bug-Id: #21644
+---
+ dlls/winegstreamer/wg_parser.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/dlls/winegstreamer/wg_parser.c b/dlls/winegstreamer/wg_parser.c
+index 36f64db90d6..8eaede3a588 100644
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -2151,6 +2151,10 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+     else
+         g_object_set(element, "uri", parser->uri, NULL);
+ 
++    pthread_mutex_lock(&parser->mutex);
++    parser->no_more_pads = false;
++    pthread_mutex_unlock(&parser->mutex);
++
+     g_signal_connect(element, "pad-added", G_CALLBACK(pad_added_cb), parser);
+     g_signal_connect(element, "pad-removed", G_CALLBACK(pad_removed_cb), parser);
+     g_signal_connect(element, "autoplug-continue", G_CALLBACK(autoplug_continue_cb), parser);
+@@ -2159,10 +2163,6 @@ static BOOL decodebin_parser_init_gst(struct wg_parser *parser)
+     g_signal_connect(element, "no-more-pads", G_CALLBACK(no_more_pads_cb), parser);
+     g_signal_connect(element, "deep-element-added", G_CALLBACK(deep_element_added_cb), parser);
+ 
+-    pthread_mutex_lock(&parser->mutex);
+-    parser->no_more_pads = false;
+-    pthread_mutex_unlock(&parser->mutex);
+-
+     if (!strcmp(type, "decodebin") && !link_src_to_element(parser->my_src, element))
+         return FALSE;
+ 
+-- 
+2.53.0
+

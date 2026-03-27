@@ -1,0 +1,91 @@
+From e611b57104ba4a8f581d532352cedfea0bca5931 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Mon, 8 Jul 2024 10:30:50 +0200
+Subject: [PATCH 22/60] mf/session: Ensure that the command callback does not
+ return without clearing SESSION_FLAG_PENDING_COMMAND.
+
+Leaving SESSION_FLAG_PENDING_COMMAND set results in no more work items being queued by session_submit_command, and even
+if they were, callback would return immediately due to a check at the start of the function.
+Thus, it is never valid to leave the function without clearing the SESSION_FLAG_PENDING_COMMAND flag.
+
+This case can be hit by SESSION_CMD_START, and leaves the session unable to process any commands.
+
+Fix this by ensuring that SESSION_FLAG_PENDING_COMMAND is always cleared before the command callback returns.
+
+CW-Bug-Id: #24115
+---
+ dlls/mf/session.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 7f1afa78a7c..2c3edcd2a98 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -104,6 +104,8 @@ enum command_state
+     /* Command submitted but hasn't started execution.
+      * invariant: the submitted command is always the head of session->commands. */
+     COMMAND_STATE_SUBMITTED,
++    /* Command is executing */
++    COMMAND_STATE_RUNNING,
+     /* STOPPED | PAUSED | STARTED -> STARTED transition */
+     COMMAND_STATE_RESTARTING_SOURCES, /* -> COMMAND_STATE_STARTING_SOURCES */
+     COMMAND_STATE_STARTING_SOURCES,   /* -> COMMAND_STATE_PREROLLING_SINKS | COMMAND_STATE_STARTING_SINKS */
+@@ -2824,6 +2826,7 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+ 
+     assert( session->command_state == COMMAND_STATE_SUBMITTED );
+     list_remove(&op->entry);
++    session->command_state = COMMAND_STATE_RUNNING;
+ 
+     switch (op->command)
+     {
+@@ -2834,7 +2837,6 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+         case SESSION_CMD_SET_TOPOLOGY:
+             session->presentation.flags &= ~SESSION_FLAG_SOURCE_SHUTDOWN;
+             session_set_topology(session, op->set_topology.flags, op->set_topology.topology);
+-            session_command_complete(session);
+             break;
+         case SESSION_CMD_START:
+             if (session->presentation.flags & SESSION_FLAG_SOURCE_SHUTDOWN)
+@@ -2868,12 +2870,14 @@ static HRESULT WINAPI session_commands_callback_Invoke(IMFAsyncCallback *iface,
+             break;
+         case SESSION_CMD_SHUTDOWN:
+             session_clear_command_list(session);
+-            session_command_complete(session);
+             break;
+         default:
+             ;
+     }
+ 
++    if (session->command_state == COMMAND_STATE_RUNNING)
++        session_command_complete(session);
++
+     LeaveCriticalSection(&session->cs);
+ 
+     IUnknown_Release(&op->IUnknown_iface);
+@@ -2991,6 +2995,7 @@ static void session_handle_source_shutdown(struct media_session *session)
+                 session_set_stopped(session, MESessionStopped, MF_E_SHUTDOWN);
+             break;
+         case COMMAND_STATE_SUBMITTED:
++        case COMMAND_STATE_RUNNING:
+             break;
+     }
+ 
+@@ -3348,6 +3353,7 @@ static void session_set_source_object_state(struct media_session *session, IUnkn
+             session_finalize_sinks(session);
+             break;
+         case COMMAND_STATE_SUBMITTED:
++        case COMMAND_STATE_RUNNING:
+         case COMMAND_STATE_COMPLETE:
+         case COMMAND_STATE_PREROLLING_SINKS:
+         case COMMAND_STATE_STARTING_SINKS:
+@@ -3434,6 +3440,7 @@ static void session_set_sink_stream_state(struct media_session *session, IMFStre
+                 session_set_closed(session, hr);
+             break;
+         case COMMAND_STATE_SUBMITTED:
++        case COMMAND_STATE_RUNNING:
+         case COMMAND_STATE_COMPLETE:
+         case COMMAND_STATE_RESTARTING_SOURCES:
+         case COMMAND_STATE_STARTING_SOURCES:
+-- 
+2.53.0
+

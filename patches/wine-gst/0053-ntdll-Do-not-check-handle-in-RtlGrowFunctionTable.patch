@@ -1,0 +1,40 @@
+From 63c514a9722e5c297f50296f656dcdad2a43eca5 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 19 Dec 2025 00:24:53 +0100
+Subject: [PATCH 53/60] ntdll: Do not check handle in RtlGrowFunctionTable.
+
+---
+ dlls/ntdll/unwind.c | 13 +++----------
+ 1 file changed, 3 insertions(+), 10 deletions(-)
+
+diff --git a/dlls/ntdll/unwind.c b/dlls/ntdll/unwind.c
+index 3721cbcc56e..06d8d607b03 100644
+--- a/dlls/ntdll/unwind.c
++++ b/dlls/ntdll/unwind.c
+@@ -270,20 +270,13 @@ NTSTATUS WINAPI RtlAddGrowableFunctionTable( void **table, RUNTIME_FUNCTION *fun
+  */
+ void WINAPI RtlGrowFunctionTable( void *table, DWORD count )
+ {
+-    struct dynamic_unwind_entry *entry;
++    struct dynamic_unwind_entry *entry = table;
+ 
+     TRACE( "%p, %lu\n", table, count );
+ 
+     RtlEnterCriticalSection( &dynamic_unwind_section );
+-    LIST_FOR_EACH_ENTRY( entry, &dynamic_unwind_list, struct dynamic_unwind_entry, entry )
+-    {
+-        if (entry == table)
+-        {
+-            if (count > entry->count && count <= entry->max_count)
+-                entry->count = count;
+-            break;
+-        }
+-    }
++    if (count > entry->count && count <= entry->max_count)
++        entry->count = count;
+     RtlLeaveCriticalSection( &dynamic_unwind_section );
+ }
+ 
+-- 
+2.53.0
+

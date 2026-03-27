@@ -1,0 +1,77 @@
+From dcbc7aa33891de7971d458a491c6e3575692c627 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 19 Dec 2025 00:03:18 +0100
+Subject: [PATCH 49/60] ntdll: Implement faster single-bit search into
+ RtlFindClearBits.
+
+---
+ dlls/ntdll/rtlbitmap.c | 45 +++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 40 insertions(+), 5 deletions(-)
+
+diff --git a/dlls/ntdll/rtlbitmap.c b/dlls/ntdll/rtlbitmap.c
+index 80c941861cd..f50b438b63b 100644
+--- a/dlls/ntdll/rtlbitmap.c
++++ b/dlls/ntdll/rtlbitmap.c
+@@ -254,8 +254,33 @@ ULONG WINAPI RtlFindSetBits(PCRTL_BITMAP lpBits, ULONG ulCount, ULONG ulHint)
+   return ulRet;
+ }
+ 
+-static inline ULONG find_clear_bits( const RTL_BITMAP *bitmap, ULONG end, ULONG count, ULONG start )
++static inline ULONG find_clear_bit( const RTL_BITMAP *bitmap, ULONG end, ULONG start )
+ {
++  ULONG *buffer = bitmap->Buffer, value, offset = 0, index;
++
++  buffer += start / (sizeof(*buffer) * CHAR_BIT);
++  offset = start / (sizeof(*buffer) * CHAR_BIT) * (sizeof(*buffer) * CHAR_BIT);
++  end -= offset;
++  start %= sizeof(*buffer) * CHAR_BIT;
++
++  value = ~*buffer;
++  value &= maskbits( start );
++  while (end > sizeof(*buffer) * CHAR_BIT)
++  {
++    if (BitScanForward( &index, value ))
++      return offset + index;
++
++    buffer++;
++    offset += sizeof(*buffer) * CHAR_BIT;
++    end -= sizeof(*buffer) * CHAR_BIT;
++    value = ~*buffer;
++  }
++  value &= ~maskbits( end );
++  if (BitScanForward( &index, value ))
++    return offset + index;
++  return ~0U;
++}
++
+ static inline ULONG find_clear_bits( const RTL_BITMAP *bitmap, ULONG end, ULONG count, ULONG start )
+ {
+   for (; start < end; start++)
+@@ -292,10 +317,20 @@ ULONG WINAPI RtlFindClearBits(PCRTL_BITMAP lpBits, ULONG ulCount, ULONG ulHint)
+   if (ulHint + ulCount > lpBits->SizeOfBitMap)
+     ulHint = 0;
+ 
+-  ulRet = find_clear_bits(lpBits, lpBits->SizeOfBitMap, ulCount, ulHint);
+-  /* Start from the beginning if we hit the end */
+-  if (ulRet == ~0U && ulRet == lpBits->SizeOfBitMap - 1 && ulHint)
+-    ulRet = find_clear_bits(lpBits, ulHint, ulCount, 0);
++  if (ulCount == 1)
++  {
++    ulRet = find_clear_bit(lpBits, lpBits->SizeOfBitMap, ulHint);
++    /* Start from the beginning if we hit the end */
++    if (ulRet == ~0U && ulRet == lpBits->SizeOfBitMap - 1 && ulHint)
++      ulRet = find_clear_bit(lpBits, ulHint, 0);
++  }
++  else
++  {
++    ulRet = find_clear_bits(lpBits, lpBits->SizeOfBitMap, ulCount, ulHint);
++    /* Start from the beginning if we hit the end */
++    if (ulRet == ~0U && ulRet == lpBits->SizeOfBitMap - 1 && ulHint)
++      ulRet = find_clear_bits(lpBits, ulHint, ulCount, 0);
++  }
+   return ulRet;
+ }
+ 
+-- 
+2.53.0
+

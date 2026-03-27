@@ -1,0 +1,92 @@
+From cb25753d3427d69f06caf032236f6b2e9bebbd1e Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Thu, 12 Mar 2026 13:44:29 +0100
+Subject: [PATCH 58/60] ntdll/unix: Set thread priority based on thread name.
+
+---
+ dlls/ntdll/unix/thread.c | 42 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+
+diff --git a/dlls/ntdll/unix/thread.c b/dlls/ntdll/unix/thread.c
+index 95988d63445..720e1b7f566 100644
+--- a/dlls/ntdll/unix/thread.c
++++ b/dlls/ntdll/unix/thread.c
+@@ -1990,6 +1990,40 @@ BOOL get_thread_times(int unix_pid, int unix_tid, LARGE_INTEGER *kernel_time, LA
+ #endif
+ }
+ 
++struct thread_settings
++{
++    const char *thread_name;
++    DWORD prio;
++};
++
++struct thread_settings settings[] = {
++    { "audio_client_timer", THREAD_PRIORITY_TIME_CRITICAL },
++    { "audio_client_main", THREAD_PRIORITY_TIME_CRITICAL },
++
++    { "dxvk-cs", THREAD_PRIORITY_TIME_CRITICAL },
++    { "dxvk-descriptor", THREAD_PRIORITY_TIME_CRITICAL },
++    { "dxvk-queue", THREAD_PRIORITY_TIME_CRITICAL },
++    { "dxvk-submit", THREAD_PRIORITY_TIME_CRITICAL },
++    { "dxvk-frame", THREAD_PRIORITY_HIGHEST },
++
++    { "UnityGfxDeviceWorker", THREAD_PRIORITY_HIGHEST },
++    { "Timer-Scheduler", THREAD_PRIORITY_HIGHEST },
++};
++
++static void handle_thread_name( const UNICODE_STRING *name )
++{
++    struct thread_settings *p;
++    char nameA[64];
++    int len;
++
++    len = ntdll_wcstoumbs( name->Buffer, name->Length / sizeof(WCHAR), nameA, sizeof(nameA), FALSE );
++    nameA[len] = 0;
++
++    for (p = settings; p < &settings[ARRAY_SIZE(settings)]; p++)
++        if (!strcmp( nameA, p->thread_name ))
++            NtSetInformationThread( GetCurrentThread(), ThreadBasePriority, &p->prio, sizeof(p->prio) );
++}
++
+ static void set_native_thread_name( HANDLE handle, const UNICODE_STRING *name )
+ {
+ #ifdef linux
+@@ -2019,6 +2053,8 @@ static void set_native_thread_name( HANDLE handle, const UNICODE_STRING *name )
+         return;
+     }
+ 
++    handle_thread_name(name);
++
+     len = ntdll_wcstoumbs( name->Buffer, name->Length / sizeof(WCHAR), nameA, sizeof(nameA), FALSE );
+     snprintf(path, sizeof(path), "/proc/%u/task/%u/comm", unix_pid, unix_tid);
+     if ((fd = open( path, O_WRONLY )) != -1)
+@@ -2048,6 +2084,8 @@ static void set_native_thread_name( HANDLE handle, const UNICODE_STRING *name )
+         return;
+     }
+ 
++    handle_thread_name(name);
++
+     len = ntdll_wcstoumbs( name->Buffer, name->Length / sizeof(WCHAR), nameA, sizeof(nameA) - 1, FALSE );
+     nameA[len] = '\0';
+     pthread_setname_np( nameA );
+@@ -2078,12 +2116,16 @@ static void set_native_thread_name( HANDLE handle, const UNICODE_STRING *name )
+         return;
+     }
+ 
++    handle_thread_name(name);
++
+     len = ntdll_wcstoumbs( name->Buffer, name->Length / sizeof(WCHAR), nameA, sizeof(nameA), FALSE );
+     nameA[len] = '\0';
+     thr_set_name( unix_tid, nameA );
+ #else
+     static int once;
+     if (!once++) FIXME("not implemented on this platform\n");
++
++    handle_thread_name(name);
+ #endif
+ }
+ 
+-- 
+2.53.0
+

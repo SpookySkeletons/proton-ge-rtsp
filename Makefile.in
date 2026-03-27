@@ -344,6 +344,10 @@ GST_GOOD_MESON_ARGS := \
 	-Dy4m=enabled \
 	-Dadaptivedemux2=enabled \
 	-Djpeg=enabled \
+	-Drtpmanager=enabled \
+	-Drtsp=enabled \
+	-Drtp=enabled \
+	-Dudp=enabled \
 
 GST_GOOD_i386_MESON_ARGS = \
 	-Dflac=enabled \

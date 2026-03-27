@@ -1,0 +1,37 @@
+From 2019c1fb0be5b55cab585978ffbb3a2d36c83ff0 Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 19 Dec 2025 00:24:22 +0100
+Subject: [PATCH 52/60] ntdll: Disable functionality of
+ RtlCaptureStackBackTrace.
+
+---
+ dlls/ntdll/exception.c | 12 +-----------
+ 1 file changed, 1 insertion(+), 11 deletions(-)
+
+diff --git a/dlls/ntdll/exception.c b/dlls/ntdll/exception.c
+index ab8d8c0bd05..105666ff1c2 100644
+--- a/dlls/ntdll/exception.c
++++ b/dlls/ntdll/exception.c
+@@ -527,18 +527,8 @@ __ASM_GLOBAL_IMPORT(IsBadStringPtrW)
+  */
+ USHORT WINAPI RtlCaptureStackBackTrace( ULONG skip, ULONG count, void **buffer, ULONG *hash_ret )
+ {
+-    ULONG i, ret, hash;
+-
+     TRACE( "(%lu, %lu, %p, %p)\n", skip, count, buffer, hash_ret );
+-
+-    skip++;  /* skip our own frame */
+-    ret = RtlWalkFrameChain( buffer, count + skip, skip << 8 );
+-    if (hash_ret)
+-    {
+-        for (i = hash = 0; i < ret; i++) hash += (ULONG_PTR)buffer[i];
+-        *hash_ret = hash;
+-    }
+-    return ret;
++    return 0;
+ }
+ 
+ 
+-- 
+2.53.0
+

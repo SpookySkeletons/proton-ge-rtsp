@@ -1,0 +1,76 @@
+From fde9addf4e818e5fa4293a4840d558f4433ac4cc Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Sat, 3 Jan 2026 22:51:47 +0100
+Subject: [PATCH 56/60] kernelbase: Cache system info in GetSystemInfo and
+ GetNativeSystemInfo.
+
+---
+ dlls/kernelbase/memory.c | 26 ++++++++++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/dlls/kernelbase/memory.c b/dlls/kernelbase/memory.c
+index 9b26b442943..203f083acfe 100644
+--- a/dlls/kernelbase/memory.c
++++ b/dlls/kernelbase/memory.c
+@@ -227,9 +227,18 @@ static void fill_system_info( SYSTEM_INFO *si, const SYSTEM_BASIC_INFORMATION *b
+  */
+ void WINAPI DECLSPEC_HOTPATCH GetNativeSystemInfo( SYSTEM_INFO *si )
+ {
++    static SYSTEM_INFO cached;
++    static BOOL initialized;
++
+     SYSTEM_BASIC_INFORMATION basic_info;
+     SYSTEM_CPU_INFORMATION cpu_info;
+ 
++    if (initialized)
++    {
++        memcpy( si, &cached, sizeof(*si) );
++        return;
++    }
++
+     if (is_wow64)
+     {
+         USHORT current_machine, native_machine;
+@@ -249,7 +258,9 @@ void WINAPI DECLSPEC_HOTPATCH GetNativeSystemInfo( SYSTEM_INFO *si )
+                                                       &cpu_info, sizeof(cpu_info), NULL )))
+         return;
+ 
+-    fill_system_info( si, &basic_info, &cpu_info );
++    fill_system_info( &cached, &basic_info, &cpu_info );
++    initialized = TRUE;
++    memcpy( si, &cached, sizeof(*si) );
+ }
+ 
+ 
+@@ -258,16 +269,27 @@ void WINAPI DECLSPEC_HOTPATCH GetNativeSystemInfo( SYSTEM_INFO *si )
+  */
+ void WINAPI DECLSPEC_HOTPATCH GetSystemInfo( SYSTEM_INFO *si )
+ {
++    static SYSTEM_INFO cached;
++    static BOOL initialized;
++
+     SYSTEM_BASIC_INFORMATION basic_info;
+     SYSTEM_CPU_INFORMATION cpu_info;
+ 
++    if (initialized)
++    {
++        memcpy( si, &cached, sizeof(*si) );
++        return;
++    }
++
+     if (!set_ntstatus( NtQuerySystemInformation( SystemBasicInformation,
+                                                  &basic_info, sizeof(basic_info), NULL )) ||
+         !set_ntstatus( NtQuerySystemInformation( SystemCpuInformation,
+                                                  &cpu_info, sizeof(cpu_info), NULL )))
+         return;
+ 
+-    fill_system_info( si, &basic_info, &cpu_info );
++    fill_system_info( &cached, &basic_info, &cpu_info );
++    initialized = TRUE;
++    memcpy( si, &cached, sizeof(*si) );
+ }
+ 
+ 
+-- 
+2.53.0
+

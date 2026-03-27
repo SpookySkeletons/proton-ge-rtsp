@@ -1,0 +1,430 @@
+From 9f61119848eaa963032da0fe9765a150f13997d4 Mon Sep 17 00:00:00 2001
+From: Reyka Matthies <openglfreak@googlemail.com>
+Date: Fri, 27 Mar 2026 20:15:39 +0100
+Subject: [PATCH 59/60] winevulkan: Mark more functions as perf-critical.
+
+---
+ dlls/winevulkan/make_vulkan |   9 +++-
+ dlls/winevulkan/vulkan.c    | 103 ++++++++++++++++++++++--------------
+ 2 files changed, 69 insertions(+), 43 deletions(-)
+
+diff --git a/dlls/winevulkan/make_vulkan b/dlls/winevulkan/make_vulkan
+index 43fff124766..923a87474a1 100755
+--- a/dlls/winevulkan/make_vulkan
++++ b/dlls/winevulkan/make_vulkan
+@@ -828,7 +828,9 @@ class VkFunction(object):
+         # vkCmd* functions are frequently called, do not trace for performance
+         if self.name.startswith("vkCmd") and self.type == "void":
+             return True
+-        return self.name in PERF_CRITICAL_FUNCTIONS
++        if self.name == "vkDestroyInstance" or self.name == "vkDestroyDevice":
++            return False
++        return self.type == "void" or self.name in PERF_CRITICAL_FUNCTIONS
+ 
+     def pfn(self, prefix="p", call_conv=None):
+         """ Create function pointer. """
+@@ -863,7 +865,10 @@ class VkFunction(object):
+             prefix (str, optional): prefix to append prior to function name e.g. vkFoo -> wine_vkFoo
+         """
+ 
+-        proto = "{0}".format(self.type)
++        if self.type == "void" and is_thunk:
++            proto = "NTSTATUS"
++        else:
++            proto = "{0}".format(self.type)
+ 
+         if call_conv is not None:
+             proto += " {0}".format(call_conv)
+diff --git a/dlls/winevulkan/vulkan.c b/dlls/winevulkan/vulkan.c
+index e0f1e0da181..16233d8a73e 100644
+--- a/dlls/winevulkan/vulkan.c
++++ b/dlls/winevulkan/vulkan.c
+@@ -1355,7 +1355,7 @@ VkResult wine_vkCreateInstance(const VkInstanceCreateInfo *create_info,
+     return VK_SUCCESS;
+ }
+ 
+-void wine_vkDestroyDevice(VkDevice client_device, const VkAllocationCallbacks *allocator)
++NTSTATUS wine_vkDestroyDevice(VkDevice client_device, const VkAllocationCallbacks *allocator)
+ {
+     struct pending_d3d12_fence_op *op, *next;
+     struct vulkan_device *device = vulkan_device_from_handle(client_device);
+@@ -1365,7 +1365,7 @@ void wine_vkDestroyDevice(VkDevice client_device, const VkAllocationCallbacks *a
+     if (allocator)
+         FIXME("Support for allocation callbacks not implemented yet\n");
+     if (!device)
+-        return;
++        return VK_SUCCESS;
+ 
+     if (device->signaller_thread)
+     {
+@@ -1393,9 +1393,10 @@ void wine_vkDestroyDevice(VkDevice client_device, const VkAllocationCallbacks *a
+     vulkan_instance_remove_object(instance, &device->obj);
+ 
+     free(device);
++    return VK_SUCCESS;
+ }
+ 
+-void wine_vkDestroyInstance(VkInstance client_instance, const VkAllocationCallbacks *allocator)
++NTSTATUS wine_vkDestroyInstance(VkInstance client_instance, const VkAllocationCallbacks *allocator)
+ {
+     struct wine_instance *instance = wine_instance_from_handle(client_instance);
+     unsigned int i;
+@@ -1403,7 +1404,7 @@ void wine_vkDestroyInstance(VkInstance client_instance, const VkAllocationCallba
+     if (allocator)
+         FIXME("Support allocation allocators\n");
+     if (!instance)
+-        return;
++        return VK_SUCCESS;
+ 
+     instance->obj.p_vkDestroyInstance(instance->obj.host.instance, NULL /* allocator */);
+     for (i = 0; i < instance->phys_dev_count; i++)
+@@ -1418,6 +1419,7 @@ void wine_vkDestroyInstance(VkInstance client_instance, const VkAllocationCallba
+     if (instance->objects.compare) pthread_rwlock_destroy(&instance->objects_lock);
+     free(instance->utils_messengers);
+     free(instance);
++    return VK_SUCCESS;
+ }
+ 
+ VkResult wine_vkEnumerateDeviceExtensionProperties(VkPhysicalDevice client_physical_device, const char *layer_name,
+@@ -1557,13 +1559,14 @@ VkResult wine_vkEnumeratePhysicalDevices(VkInstance client_instance, uint32_t *c
+     return *count < instance->phys_dev_count ? VK_INCOMPLETE : VK_SUCCESS;
+ }
+ 
+-void wine_vkFreeCommandBuffers(VkDevice client_device, VkCommandPool command_pool, uint32_t count,
+-                               const VkCommandBuffer *buffers)
++NTSTATUS wine_vkFreeCommandBuffers(VkDevice client_device, VkCommandPool command_pool, uint32_t count,
++                                   const VkCommandBuffer *buffers)
+ {
+     struct vulkan_device *device = vulkan_device_from_handle(client_device);
+     struct wine_cmd_pool *pool = wine_cmd_pool_from_handle(command_pool);
+ 
+     wine_vk_free_command_buffers(device, pool, count, buffers);
++    return VK_SUCCESS;
+ }
+ 
+ static VkQueue wine_vk_device_find_queue(VkDevice client_device, const VkDeviceQueueInfo2 *info)
+@@ -1586,7 +1589,7 @@ static VkQueue wine_vk_device_find_queue(VkDevice client_device, const VkDeviceQ
+     return VK_NULL_HANDLE;
+ }
+ 
+-void wine_vkGetDeviceQueue(VkDevice client_device, uint32_t family_index, uint32_t queue_index, VkQueue *client_queue)
++NTSTATUS wine_vkGetDeviceQueue(VkDevice client_device, uint32_t family_index, uint32_t queue_index, VkQueue *client_queue)
+ {
+     VkDeviceQueueInfo2 queue_info;
+ 
+@@ -1597,9 +1600,10 @@ void wine_vkGetDeviceQueue(VkDevice client_device, uint32_t family_index, uint32
+     queue_info.queueIndex = queue_index;
+ 
+     *client_queue = wine_vk_device_find_queue(client_device, &queue_info);
++    return VK_SUCCESS;
+ }
+ 
+-void wine_vkGetDeviceQueue2(VkDevice client_device, const VkDeviceQueueInfo2 *info, VkQueue *client_queue)
++NTSTATUS wine_vkGetDeviceQueue2(VkDevice client_device, const VkDeviceQueueInfo2 *info, VkQueue *client_queue)
+ {
+     const VkBaseInStructure *chain;
+ 
+@@ -1607,6 +1611,7 @@ void wine_vkGetDeviceQueue2(VkDevice client_device, const VkDeviceQueueInfo2 *in
+         FIXME("Ignoring a linked structure of type %u.\n", chain->sType);
+ 
+     *client_queue = wine_vk_device_find_queue(client_device, info);
++    return VK_SUCCESS;
+ }
+ 
+ VkResult wine_vkCreateCommandPool(VkDevice client_device, const VkCommandPoolCreateInfo *info,
+@@ -1640,7 +1645,7 @@ VkResult wine_vkCreateCommandPool(VkDevice client_device, const VkCommandPoolCre
+     return VK_SUCCESS;
+ }
+ 
+-void wine_vkDestroyCommandPool(VkDevice client_device, VkCommandPool handle,
++NTSTATUS wine_vkDestroyCommandPool(VkDevice client_device, VkCommandPool handle,
+                                const VkAllocationCallbacks *allocator)
+ {
+     struct vulkan_device *device = vulkan_device_from_handle(client_device);
+@@ -1653,6 +1658,7 @@ void wine_vkDestroyCommandPool(VkDevice client_device, VkCommandPool handle,
+     device->p_vkDestroyCommandPool(device->host.device, pool->host.command_pool, NULL);
+     vulkan_instance_remove_object(instance, &pool->obj);
+     free(pool);
++    return VK_SUCCESS;
+ }
+ 
+ static VkResult wine_vk_enumerate_physical_device_groups(struct wine_instance *instance,
+@@ -1700,22 +1706,24 @@ VkResult wine_vkEnumeratePhysicalDeviceGroupsKHR(VkInstance client_instance, uin
+             instance->obj.p_vkEnumeratePhysicalDeviceGroupsKHR, count, properties);
+ }
+ 
+-void wine_vkGetPhysicalDeviceExternalFenceProperties(VkPhysicalDevice client_physical_device,
+-                                                     const VkPhysicalDeviceExternalFenceInfo *fence_info,
+-                                                     VkExternalFenceProperties *properties)
++NTSTATUS wine_vkGetPhysicalDeviceExternalFenceProperties(VkPhysicalDevice client_physical_device,
++                                                         const VkPhysicalDeviceExternalFenceInfo *fence_info,
++                                                         VkExternalFenceProperties *properties)
+ {
+     properties->exportFromImportedHandleTypes = 0;
+     properties->compatibleHandleTypes = 0;
+     properties->externalFenceFeatures = 0;
++    return VK_SUCCESS;
+ }
+ 
+-void wine_vkGetPhysicalDeviceExternalFencePropertiesKHR(VkPhysicalDevice client_physical_device,
+-                                                        const VkPhysicalDeviceExternalFenceInfo *fence_info,
+-                                                        VkExternalFenceProperties *properties)
++NTSTATUS wine_vkGetPhysicalDeviceExternalFencePropertiesKHR(VkPhysicalDevice client_physical_device,
++                                                            const VkPhysicalDeviceExternalFenceInfo *fence_info,
++                                                            VkExternalFenceProperties *properties)
+ {
+     properties->exportFromImportedHandleTypes = 0;
+     properties->compatibleHandleTypes = 0;
+     properties->externalFenceFeatures = 0;
++    return VK_SUCCESS;
+ }
+ 
+ static inline void wine_vk_normalize_handle_types_win(VkExternalMemoryHandleTypeFlags *types)
+@@ -1775,20 +1783,22 @@ static void wine_vk_get_physical_device_external_buffer_properties(struct wine_p
+     wine_vk_normalize_handle_types_win(&properties->externalMemoryProperties.compatibleHandleTypes);
+ }
+ 
+-void wine_vkGetPhysicalDeviceExternalBufferProperties(VkPhysicalDevice client_physical_device,
+-                                                      const VkPhysicalDeviceExternalBufferInfo *buffer_info,
+-                                                      VkExternalBufferProperties *properties)
++NTSTATUS wine_vkGetPhysicalDeviceExternalBufferProperties(VkPhysicalDevice client_physical_device,
++                                                          const VkPhysicalDeviceExternalBufferInfo *buffer_info,
++                                                          VkExternalBufferProperties *properties)
+ {
+     struct wine_phys_dev *phys_dev = wine_phys_dev_from_handle(client_physical_device);
+     wine_vk_get_physical_device_external_buffer_properties(phys_dev, phys_dev->obj.instance->p_vkGetPhysicalDeviceExternalBufferProperties, buffer_info, properties);
++    return VK_SUCCESS;
+ }
+ 
+-void wine_vkGetPhysicalDeviceExternalBufferPropertiesKHR(VkPhysicalDevice client_physical_device,
+-                                                         const VkPhysicalDeviceExternalBufferInfo *buffer_info,
+-                                                         VkExternalBufferProperties *properties)
++NTSTATUS wine_vkGetPhysicalDeviceExternalBufferPropertiesKHR(VkPhysicalDevice client_physical_device,
++                                                             const VkPhysicalDeviceExternalBufferInfo *buffer_info,
++                                                             VkExternalBufferProperties *properties)
+ {
+     struct wine_phys_dev *phys_dev = wine_phys_dev_from_handle(client_physical_device);
+     wine_vk_get_physical_device_external_buffer_properties(phys_dev, phys_dev->obj.instance->p_vkGetPhysicalDeviceExternalBufferPropertiesKHR, buffer_info, properties);
++    return VK_SUCCESS;
+ }
+ 
+ static VkResult wine_vk_get_physical_device_image_format_properties_2(struct vulkan_physical_device *physical_device,
+@@ -2165,24 +2175,26 @@ static void wine_vk_get_physical_device_external_semaphore_properties(struct win
+     wine_vk_normalize_semaphore_handle_types_win(&properties->compatibleHandleTypes);
+ }
+ 
+-void wine_vkGetPhysicalDeviceExternalSemaphoreProperties(VkPhysicalDevice client_physical_device,
+-                                                         const VkPhysicalDeviceExternalSemaphoreInfo *info,
+-                                                         VkExternalSemaphoreProperties *properties)
++NTSTATUS wine_vkGetPhysicalDeviceExternalSemaphoreProperties(VkPhysicalDevice client_physical_device,
++                                                             const VkPhysicalDeviceExternalSemaphoreInfo *info,
++                                                             VkExternalSemaphoreProperties *properties)
+ {
+     struct wine_phys_dev *phys_dev = wine_phys_dev_from_handle(client_physical_device);
+ 
+     TRACE("%p, %p, %p\n", phys_dev, info, properties);
+     wine_vk_get_physical_device_external_semaphore_properties(phys_dev, phys_dev->obj.instance->p_vkGetPhysicalDeviceExternalSemaphoreProperties, info, properties);
++    return VK_SUCCESS;
+ }
+ 
+-void wine_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR(VkPhysicalDevice client_physical_device,
+-                                                            const VkPhysicalDeviceExternalSemaphoreInfo *info,
+-                                                            VkExternalSemaphoreProperties *properties)
++NTSTATUS wine_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR(VkPhysicalDevice client_physical_device,
++                                                                const VkPhysicalDeviceExternalSemaphoreInfo *info,
++                                                                VkExternalSemaphoreProperties *properties)
+ {
+     struct wine_phys_dev *phys_dev = wine_phys_dev_from_handle(client_physical_device);
+ 
+     TRACE("%p, %p, %p\n", phys_dev, info, properties);
+     wine_vk_get_physical_device_external_semaphore_properties(phys_dev, phys_dev->obj.instance->p_vkGetPhysicalDeviceExternalSemaphorePropertiesKHR, info, properties);
++    return VK_SUCCESS;
+ }
+ 
+ #define IOCTL_SHARED_GPU_RESOURCE_CREATE           CTL_CODE(FILE_DEVICE_VIDEO, 0, METHOD_BUFFERED, FILE_WRITE_ACCESS)
+@@ -2893,7 +2905,7 @@ done:
+     return VK_SUCCESS;
+ }
+ 
+-void wine_vkFreeMemory(VkDevice client_device, VkDeviceMemory memory_handle, const VkAllocationCallbacks *allocator)
++NTSTATUS wine_vkFreeMemory(VkDevice client_device, VkDeviceMemory memory_handle, const VkAllocationCallbacks *allocator)
+ {
+     struct vulkan_device *device = vulkan_device_from_handle(client_device);
+     struct wine_phys_dev *physical_device = CONTAINING_RECORD(device->physical_device, struct wine_phys_dev, obj);
+@@ -2901,7 +2913,7 @@ void wine_vkFreeMemory(VkDevice client_device, VkDeviceMemory memory_handle, con
+     struct wine_device_memory *memory;
+ 
+     if (!memory_handle)
+-        return;
++        return VK_SUCCESS;
+     memory = wine_device_memory_from_handle(memory_handle);
+ 
+     destroy_keyed_mutex(device, memory);
+@@ -2929,6 +2941,7 @@ void wine_vkFreeMemory(VkDevice client_device, VkDeviceMemory memory_handle, con
+         NtClose(memory->handle);
+ 
+     free(memory);
++    return VK_SUCCESS;
+ }
+ 
+ VkResult wine_vkMapMemory(VkDevice client_device, VkDeviceMemory memory, VkDeviceSize offset,
+@@ -3022,7 +3035,7 @@ VkResult wine_vkMapMemory2KHR(VkDevice client_device, const VkMemoryMapInfoKHR *
+     return result;
+ }
+ 
+-void wine_vkUnmapMemory(VkDevice client_device, VkDeviceMemory memory)
++NTSTATUS wine_vkUnmapMemory(VkDevice client_device, VkDeviceMemory memory)
+ {
+     const VkMemoryUnmapInfoKHR info =
+     {
+@@ -3031,6 +3044,7 @@ void wine_vkUnmapMemory(VkDevice client_device, VkDeviceMemory memory)
+     };
+ 
+     wine_vkUnmapMemory2KHR(client_device, &info);
++    return VK_SUCCESS;
+ }
+ 
+ VkResult wine_vkUnmapMemory2KHR(VkDevice client_device, const VkMemoryUnmapInfoKHR *unmap_info)
+@@ -3157,7 +3171,7 @@ VkResult wine_vkCreateDebugUtilsMessengerEXT(VkInstance client_instance,
+     return VK_SUCCESS;
+ }
+ 
+-void wine_vkDestroyDebugUtilsMessengerEXT(VkInstance client_instance, VkDebugUtilsMessengerEXT messenger,
++NTSTATUS wine_vkDestroyDebugUtilsMessengerEXT(VkInstance client_instance, VkDebugUtilsMessengerEXT messenger,
+                                           const VkAllocationCallbacks *allocator)
+ {
+     struct vulkan_instance *instance = vulkan_instance_from_handle(client_instance);
+@@ -3166,12 +3180,13 @@ void wine_vkDestroyDebugUtilsMessengerEXT(VkInstance client_instance, VkDebugUti
+     object = wine_debug_utils_messenger_from_handle(messenger);
+ 
+     if (!object)
+-        return;
++        return VK_SUCCESS;
+ 
+     instance->p_vkDestroyDebugUtilsMessengerEXT(instance->host.instance, object->host.debug_messenger, NULL);
+     vulkan_instance_remove_object(instance, &object->obj);
+ 
+     free(object);
++    return VK_SUCCESS;
+ }
+ 
+ VkResult wine_vkCreateDebugReportCallbackEXT(VkInstance client_instance,
+@@ -3213,7 +3228,7 @@ VkResult wine_vkCreateDebugReportCallbackEXT(VkInstance client_instance,
+     return VK_SUCCESS;
+ }
+ 
+-void wine_vkDestroyDebugReportCallbackEXT(VkInstance client_instance, VkDebugReportCallbackEXT callback,
++NTSTATUS wine_vkDestroyDebugReportCallbackEXT(VkInstance client_instance, VkDebugReportCallbackEXT callback,
+                                           const VkAllocationCallbacks *allocator)
+ {
+     struct vulkan_instance *instance = vulkan_instance_from_handle(client_instance);
+@@ -3222,12 +3237,13 @@ void wine_vkDestroyDebugReportCallbackEXT(VkInstance client_instance, VkDebugRep
+     object = wine_debug_report_callback_from_handle(callback);
+ 
+     if (!object)
+-        return;
++        return VK_SUCCESS;
+ 
+     instance->p_vkDestroyDebugReportCallbackEXT(instance->host.instance, object->host.debug_callback, NULL);
+     vulkan_instance_remove_object(instance, &object->obj);
+ 
+     free(object);
++    return VK_SUCCESS;
+ }
+ 
+ VkResult wine_vkCreateDeferredOperationKHR(VkDevice device_handle,
+@@ -3261,7 +3277,7 @@ VkResult wine_vkCreateDeferredOperationKHR(VkDevice device_handle,
+     return VK_SUCCESS;
+ }
+ 
+-void wine_vkDestroyDeferredOperationKHR(VkDevice device_handle,
++NTSTATUS wine_vkDestroyDeferredOperationKHR(VkDevice device_handle,
+                                         VkDeferredOperationKHR       operation,
+                                         const VkAllocationCallbacks* allocator)
+ {
+@@ -3272,13 +3288,14 @@ void wine_vkDestroyDeferredOperationKHR(VkDevice device_handle,
+     object = wine_deferred_operation_from_handle(operation);
+ 
+     if (!object)
+-        return;
++        return VK_SUCCESS;
+ 
+     device->p_vkDestroyDeferredOperationKHR(device->host.device, object->host.deferred_operation, NULL);
+     vulkan_instance_remove_object(instance, &object->obj);
+ 
+     free_conversion_context(&object->ctx);
+     free(object);
++    return VK_SUCCESS;
+ }
+ 
+ static void substitute_function_name(const char **name)
+@@ -4031,7 +4048,7 @@ VkResult wine_vkGetSemaphoreWin32HandleKHR(VkDevice client_device, const VkSemap
+     return VK_SUCCESS;
+ }
+ 
+-void wine_vkDestroySemaphore(VkDevice client_device, VkSemaphore semaphore_handle, const VkAllocationCallbacks *allocator)
++NTSTATUS wine_vkDestroySemaphore(VkDevice client_device, VkSemaphore semaphore_handle, const VkAllocationCallbacks *allocator)
+ {
+     struct vulkan_device *device = vulkan_device_from_handle(client_device);
+     struct wine_semaphore *semaphore = wine_semaphore_from_handle(semaphore_handle);
+@@ -4042,7 +4059,7 @@ void wine_vkDestroySemaphore(VkDevice client_device, VkSemaphore semaphore_handl
+         FIXME("Support for allocation callbacks not implemented yet\n");
+ 
+     if (!semaphore)
+-        return;
++        return VK_SUCCESS;
+ 
+     if (semaphore->poll_entry.next)
+         unregister_sem_poll(device, semaphore);
+@@ -4060,6 +4077,7 @@ void wine_vkDestroySemaphore(VkDevice client_device, VkSemaphore semaphore_handl
+         device->p_vkDestroySemaphore(device->host.device, semaphore->fence_timeline_semaphore, NULL);
+ 
+     free(semaphore);
++    return VK_SUCCESS;
+ }
+ 
+ VkResult wine_vkImportSemaphoreWin32HandleKHR(VkDevice client_device,
+@@ -4759,7 +4777,7 @@ static void fixup_device_id(UINT *vendor_id, UINT *device_id)
+     }
+ }
+ 
+-void wine_vkGetPhysicalDeviceProperties(VkPhysicalDevice client_physical_device,
++NTSTATUS wine_vkGetPhysicalDeviceProperties(VkPhysicalDevice client_physical_device,
+         VkPhysicalDeviceProperties *properties)
+ {
+     struct wine_phys_dev *phys_dev = wine_phys_dev_from_handle(client_physical_device);
+@@ -4768,9 +4786,10 @@ void wine_vkGetPhysicalDeviceProperties(VkPhysicalDevice client_physical_device,
+ 
+     phys_dev->obj.instance->p_vkGetPhysicalDeviceProperties(phys_dev->obj.host.physical_device, properties);
+     fixup_device_id(&properties->vendorID, &properties->deviceID);
++    return STATUS_SUCCESS;
+ }
+ 
+-void wine_vkGetPhysicalDeviceProperties2(VkPhysicalDevice client_physical_device,
++NTSTATUS wine_vkGetPhysicalDeviceProperties2(VkPhysicalDevice client_physical_device,
+         VkPhysicalDeviceProperties2 *properties)
+ {
+     struct wine_phys_dev *phys_dev = wine_phys_dev_from_handle(client_physical_device);
+@@ -4779,9 +4798,10 @@ void wine_vkGetPhysicalDeviceProperties2(VkPhysicalDevice client_physical_device
+ 
+     phys_dev->obj.instance->p_vkGetPhysicalDeviceProperties2(phys_dev->obj.host.physical_device, properties);
+     fixup_device_id(&properties->properties.vendorID, &properties->properties.deviceID);
++    return STATUS_SUCCESS;
+ }
+ 
+-void wine_vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice client_physical_device,
++NTSTATUS wine_vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice client_physical_device,
+         VkPhysicalDeviceProperties2 *properties)
+ {
+     struct wine_phys_dev *phys_dev = wine_phys_dev_from_handle(client_physical_device);
+@@ -4790,6 +4810,7 @@ void wine_vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice client_physical_dev
+ 
+     phys_dev->obj.instance->p_vkGetPhysicalDeviceProperties2KHR(phys_dev->obj.host.physical_device, properties);
+     fixup_device_id(&properties->properties.vendorID, &properties->properties.deviceID);
++    return STATUS_SUCCESS;
+ }
+ 
+ DECLSPEC_EXPORT VkDevice __wine_get_native_VkDevice(VkDevice handle)
+-- 
+2.53.0
+

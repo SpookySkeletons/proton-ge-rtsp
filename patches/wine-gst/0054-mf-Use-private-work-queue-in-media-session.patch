@@ -1,0 +1,70 @@
+From 8a5cf0f0f4324c6037f00bb94e15beceaf15b17e Mon Sep 17 00:00:00 2001
+From: Torge Matthies <openglfreak@googlemail.com>
+Date: Fri, 19 Dec 2025 01:03:13 +0100
+Subject: [PATCH 54/60] mf: Use private work queue in media session.
+
+---
+ dlls/mf/session.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/dlls/mf/session.c b/dlls/mf/session.c
+index 142162004e4..51f8e0e1072 100644
+--- a/dlls/mf/session.c
++++ b/dlls/mf/session.c
+@@ -263,6 +263,7 @@ struct media_session
+     IMFAsyncCallback events_callback;
+     IMFAsyncCallback sink_finalizer_callback;
+     LONG refcount;
++    DWORD queue;
+     IMFMediaEventQueue *event_queue;
+     IMFPresentationClock *clock;
+     IMFPresentationTimeSource *system_time_source;
+@@ -507,7 +508,7 @@ static HRESULT session_submit_command(struct media_session *session, struct sess
+         session->presentation.flags &= ~SESSION_FLAG_PRESENTATION_ENDING;
+         if (list_empty(&session->commands) && session->command_state == COMMAND_STATE_COMPLETE)
+         {
+-            hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &session->commands_callback, &op->IUnknown_iface);
++            hr = MFPutWorkItem(session->queue, &session->commands_callback, &op->IUnknown_iface);
+             /* Since session->commands is empty, whether `op` is added to head or tail, it will
+              * always be at the head of this list, thus the invariant holds. */
+             if (SUCCEEDED(hr)) session->command_state = COMMAND_STATE_SUBMITTED;
+@@ -1038,7 +1039,7 @@ static void session_command_complete(struct media_session *session)
+     if ((e = list_head(&session->commands)))
+     {
+         op = LIST_ENTRY(e, struct session_op, entry);
+-        hr = MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &session->commands_callback, &op->IUnknown_iface);
++        hr = MFPutWorkItem(session->queue, &session->commands_callback, &op->IUnknown_iface);
+         if (SUCCEEDED(hr)) session->command_state = COMMAND_STATE_SUBMITTED;
+     }
+ }
+@@ -2041,7 +2042,7 @@ static HRESULT session_request_sample_from_node(struct media_session *session, s
+ static HRESULT WINAPI node_sample_allocator_cb_NotifyRelease(IMFVideoSampleAllocatorNotify *iface)
+ {
+     struct topo_node *topo_node = impl_node_from_IMFVideoSampleAllocatorNotify(iface);
+-    MFPutWorkItem(MFASYNC_CALLBACK_QUEUE_STANDARD, &topo_node->session->sa_ready_callback, (IUnknown *)iface);
++    MFPutWorkItem(topo_node->session->queue, &topo_node->session->sa_ready_callback, (IUnknown *)iface);
+     return S_OK;
+ }
+ 
+@@ -2439,6 +2440,8 @@ static ULONG WINAPI mfsession_Release(IMFMediaSession *iface)
+             IMFTopoLoader_Release(session->topo_loader);
+         if (session->quality_manager)
+             IMFQualityManager_Release(session->quality_manager);
++        if (session->queue)
++            MFUnlockWorkQueue(session->queue);
+         DeleteCriticalSection(&session->cs);
+         free(session);
+     }
+@@ -5178,6 +5181,9 @@ HRESULT WINAPI MFCreateMediaSession(IMFAttributes *config, IMFMediaSession **ses
+     list_init(&object->presentation.nodes);
+     InitializeCriticalSection(&object->cs);
+ 
++    if (FAILED(hr = MFAllocateSerialWorkQueue(MFASYNC_CALLBACK_QUEUE_MULTITHREADED, &object->queue)))
++        goto failed;
++
+     if (FAILED(hr = MFCreateTopology(&object->presentation.current_topology)))
+         goto failed;
+ 
+-- 
+2.53.0
+
