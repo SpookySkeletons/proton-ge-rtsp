@@ -474,6 +474,9 @@ apply_all_in_dir() {
     echo "WINE: -WINE-GST- 0060-treewide-Fix-some-variable-errors-with-Werror.patch"
     apply_patch "../patches/wine-gst/0060-treewide-Fix-some-variable-errors-with-Werror.patch"
 
+    echo "WINE: -WINE-GST- 0061-winegstreamer-Map-big-endian-audio-formats-to-litt.patch"
+    apply_patch "../patches/wine-gst/0061-winegstreamer-Map-big-endian-audio-formats-to-litt.patch"
+
 ### END WINE-GST PROTON RTSP SECTION ###
 
 ### (2-7) PROTON-GE ADDITIONAL CUSTOM PATCHES ###

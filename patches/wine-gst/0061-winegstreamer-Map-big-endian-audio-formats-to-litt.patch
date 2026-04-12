@@ -1,0 +1,46 @@
+From 68605c8e1aeaaa9951e61166320dd595de3a44f1 Mon Sep 17 00:00:00 2001
+From: kazu0617 <kazu0617@protonmail.com>
+Date: Sun, 12 Apr 2026 17:37:26 +0900
+Subject: [PATCH] winegstreamer: Map big-endian audio formats to their
+ little-endian equivalents.
+
+GStreamer sources such as rtpL16depay output audio/x-raw with BE formats
+(e.g. S16BE), which wg_audio_format_from_gst() does not handle, causing
+the stream to be rejected as WG_AUDIO_FORMAT_UNKNOWN.
+
+Add fallthrough cases so each BE format maps to its LE counterpart.
+stream_create_post_processing_elements() already inserts an audioconvert
+element for all audio/x-raw streams; with a valid LE format now requested
+downstream, audioconvert detects the endianness mismatch via caps
+negotiation and performs the byte-swap automatically.
+---
+ dlls/winegstreamer/wg_format.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/dlls/winegstreamer/wg_format.c b/dlls/winegstreamer/wg_format.c
+index e6fc0f7b351..76b4863902e 100644
+--- a/dlls/winegstreamer/wg_format.c
++++ b/dlls/winegstreamer/wg_format.c
+@@ -47,14 +47,19 @@ static enum wg_audio_format wg_audio_format_from_gst(GstAudioFormat format)
+         case GST_AUDIO_FORMAT_U8:
+             return WG_AUDIO_FORMAT_U8;
+         case GST_AUDIO_FORMAT_S16LE:
++        case GST_AUDIO_FORMAT_S16BE:
+             return WG_AUDIO_FORMAT_S16LE;
+         case GST_AUDIO_FORMAT_S24LE:
++        case GST_AUDIO_FORMAT_S24BE:
+             return WG_AUDIO_FORMAT_S24LE;
+         case GST_AUDIO_FORMAT_S32LE:
++        case GST_AUDIO_FORMAT_S32BE:
+             return WG_AUDIO_FORMAT_S32LE;
+         case GST_AUDIO_FORMAT_F32LE:
++        case GST_AUDIO_FORMAT_F32BE:
+             return WG_AUDIO_FORMAT_F32LE;
+         case GST_AUDIO_FORMAT_F64LE:
++        case GST_AUDIO_FORMAT_F64BE:
+             return WG_AUDIO_FORMAT_F64LE;
+         default:
+             return WG_AUDIO_FORMAT_UNKNOWN;
+-- 
+2.53.0
+
