@@ -1706,6 +1706,7 @@ class Session:
         self.env["GST_PLUGIN_SYSTEM_PATH_1_0"] = ':'.join([lib + "/gstreamer-1.0" for lib in ld_library_path])
         self.env["WINE_GST_REGISTRY_DIR"] = g_compatdata.path("gstreamer-1.0/")
 
+
         if "STEAM_COMPAT_MEDIA_PATH" in os.environ:
             old_audiofoz_path = os.environ["STEAM_COMPAT_MEDIA_PATH"] + "/audio.foz"
             if file_exists(old_audiofoz_path, follow_symlinks=False):

@@ -372,6 +372,8 @@ $(eval $(call rules-meson,gst_good,aarch64,unix))
 
 GST_BAD_MESON_ARGS := \
 	-Dauto_features=disabled \
+	-Dva=enabled \
+	-Dnvcodec=enabled \
 	-Dvideoparsers=enabled \
 	-Dhls=enabled \
 	-Dmpegtsdemux=enabled \
@@ -529,6 +531,10 @@ FFMPEG_CONFIGURE_ARGS := \
 	--disable-doc \
 	--disable-inline-asm \
 	--disable-all \
+	--enable-vaapi \
+	--enable-hwaccel=h264_vaapi \
+	--enable-hwaccel=hevc_vaapi \
+	--enable-hwaccel=vp9_vaapi \
 	--enable-avcodec \
 	--enable-avfilter \
 	--enable-avutil \
