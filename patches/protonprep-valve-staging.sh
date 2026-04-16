@@ -474,6 +474,12 @@ apply_all_in_dir() {
     echo "WINE: -WINE-GST- 0060-treewide-Fix-some-variable-errors-with-Werror.patch"
     apply_patch "../patches/wine-gst/0060-treewide-Fix-some-variable-errors-with-Werror.patch"
 
+    echo "WINE: -WINE-GST- 0061-winegstreamer-Fix-hang-and-use-after-free-when-a-wg_.patch"
+    apply_patch "../patches/wine-gst/0061-winegstreamer-Fix-hang-and-use-after-free-when-a-wg_.patch"
+
+    echo "WINE: -WINE-GST- 0062-winegstreamer-Fix-hang-in-IMFMediaSource-Shutdown.patch"
+    apply_patch "../patches/wine-gst/0062-winegstreamer-Fix-hang-in-IMFMediaSource-Shutdown.patch"
+
 ### END WINE-GST PROTON RTSP SECTION ###
 
 ### (2-7) PROTON-GE ADDITIONAL CUSTOM PATCHES ###
