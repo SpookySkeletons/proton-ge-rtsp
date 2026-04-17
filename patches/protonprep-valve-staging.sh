@@ -480,6 +480,9 @@ apply_all_in_dir() {
     echo "WINE: -WINE-GST- 0062-winegstreamer-Fix-hang-in-IMFMediaSource-Shutdown.patch"
     apply_patch "../patches/wine-gst/0062-winegstreamer-Fix-hang-in-IMFMediaSource-Shutdown.patch"
 
+    echo "WINE: -WINE-GST- 0063-winegstreamer-Map-big-endian-audio-formats-to-litt.patch"
+    apply_patch "../patches/wine-gst/0063-winegstreamer-Map-big-endian-audio-formats-to-litt.patch"
+
 ### END WINE-GST PROTON RTSP SECTION ###
 
 ### (2-7) PROTON-GE ADDITIONAL CUSTOM PATCHES ###
