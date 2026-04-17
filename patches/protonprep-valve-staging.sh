@@ -483,6 +483,12 @@ apply_all_in_dir() {
     echo "WINE: -WINE-GST- 0063-winegstreamer-Map-big-endian-audio-formats-to-litt.patch"
     apply_patch "../patches/wine-gst/0063-winegstreamer-Map-big-endian-audio-formats-to-litt.patch"
 
+    echo "WINE: -WINE-GST- 0064-winegstreamer-Ignore-subtitle-streams-and-do-not-fatal-on-missing-plugin-for-web-schemes.patch"
+    apply_patch "../patches/wine-gst/0064-winegstreamer-Ignore-subtitle-streams-and-do-not-fatal-on-missing-plugin-for-web-schemes.patch"
+
+    echo "WINE: -WINE-GST- 0065-winegstreamer-Accept-H264-avc-stream-format-for-MKV-playback.patch"
+    apply_patch "../patches/wine-gst/0065-winegstreamer-Accept-H264-avc-stream-format-for-MKV-playback.patch"
+
 ### END WINE-GST PROTON RTSP SECTION ###
 
 ### (2-7) PROTON-GE ADDITIONAL CUSTOM PATCHES ###

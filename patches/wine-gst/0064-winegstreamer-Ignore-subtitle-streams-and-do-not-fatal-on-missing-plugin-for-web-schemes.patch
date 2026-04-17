@@ -1,0 +1,39 @@
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1454,7 +1454,11 @@
+         caps = gst_pad_get_current_caps(pad);
+ 
+     structure = gst_caps_get_structure(caps, 0);
+-    if (!strncmp(gst_structure_get_name(structure), "text/", 5))
++    if (!strncmp(gst_structure_get_name(structure), "text/", 5)
++            || !strncmp(gst_structure_get_name(structure), "subpicture/", 11)
++            || !strcmp(gst_structure_get_name(structure), "application/x-ass")
++            || !strcmp(gst_structure_get_name(structure), "application/x-ssa")
++            || !strcmp(gst_structure_get_name(structure), "application/x-subtitle"))
+         return;
+ 
+     if (!(stream = create_stream(parser)))
+@@ -1901,13 +1905,19 @@
+             pthread_mutex_lock(&parser->mutex);
+             if (!parser->use_mediaconv)
+             {
+-                parser->error = true;
+-                pthread_cond_signal(&parser->init_cond);
+                 if (parser->is_web_scheme)
+-                    GST_WARNING("Autoplugged element failed to initialise. Giving up as we're using a web scheme.");
++                {
++                    /* For web schemes, missing plugins (e.g. subtitle decoders)
++                     * should not be fatal — skip the unsupported track. */
++                    GST_WARNING("Missing plugin for web scheme stream, ignoring.");
++                }
+                 else
++                {
++                    parser->error = true;
++                    pthread_cond_signal(&parser->init_cond);
+                     GST_WARNING("Autoplugged element failed to initialise, trying again with protonvideoconvert.");
+-                pthread_cond_broadcast(&parser->stream_event_cond);
++                    pthread_cond_broadcast(&parser->stream_event_cond);
++                }
+             }
+             pthread_mutex_unlock(&parser->mutex);
+         }

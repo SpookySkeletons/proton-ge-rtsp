@@ -1,0 +1,16 @@
+--- a/dlls/winegstreamer/wg_format.c
++++ b/dlls/winegstreamer/wg_format.c
+@@ -509,8 +509,11 @@
+         return;
+     }
+ 
+-    /* Windows requires byte-stream format. */
+-    if (strcmp(stream_format, "byte-stream"))
++    /* Accept both byte-stream (Annex B) and avc (length-prefixed NALUs).
++     * MKV containers use avc format; gstreamer's h264parse handles
++     * conversion to byte-stream internally when needed. */
++    if (strcmp(stream_format, "byte-stream") && strcmp(stream_format, "avc1")
++            && strcmp(stream_format, "avc") && strcmp(stream_format, "avc3"))
+     {
+         GST_DEBUG("Rejecting stream format %s.\n", stream_format);
+         return;
