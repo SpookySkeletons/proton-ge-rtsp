@@ -1,0 +1,319 @@
+diff --git a/dlls/winegstreamer/gst_private.h b/dlls/winegstreamer/gst_private.h
+index a77d58e2a47..15dc3057055 100644
+--- a/dlls/winegstreamer/gst_private.h
++++ b/dlls/winegstreamer/gst_private.h
+@@ -93,6 +93,8 @@ bool wg_parser_stream_get_buffer(wg_parser_t parser, wg_parser_stream_t stream,
+         struct wg_parser_buffer *buffer);
+ bool wg_parser_stream_copy_buffer(wg_parser_stream_t stream,
+         void *data, uint32_t offset, uint32_t size);
++bool wg_parser_stream_get_buffer_ptr(wg_parser_stream_t stream,
++        void **data, uint32_t *size);
+ void wg_parser_stream_release_buffer(wg_parser_stream_t stream);
+ void wg_parser_stream_notify_qos(wg_parser_stream_t stream,
+         bool underflow, double proportion, int64_t diff, uint64_t timestamp);
+diff --git a/dlls/winegstreamer/main.c b/dlls/winegstreamer/main.c
+index 0c3e31d05cb..73dfa617b43 100644
+--- a/dlls/winegstreamer/main.c
++++ b/dlls/winegstreamer/main.c
+@@ -347,6 +347,24 @@ bool wg_parser_stream_copy_buffer(wg_parser_stream_t stream,
+     return !WINE_UNIX_CALL(unix_wg_parser_stream_copy_buffer, &params);
+ }
+ 
++bool wg_parser_stream_get_buffer_ptr(wg_parser_stream_t stream,
++        void **data, uint32_t *size)
++{
++    struct wg_parser_stream_get_buffer_ptr_params params =
++    {
++        .stream = stream,
++    };
++
++    TRACE("stream %#I64x, data %p, size %p.\n", stream, data, size);
++
++    if (WINE_UNIX_CALL(unix_wg_parser_stream_get_buffer_ptr, &params))
++        return false;
++
++    *data = params.data;
++    *size = params.size;
++    return true;
++}
++
+ void wg_parser_stream_release_buffer(wg_parser_stream_t stream)
+ {
+     TRACE("stream %#I64x.\n", stream);
+diff --git a/dlls/winegstreamer/media_source.c b/dlls/winegstreamer/media_source.c
+index 284cf310219..f43577fd596 100644
+--- a/dlls/winegstreamer/media_source.c
++++ b/dlls/winegstreamer/media_source.c
+@@ -712,31 +712,182 @@ static HRESULT media_source_stop(struct media_source *source)
+     return IMFMediaEventQueue_QueueEventParamVar(source->event_queue, MESourceStopped, &GUID_NULL, S_OK, NULL);
+ }
+ 
++/* Zero-copy IMFMediaBuffer wrapping a GStreamer buffer.
++ * Lock() returns a direct pointer to the gst_buffer_map'd data.
++ * Release() calls wg_parser_stream_release_buffer() to free the
++ * GStreamer buffer when the last COM reference is dropped. */
++
++struct wg_media_buffer
++{
++    IMFMediaBuffer IMFMediaBuffer_iface;
++    LONG ref;
++    wg_parser_stream_t wg_stream;
++    BYTE *data;
++    DWORD size;
++    DWORD current_length;
++    BOOL locked;
++    BOOL released;
++};
++
++static struct wg_media_buffer *impl_from_IMFMediaBuffer(IMFMediaBuffer *iface)
++{
++    return CONTAINING_RECORD(iface, struct wg_media_buffer, IMFMediaBuffer_iface);
++}
++
++static HRESULT WINAPI wg_media_buffer_QueryInterface(IMFMediaBuffer *iface, REFIID riid, void **obj)
++{
++    if (IsEqualIID(riid, &IID_IUnknown) || IsEqualIID(riid, &IID_IMFMediaBuffer))
++    {
++        *obj = iface;
++        IMFMediaBuffer_AddRef(iface);
++        return S_OK;
++    }
++
++    *obj = NULL;
++    return E_NOINTERFACE;
++}
++
++static ULONG WINAPI wg_media_buffer_AddRef(IMFMediaBuffer *iface)
++{
++    struct wg_media_buffer *buf = impl_from_IMFMediaBuffer(iface);
++    return InterlockedIncrement(&buf->ref);
++}
++
++static ULONG WINAPI wg_media_buffer_Release(IMFMediaBuffer *iface)
++{
++    struct wg_media_buffer *buf = impl_from_IMFMediaBuffer(iface);
++    ULONG ref = InterlockedDecrement(&buf->ref);
++
++    if (!ref)
++    {
++        if (!buf->released)
++        {
++            wg_parser_stream_release_buffer(buf->wg_stream);
++            buf->released = TRUE;
++        }
++        free(buf);
++    }
++
++    return ref;
++}
++
++static HRESULT WINAPI wg_media_buffer_Lock(IMFMediaBuffer *iface, BYTE **out_data, DWORD *max_length, DWORD *current_length)
++{
++    struct wg_media_buffer *buf = impl_from_IMFMediaBuffer(iface);
++
++    buf->locked = TRUE;
++    *out_data = buf->data;
++    if (max_length) *max_length = buf->size;
++    if (current_length) *current_length = buf->current_length;
++    return S_OK;
++}
++
++static HRESULT WINAPI wg_media_buffer_Unlock(IMFMediaBuffer *iface)
++{
++    struct wg_media_buffer *buf = impl_from_IMFMediaBuffer(iface);
++    buf->locked = FALSE;
++    return S_OK;
++}
++
++static HRESULT WINAPI wg_media_buffer_GetCurrentLength(IMFMediaBuffer *iface, DWORD *length)
++{
++    struct wg_media_buffer *buf = impl_from_IMFMediaBuffer(iface);
++    *length = buf->current_length;
++    return S_OK;
++}
++
++static HRESULT WINAPI wg_media_buffer_SetCurrentLength(IMFMediaBuffer *iface, DWORD length)
++{
++    struct wg_media_buffer *buf = impl_from_IMFMediaBuffer(iface);
++
++    if (length > buf->size)
++        return E_INVALIDARG;
++
++    buf->current_length = length;
++    return S_OK;
++}
++
++static HRESULT WINAPI wg_media_buffer_GetMaxLength(IMFMediaBuffer *iface, DWORD *length)
++{
++    struct wg_media_buffer *buf = impl_from_IMFMediaBuffer(iface);
++    *length = buf->size;
++    return S_OK;
++}
++
++static const IMFMediaBufferVtbl wg_media_buffer_vtbl =
++{
++    wg_media_buffer_QueryInterface,
++    wg_media_buffer_AddRef,
++    wg_media_buffer_Release,
++    wg_media_buffer_Lock,
++    wg_media_buffer_Unlock,
++    wg_media_buffer_GetCurrentLength,
++    wg_media_buffer_SetCurrentLength,
++    wg_media_buffer_GetMaxLength,
++};
++
++static HRESULT wg_media_buffer_create(wg_parser_stream_t wg_stream, DWORD size, IMFMediaBuffer **out)
++{
++    struct wg_media_buffer *buf;
++    void *data;
++    uint32_t data_size;
++
++    if (!wg_parser_stream_get_buffer_ptr(wg_stream, &data, &data_size))
++    {
++        WARN("Failed to get buffer pointer from stream.\n");
++        return E_FAIL;
++    }
++
++    if (!(buf = calloc(1, sizeof(*buf))))
++        return E_OUTOFMEMORY;
++
++    buf->IMFMediaBuffer_iface.lpVtbl = &wg_media_buffer_vtbl;
++    buf->ref = 1;
++    buf->wg_stream = wg_stream;
++    buf->data = data;
++    buf->size = data_size;
++    buf->current_length = size;
++    buf->locked = FALSE;
++    buf->released = FALSE;
++
++    *out = &buf->IMFMediaBuffer_iface;
++    return S_OK;
++}
++
+ static HRESULT media_stream_send_sample(struct media_stream *stream, const struct wg_parser_buffer *wg_buffer, IUnknown *token)
+ {
+     IMFSample *sample = NULL;
+     IMFMediaBuffer *buffer;
+     HRESULT hr;
+-    BYTE *data;
+-
+-    if (FAILED(hr = MFCreateMemoryBuffer(wg_buffer->size, &buffer)))
+-        return hr;
+-    if (FAILED(hr = IMFMediaBuffer_SetCurrentLength(buffer, wg_buffer->size)))
+-        goto out;
+-    if (FAILED(hr = IMFMediaBuffer_Lock(buffer, &data, NULL, NULL)))
+-        goto out;
+ 
+-    if (!wg_parser_stream_copy_buffer(stream->wg_stream, data, 0, wg_buffer->size))
++    /* Zero-copy path: wrap GStreamer buffer directly as IMFMediaBuffer.
++     * The GStreamer buffer stays mapped until the IMFMediaBuffer is released. */
++    hr = wg_media_buffer_create(stream->wg_stream, wg_buffer->size, &buffer);
++    if (FAILED(hr))
+     {
+-        hr = S_FALSE;
++        /* Fallback to copy path if zero-copy fails. */
++        BYTE *data;
++
++        WARN("Zero-copy buffer failed, falling back to memcpy path.\n");
++        if (FAILED(hr = MFCreateMemoryBuffer(wg_buffer->size, &buffer)))
++            return hr;
++        if (FAILED(hr = IMFMediaBuffer_SetCurrentLength(buffer, wg_buffer->size)))
++            goto out;
++        if (FAILED(hr = IMFMediaBuffer_Lock(buffer, &data, NULL, NULL)))
++            goto out;
++
++        if (!wg_parser_stream_copy_buffer(stream->wg_stream, data, 0, wg_buffer->size))
++        {
++            hr = S_FALSE;
++            wg_parser_stream_release_buffer(stream->wg_stream);
++            IMFMediaBuffer_Unlock(buffer);
++            goto out;
++        }
+         wg_parser_stream_release_buffer(stream->wg_stream);
+-        IMFMediaBuffer_Unlock(buffer);
+-        goto out;
+-    }
+-    wg_parser_stream_release_buffer(stream->wg_stream);
+ 
+-    if (FAILED(hr = IMFMediaBuffer_Unlock(buffer)))
+-        goto out;
++        if (FAILED(hr = IMFMediaBuffer_Unlock(buffer)))
++            goto out;
++    }
+ 
+     if (FAILED(hr = MFCreateSample(&sample)))
+         goto out;
+diff --git a/dlls/winegstreamer/unixlib.h b/dlls/winegstreamer/unixlib.h
+index 70201ea41e2..9238fcac1b8 100644
+--- a/dlls/winegstreamer/unixlib.h
++++ b/dlls/winegstreamer/unixlib.h
+@@ -295,6 +295,13 @@ struct wg_parser_stream_copy_buffer_params
+     UINT32 size;
+ };
+ 
++struct wg_parser_stream_get_buffer_ptr_params
++{
++    wg_parser_stream_t stream;
++    void *data;
++    UINT32 size;
++};
++
+ struct wg_parser_stream_notify_qos_params
+ {
+     wg_parser_stream_t stream;
+@@ -444,6 +451,7 @@ enum unix_funcs
+ 
+     unix_wg_parser_stream_get_buffer,
+     unix_wg_parser_stream_copy_buffer,
++    unix_wg_parser_stream_get_buffer_ptr,
+     unix_wg_parser_stream_release_buffer,
+     unix_wg_parser_stream_notify_qos,
+ 
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -598,6 +598,29 @@
+     return S_OK;
+ }
+ 
++static NTSTATUS wg_parser_stream_get_buffer_ptr(void *args)
++{
++    struct wg_parser_stream_get_buffer_ptr_params *params = args;
++    struct wg_parser_stream *stream = get_stream(params->stream);
++    struct wg_parser *parser = stream->parser;
++
++    pthread_mutex_lock(&parser->mutex);
++
++    if (!stream->buffer_queue[stream->buf_read_idx])
++    {
++        pthread_mutex_unlock(&parser->mutex);
++        params->data = NULL;
++        params->size = 0;
++        return VFW_E_WRONG_STATE;
++    }
++
++    params->data = stream->map_info_queue[stream->buf_read_idx].data;
++    params->size = stream->map_info_queue[stream->buf_read_idx].size;
++
++    pthread_mutex_unlock(&parser->mutex);
++    return S_OK;
++}
++
+ static NTSTATUS wg_parser_stream_release_buffer(void *args)
+ {
+     struct wg_parser_stream *stream = get_stream(*(wg_parser_stream_t *)args);
+@@ -2555,6 +2578,7 @@
+ 
+     X(wg_parser_stream_get_buffer),
+     X(wg_parser_stream_copy_buffer),
++    X(wg_parser_stream_get_buffer_ptr),
+     X(wg_parser_stream_release_buffer),
+     X(wg_parser_stream_notify_qos),
+ 
+@@ -2958,6 +2982,7 @@
+ 
+     X64(wg_parser_stream_get_buffer),
+     X64(wg_parser_stream_copy_buffer),
++    X(wg_parser_stream_get_buffer_ptr),
+     X(wg_parser_stream_release_buffer),
+     X(wg_parser_stream_notify_qos),
+ 

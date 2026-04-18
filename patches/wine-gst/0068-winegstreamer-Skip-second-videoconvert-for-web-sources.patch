@@ -1,0 +1,26 @@
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1353,13 +1353,17 @@
+         stream->flip = element;
+ 
+         /* videoflip does not support 15 and 16-bit RGB so add a second videoconvert
+-         * to do the final conversion. */
+-        if (!(element = create_element("videoconvert", "base"))
+-                || !append_element(parser->container, element, &first, &last))
+-            return false;
++         * to do the final conversion. Skip for web/RTSP sources where 15/16-bit
++         * RGB never occurs — saves a full-frame memcpy per frame. */
++        if (!parser->is_web_scheme)
++        {
++            if (!(element = create_element("videoconvert", "base"))
++                    || !append_element(parser->container, element, &first, &last))
++                return false;
+ 
+-        /* Use multiple threads for colorspace conversion — default "0" means 1 thread. */
+-        gst_util_set_object_arg(G_OBJECT(element), "n-threads", "4");
++            /* Use multiple threads for colorspace conversion — default "0" means 1 thread. */
++            gst_util_set_object_arg(G_OBJECT(element), "n-threads", "4");
++        }
+ 
+         /* Input resolution may not match requested resolution. */
+         if (!(element = create_element("videoscale", "base"))

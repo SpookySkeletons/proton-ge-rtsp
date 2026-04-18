@@ -1,0 +1,32 @@
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1316,10 +1316,25 @@
+         gst_util_set_object_arg(G_OBJECT(element), "caps", "video/x-raw,colorimetry=0:0:0:0");
+ 
+         /* DirectShow can express interlaced video, but downstream filters can't
+-         * necessarily consume it. In particular, the video renderer can't. */
+-        if (!(element = create_element("deinterlace", "good"))
+-                || !append_element(parser->container, element, &first, &last))
+-            return false;
++         * necessarily consume it. In particular, the video renderer can't.
++         * Skip deinterlace for progressive content — passthrough still costs cycles. */
++        {
++            GstCaps *pad_caps = gst_pad_get_current_caps(pad);
++            gboolean dominated = FALSE;
++            if (pad_caps)
++            {
++                GstVideoInfo vi;
++                if (gst_video_info_from_caps(&vi, pad_caps) && GST_VIDEO_INFO_IS_INTERLACED(&vi))
++                    dominated = TRUE;
++                gst_caps_unref(pad_caps);
++            }
++            if (dominated)
++            {
++                if (!(element = create_element("deinterlace", "good"))
++                        || !append_element(parser->container, element, &first, &last))
++                    return false;
++            }
++        }
+ 
+         /* decodebin considers many YUV formats to be "raw", but some quartz
+          * filters can't handle those. Also, videoflip can't handle all "raw"

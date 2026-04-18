@@ -1,0 +1,29 @@
+--- a/dlls/winegstreamer/wg_task_pool.c
++++ b/dlls/winegstreamer/wg_task_pool.c
+@@ -26,6 +26,7 @@
+ 
+ #include <assert.h>
+ #include <stdarg.h>
++#include <sched.h>
+ 
+ #include <gst/gst.h>
+ 
+@@ -61,7 +62,18 @@
+     GST_LOG("pool %p, func %p, data %p, error %p", pool, func, data, error);
+ 
+     if (!(tid = malloc(sizeof(*tid))) || !(res = pthread_create(tid, NULL, (void *)func, data)))
++    {
++        /* Boost GStreamer streaming threads to SCHED_RR priority 1.
++         * This prevents audio delivery stalls when game threads (which
++         * run at higher nice or TIME_CRITICAL via patch 0058) starve
++         * the GStreamer pipeline under heavy CPU load. Priority 1 is
++         * the minimum RT priority — enough to preempt normal threads
++         * but below wine's audio_client threads. */
++        struct sched_param param = { .sched_priority = 1 };
++        if (pthread_setschedparam(*tid, SCHED_RR | SCHED_RESET_ON_FORK, &param))
++            GST_DEBUG("Failed to set SCHED_RR on streaming thread, continuing with default priority.");
+         return tid;
++    }
+ 
+     g_set_error(error, G_THREAD_ERROR, G_THREAD_ERROR_AGAIN, "Error creating thread: %s", g_strerror(res));
+     free(tid);

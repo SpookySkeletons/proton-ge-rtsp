@@ -489,6 +489,27 @@ apply_all_in_dir() {
     echo "WINE: -WINE-GST- 0065-winegstreamer-Accept-H264-avc-stream-format-for-MKV-playback.patch"
     apply_patch "../patches/wine-gst/0065-winegstreamer-Accept-H264-avc-stream-format-for-MKV-playback.patch"
 
+    echo "WINE: -WINE-GST- 0067-winegstreamer-Skip-deinterlace-for-progressive-video.patch"
+    apply_patch "../patches/wine-gst/0067-winegstreamer-Skip-deinterlace-for-progressive-video.patch"
+
+    echo "WINE: -WINE-GST- 0068-winegstreamer-Skip-second-videoconvert-for-web-sources.patch"
+    apply_patch "../patches/wine-gst/0068-winegstreamer-Skip-second-videoconvert-for-web-sources.patch"
+
+    echo "WINE: -WINE-GST- 0069-winegstreamer-Skip-capssetter-colorimetry-hack-for-web-sources.patch"
+    apply_patch "../patches/wine-gst/0069-winegstreamer-Skip-capssetter-colorimetry-hack-for-web-sources.patch"
+
+    echo "WINE: -WINE-GST- 0070-winegstreamer-Boost-GStreamer-streaming-threads-to-SCHED_RR.patch"
+    apply_patch "../patches/wine-gst/0070-winegstreamer-Boost-GStreamer-streaming-threads-to-SCHED_RR.patch"
+
+    echo "WINE: -WINE-GST- 0071-winegstreamer-Set-PTHREAD_PRIO_INHERIT-on-parser-mutex.patch"
+    apply_patch "../patches/wine-gst/0071-winegstreamer-Set-PTHREAD_PRIO_INHERIT-on-parser-mutex.patch"
+
+    echo "WINE: -WINE-GST- 0072-winegstreamer-Double-buffer-stream-queue-to-prevent-audio-drops.patch"
+    apply_patch "../patches/wine-gst/0072-winegstreamer-Double-buffer-stream-queue-to-prevent-audio-drops.patch"
+
+    echo "WINE: -WINE-GST- 0073-winegstreamer-Zero-copy-IMFMediaBuffer-wrapping-GStreamer-buffers.patch"
+    apply_patch "../patches/wine-gst/0073-winegstreamer-Zero-copy-IMFMediaBuffer-wrapping-GStreamer-buffers.patch"
+
 ### END WINE-GST PROTON RTSP SECTION ###
 
 ### (2-7) PROTON-GE ADDITIONAL CUSTOM PATCHES ###

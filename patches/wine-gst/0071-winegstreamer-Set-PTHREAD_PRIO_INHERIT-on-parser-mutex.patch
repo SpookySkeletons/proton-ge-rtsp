@@ -1,0 +1,17 @@
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -2157,7 +2157,13 @@
+     }
+     gst_task_pool_prepare(parser->task_pool, &error);
+ 
+-    pthread_mutex_init(&parser->mutex, NULL);
++    {
++        pthread_mutexattr_t attr;
++        pthread_mutexattr_init(&attr);
++        pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
++        pthread_mutex_init(&parser->mutex, &attr);
++        pthread_mutexattr_destroy(&attr);
++    }
+     pthread_cond_init(&parser->init_cond, NULL);
+     pthread_cond_init(&parser->read_cond, NULL);
+     pthread_cond_init(&parser->read_done_cond, NULL);

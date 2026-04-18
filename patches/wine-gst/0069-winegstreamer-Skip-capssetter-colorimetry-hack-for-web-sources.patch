@@ -1,0 +1,37 @@
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -1303,17 +1303,23 @@
+          * the front of the chain, and we remove the matrix-mode setting for the
+          * videoconvert elements.
+          */
+-        if (!(element = create_element("capssetter", "good"))
+-                || !append_element(parser->container, element, &first, &last))
+-            return false;
+-        gst_util_set_object_arg(G_OBJECT(element), "join", "true");
+-        /* Actually, this is invalid, but it causes videoconvert to use default
+-         * colorimetry as a result. Yes, this is depending on undocumented
+-         * implementation details. It's a hack.
+-         *
+-         * Sadly there doesn't seem to be a way to get capssetter to clear
+-         * certain fields while leaving others untouched. */
+-        gst_util_set_object_arg(G_OBJECT(element), "caps", "video/x-raw,colorimetry=0:0:0:0");
++        /* Skip the capssetter colorimetry hack for web/RTSP sources —
++         * streaming sources provide correct colorimetry and the hack
++         * causes unnecessary caps renegotiation overhead. */
++        if (!parser->is_web_scheme)
++        {
++            if (!(element = create_element("capssetter", "good"))
++                    || !append_element(parser->container, element, &first, &last))
++                return false;
++            gst_util_set_object_arg(G_OBJECT(element), "join", "true");
++            /* Actually, this is invalid, but it causes videoconvert to use default
++             * colorimetry as a result. Yes, this is depending on undocumented
++             * implementation details. It's a hack.
++             *
++             * Sadly there doesn't seem to be a way to get capssetter to clear
++             * certain fields while leaving others untouched. */
++            gst_util_set_object_arg(G_OBJECT(element), "caps", "video/x-raw,colorimetry=0:0:0:0");
++        }
+ 
+         /* DirectShow can express interlaced video, but downstream filters can't
+          * necessarily consume it. In particular, the video renderer can't.

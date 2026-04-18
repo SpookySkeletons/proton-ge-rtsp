@@ -1,0 +1,135 @@
+--- a/dlls/winegstreamer/wg_parser.c
++++ b/dlls/winegstreamer/wg_parser.c
+@@ -125,6 +125,8 @@
+ };
+ static const unsigned int input_cache_chunk_size = 512 << 10;
+ 
++#define WG_PARSER_STREAM_QUEUE_SIZE 3
++
+ struct wg_parser_stream
+ {
+     struct wg_parser *parser;
+@@ -138,8 +140,9 @@
+     GstCaps *desired_caps;
+     GstCaps *next_desired_caps;
+ 
+-    GstBuffer *buffer;
+-    GstMapInfo map_info;
++    GstBuffer *buffer_queue[WG_PARSER_STREAM_QUEUE_SIZE];
++    GstMapInfo map_info_queue[WG_PARSER_STREAM_QUEUE_SIZE];
++    unsigned int buf_read_idx, buf_write_idx, buf_count;
+ 
+     bool flushing, eos, enabled, has_tags, has_buffer, no_more_pads, fix_nv12;
+ 
+@@ -456,7 +459,7 @@
+     /* Note that we can both have a buffer and stream->eos, in which case we
+      * must return the buffer. */
+ 
+-    while (stream->enabled && !(buffer = stream->buffer) && !stream->eos && !parser->shutdown)
++    while (stream->enabled && !(buffer = stream->buffer_queue[stream->buf_read_idx]) && !stream->eos && !parser->shutdown)
+         pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
+ 
+     return buffer;
+@@ -464,11 +467,13 @@
+ 
+ static void release_buffer(struct wg_parser *parser, struct wg_parser_stream *stream)
+ {
+-    if (stream->buffer)
++    if (stream->buffer_queue[stream->buf_read_idx])
+     {
+-        gst_buffer_unmap(stream->buffer, &stream->map_info);
+-        gst_buffer_unref(stream->buffer);
+-        stream->buffer = NULL;
++        gst_buffer_unmap(stream->buffer_queue[stream->buf_read_idx], &stream->map_info_queue[stream->buf_read_idx]);
++        gst_buffer_unref(stream->buffer_queue[stream->buf_read_idx]);
++        stream->buffer_queue[stream->buf_read_idx] = NULL;
++        stream->buf_read_idx = (stream->buf_read_idx + 1) % WG_PARSER_STREAM_QUEUE_SIZE;
++        stream->buf_count--;
+     }
+ 
+     pthread_cond_broadcast(&parser->stream_event_cond);
+@@ -579,15 +584,15 @@
+         return MF_E_SHUTDOWN;
+     }
+ 
+-    if (!stream->buffer)
++    if (!stream->buffer_queue[stream->buf_read_idx])
+     {
+         pthread_mutex_unlock(&parser->mutex);
+         return VFW_E_WRONG_STATE;
+     }
+ 
+-    assert(offset < stream->map_info.size);
+-    assert(offset + size <= stream->map_info.size);
+-    memcpy(params->data, stream->map_info.data + offset, size);
++    assert(offset < stream->map_info_queue[stream->buf_read_idx].size);
++    assert(offset + size <= stream->map_info_queue[stream->buf_read_idx].size);
++    memcpy(params->data, stream->map_info_queue[stream->buf_read_idx].data + offset, size);
+ 
+     pthread_mutex_unlock(&parser->mutex);
+     return S_OK;
+@@ -886,11 +891,13 @@
+             stream->flushing = true;
+             pthread_cond_broadcast(&parser->stream_event_cond);
+ 
+-            if (stream->buffer)
++            while (stream->buf_count > 0)
+             {
+-                gst_buffer_unmap(stream->buffer, &stream->map_info);
+-                gst_buffer_unref(stream->buffer);
+-                stream->buffer = NULL;
++                gst_buffer_unmap(stream->buffer_queue[stream->buf_read_idx], &stream->map_info_queue[stream->buf_read_idx]);
++                gst_buffer_unref(stream->buffer_queue[stream->buf_read_idx]);
++                stream->buffer_queue[stream->buf_read_idx] = NULL;
++                stream->buf_read_idx = (stream->buf_read_idx + 1) % WG_PARSER_STREAM_QUEUE_SIZE;
++                stream->buf_count--;
+             }
+ 
+             pthread_mutex_unlock(&parser->mutex);
+@@ -1042,7 +1049,7 @@
+     /* Allow this buffer to be flushed by GStreamer. We are effectively
+      * implementing a queue object here. */
+ 
+-    while (stream->enabled && !stream->flushing && stream->buffer)
++    while (stream->enabled && !stream->flushing && stream->buf_count >= WG_PARSER_STREAM_QUEUE_SIZE)
+         pthread_cond_wait(&parser->stream_event_cond, &parser->mutex);
+ 
+     if (!stream->enabled)
+@@ -1064,7 +1071,7 @@
+     if (stream->fix_nv12)
+         buffer_fix_nv12(buffer, stream->current_caps);
+ 
+-    if (!gst_buffer_map(buffer, &stream->map_info, GST_MAP_READ))
++    if (!gst_buffer_map(buffer, &stream->map_info_queue[stream->buf_write_idx], GST_MAP_READ))
+     {
+         pthread_mutex_unlock(&parser->mutex);
+         GST_ERROR("Failed to map buffer.");
+@@ -1072,7 +1079,9 @@
+         return GST_FLOW_ERROR;
+     }
+ 
+-    stream->buffer = buffer;
++    stream->buffer_queue[stream->buf_write_idx] = buffer;
++    stream->buf_write_idx = (stream->buf_write_idx + 1) % WG_PARSER_STREAM_QUEUE_SIZE;
++    stream->buf_count++;
+ 
+     pthread_mutex_unlock(&parser->mutex);
+     pthread_cond_broadcast(&parser->stream_event_cond);
+@@ -1215,11 +1224,13 @@
+     }
+     gst_object_unref(stream->my_sink);
+ 
+-    if (stream->buffer)
++    while (stream->buf_count > 0)
+     {
+-        gst_buffer_unmap(stream->buffer, &stream->map_info);
+-        gst_buffer_unref(stream->buffer);
+-        stream->buffer = NULL;
++        gst_buffer_unmap(stream->buffer_queue[stream->buf_read_idx], &stream->map_info_queue[stream->buf_read_idx]);
++        gst_buffer_unref(stream->buffer_queue[stream->buf_read_idx]);
++        stream->buffer_queue[stream->buf_read_idx] = NULL;
++        stream->buf_read_idx = (stream->buf_read_idx + 1) % WG_PARSER_STREAM_QUEUE_SIZE;
++        stream->buf_count--;
+     }
+ 
+     for (i = 0; i < ARRAY_SIZE(stream->tags); ++i)
