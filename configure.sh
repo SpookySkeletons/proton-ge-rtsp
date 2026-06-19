@@ -56,15 +56,16 @@ check_container_engine() {
     fi
 
     touch permission_check
-    local inner_uid="$($1 run -v "$(pwd):/test$CONTAINER_MOUNT_OPTS" \
+    local output="$($1 run -v "$(pwd):/test$CONTAINER_MOUNT_OPTS" \
                                             --rm $2 \
                                             stat --format "%u" /test/permission_check 2>&1)"
+    local inner_uid="$(printf '%s\n' "$output" | tail -n1)"
     rm permission_check
 
-    if [[ $inner_uid == *"Permission denied"* ]]; then
+    if [[ $output == *"Permission denied"* ]]; then
         err "The container cannot access files. Are you using SELinux?"
         die "Please read README.md and check your $1 setup works."
-    elif [[ $inner_uid == *"Emulate Docker CLI"* ]]; then
+    elif [[ $output == *"Emulate Docker CLI"* ]]; then
         err "Detected podman-docker in use without the warning being silenced."
         die "Please create /etc/containers/nodocker or specify --container-engine=podman."
     elif [ "$inner_uid" -eq 0 ]; then
